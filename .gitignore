@@ -23,12 +23,16 @@ share/python-wheels/
 MANIFEST
 
 # Virtual environments
+.venv
 .venv/
+venv
 venv/
+ENV
 ENV/
+env
 env/
+backend/.venv
 backend/.venv/
-.venv/
 
 # Environment variables & secrets (CRITICAL: never commit actual secrets)
 .env

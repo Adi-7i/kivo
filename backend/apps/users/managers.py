@@ -13,6 +13,10 @@ if TYPE_CHECKING:
 class UserManager(BaseUserManager["User"]):
     """Custom manager for User model with email as unique identifier."""
 
+    def get_by_natural_key(self, username: str | None) -> User:
+        """Look up user by email in a case-insensitive manner."""
+        return self.get(**{f"{self.model.USERNAME_FIELD}__iexact": username})
+
     def create_user(
         self,
         email: str,

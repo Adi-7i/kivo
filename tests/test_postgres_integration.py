@@ -14,6 +14,7 @@ from django.db import connection
 
 
 @pytest.mark.integration
+@pytest.mark.django_db
 class TestSupabasePostgresIntegration:
     """Live PostgreSQL integration tests."""
 

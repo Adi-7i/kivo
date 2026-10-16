@@ -44,6 +44,13 @@ class TestDatabaseUrlParser:
         assert config["USER"] == "custom_user"
         assert config["OPTIONS"]["sslmode"] == "verify-full"
 
+    @pytest.mark.parametrize("sslmode", ["disable", "allow", "prefer"])
+    def test_rejects_tls_downgrade(self, sslmode: str) -> None:
+        with pytest.raises(ImproperlyConfigured, match="TLS"):
+            parse_supabase_db_url(
+                f"postgresql://user:pass@db.example.com/postgres?sslmode={sslmode}"
+            )
+
 
 @pytest.mark.unit
 class TestDatabaseUrlMasking:

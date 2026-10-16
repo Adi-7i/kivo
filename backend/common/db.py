@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -45,6 +45,10 @@ def parse_supabase_db_url(url_str: str | None = None) -> dict[str, Any]:
 
     qs = parse_qs(parsed.query)
     sslmode = qs.get("sslmode", ["require"])[0]
+    if sslmode not in {"require", "verify-ca", "verify-full"}:
+        raise ImproperlyConfigured(
+            "Kivo requires encrypted PostgreSQL TLS; insecure sslmode is rejected."
+        )
 
     # Database name from URL path
     db_name = parsed.path.lstrip("/")
@@ -57,12 +61,13 @@ def parse_supabase_db_url(url_str: str | None = None) -> dict[str, Any]:
     return {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": db_name,
-        "USER": parsed.username or "postgres",
-        "PASSWORD": parsed.password or "",
+        "USER": unquote(parsed.username) if parsed.username else "postgres",
+        "PASSWORD": unquote(parsed.password) if parsed.password else "",
         "HOST": parsed.hostname or "",
         "PORT": port,
         "OPTIONS": {
             "sslmode": sslmode,
+            "connect_timeout": 10,
         },
         "CONN_MAX_AGE": 600,
     }

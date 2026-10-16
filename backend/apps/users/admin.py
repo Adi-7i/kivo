@@ -12,10 +12,10 @@ from apps.users.models import User
 class UserAdmin(BaseUserAdmin):
     """Custom UserAdmin tailored for email-based User model."""
 
-    list_display = ("email", "is_staff", "is_active", "date_joined")
+    list_display = ("email", "name", "is_staff", "is_active", "date_joined")
     list_filter = ("is_staff", "is_superuser", "is_active")
     fieldsets = (
-        (None, {"fields": ("email", "password")}),
+        (None, {"fields": ("email", "name", "password")}),
         (
             "Permissions",
             {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")},
@@ -27,9 +27,9 @@ class UserAdmin(BaseUserAdmin):
             None,
             {
                 "classes": ("wide",),
-                "fields": ("email", "password1", "password2"),
+                "fields": ("email", "name", "password1", "password2"),
             },
         ),
     )
-    search_fields = ("email",)
+    search_fields = ("email", "name")
     ordering = ("-date_joined",)

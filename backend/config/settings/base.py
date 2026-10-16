@@ -32,6 +32,9 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     "apps.users",
+    "apps.ledger",
+    "apps.funds",
+    "apps.sharing",
     "common",
 ]
 
@@ -39,6 +42,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "common.observability.RequestCorrelationMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -98,9 +102,19 @@ STATIC_ROOT = ROOT_DIR / "staticfiles"
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Session and Cookie Security
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_AGE = 86400 * 14  # 14 days
+SESSION_SAVE_EVERY_REQUEST = False
+
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = "Lax"
+
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework.authentication.SessionAuthentication",),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("common.authentication.KivoSessionAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "DEFAULT_PARSER_CLASSES": ("rest_framework.parsers.JSONParser",),
@@ -109,6 +123,12 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
     "EXCEPTION_HANDLER": "common.exceptions.kivo_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "100/day",
+        "user": "1000/day",
+        "login": "5/min",
+        "register": "3/min",
+    },
 }
 
 # drf-spectacular (OpenAPI 3.0 schema generation)
@@ -129,8 +149,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "[{asctime}] {levelname} [{name}:{lineno}] {message}",
-            "style": "{",
+            "()": "common.observability.JsonFormatter",
         },
         "simple": {
             "format": "{levelname}: {message}",

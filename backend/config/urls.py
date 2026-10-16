@@ -16,7 +16,11 @@ api_v1_patterns = [
     # Health checks
     path("health/", HealthCheckView.as_view(), name="health-check"),
     path("health/db/", DatabaseHealthCheckView.as_view(), name="db-health-check"),
-    # Future domain routes (Phase 2+: auth, accounts, transactions, etc.)
+    # Phase 2: Authentication & User Management
+    path("auth/", include("apps.users.urls")),
+    path("", include("apps.ledger.urls")),
+    path("funds/", include("apps.funds.urls")),
+    path("", include("apps.sharing.urls")),
 ]
 
 urlpatterns = [
