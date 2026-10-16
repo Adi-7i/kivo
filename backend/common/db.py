@@ -45,6 +45,10 @@ def parse_supabase_db_url(url_str: str | None = None) -> dict[str, Any]:
 
     qs = parse_qs(parsed.query)
     sslmode = qs.get("sslmode", ["require"])[0]
+    if sslmode not in {"require", "verify-ca", "verify-full"}:
+        raise ImproperlyConfigured(
+            "Kivo requires encrypted PostgreSQL TLS; insecure sslmode is rejected."
+        )
 
     # Database name from URL path
     db_name = parsed.path.lstrip("/")
@@ -63,6 +67,7 @@ def parse_supabase_db_url(url_str: str | None = None) -> dict[str, Any]:
         "PORT": port,
         "OPTIONS": {
             "sslmode": sslmode,
+            "connect_timeout": 10,
         },
         "CONN_MAX_AGE": 600,
     }

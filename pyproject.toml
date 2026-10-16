@@ -3,7 +3,7 @@ name = "kivo"
 version = "0.1.0"
 description = "Kivo — Personal Money & Expense Management Application Backend"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 authors = [
     { name = "Kivo Engineering Team" }
 ]

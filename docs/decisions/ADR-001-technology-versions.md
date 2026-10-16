@@ -77,3 +77,14 @@ The Kivo specification mentions Python 3.13 as the target runtime. However, the 
   - Native binary wheels for all dependencies on Linux x86_64.
 * **Negative / Limitations:**
   - If deploying to a runtime strictly limited to Python 3.13 in later production phases, minor verification of stdlib features will be required (though Python 3.13 code is backwards compatible with 3.14).
+
+## Phase 3 follow-up: requested Python 3.13 verification
+
+The latest Phase 3–4 instruction targets Python 3.13. Python 3.13.16 was built
+locally under `/tmp` from official python.org source with a verified SHA-256 and
+TLS/ctypes support. The unchanged pinned requirements installed in a separate
+temporary virtual environment. The complete Phase 3 gate passed 107 tests on
+that interpreter against isolated remote Supabase PostgreSQL. See the
+[Phase 3 verification report](../phases/phase-03-verification.md) for exact commands
+and outcomes. Project runtime metadata now requires Python >=3.13. System Python
+and the existing `backend/.venv` Python 3.14 environment were preserved.

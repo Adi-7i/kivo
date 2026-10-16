@@ -18,6 +18,8 @@ api_v1_patterns = [
     path("health/db/", DatabaseHealthCheckView.as_view(), name="db-health-check"),
     # Phase 2: Authentication & User Management
     path("auth/", include("apps.users.urls")),
+    path("", include("apps.ledger.urls")),
+    path("funds/", include("apps.funds.urls")),
 ]
 
 urlpatterns = [

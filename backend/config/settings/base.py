@@ -32,6 +32,8 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     "apps.users",
+    "apps.ledger",
+    "apps.funds",
     "common",
 ]
 
@@ -39,6 +41,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "common.observability.RequestCorrelationMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -145,8 +148,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "[{asctime}] {levelname} [{name}:{lineno}] {message}",
-            "style": "{",
+            "()": "common.observability.JsonFormatter",
         },
         "simple": {
             "format": "{levelname}: {message}",
