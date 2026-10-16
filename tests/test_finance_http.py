@@ -92,6 +92,93 @@ def test_real_http_financial_lifecycle(live_server: Any) -> None:
     fund = request("/api/v1/funds/batches/")[1]["results"][0]
     assert fund["source_event"] == first[1]["id"]
     assert request(f"/api/v1/funds/batches/{fund['id']}/journey/")[1]["count"] == 4
+    code, contact = request(
+        "/api/v1/contacts/", {"display_name": "HTTP roommate", "is_roommate": True}, key="contact"
+    )
+    assert code == 201
+    code, gift = request(
+        "/api/v1/transactions/",
+        {
+            **base,
+            "kind": "expense",
+            "amount": "10.00",
+            "category": category["id"],
+            "contact": contact["id"],
+            "classification": "gift",
+        },
+        key="gift",
+    )
+    assert code == 201
+    assert (
+        request(f"/api/v1/contacts/{contact['id']}/history/")[1]["results"][0]["id"] == gift["id"]
+    )
+    code, rent_plan = request(
+        "/api/v1/rent/plans/",
+        {
+            "title": "Personal rent",
+            "payee": "Landlord",
+            "start_date": "2025-10-01",
+            "due_day": None,
+            "amount": "100.00",
+            "category": category["id"],
+        },
+        key="rent-plan",
+    )
+    assert code == 201
+    assert (
+        request(
+            f"/api/v1/rent/plans/{rent_plan['id']}/generate/",
+            {"through": "2025-10-31"},
+            key="generate",
+        )[0]
+        == 201
+    )
+    obligation = request(f"/api/v1/rent/plans/{rent_plan['id']}/obligations/")[1]["results"][0]
+    assert obligation["paid"] == "0.00"
+    assert (
+        request(
+            "/api/v1/rent/reserves/",
+            {
+                "obligation": obligation["id"],
+                "label": "October",
+                "amount": "100.00",
+                "reason": "Set aside",
+            },
+            key="reserve",
+        )[0]
+        == 201
+    )
+    assert request("/api/v1/rent/spending-capacity/")[1] == {
+        "liquid_balance": "850.00",
+        "active_reserves": "100.00",
+        "safe_to_spend": "750.00",
+    }
+    code, payment = request(
+        f"/api/v1/rent/obligations/{obligation['id']}/payments/",
+        {"account": account_ids[0], "effective_date": "2025-10-16", "amount": "50.00"},
+        key="rent-payment",
+    )
+    assert code == 201
+    assert request("/api/v1/rent/spending-capacity/")[1] == {
+        "liquid_balance": "800.00",
+        "active_reserves": "50.00",
+        "safe_to_spend": "750.00",
+    }
+    assert (
+        request(
+            f"/api/v1/rent/payments/{payment['id']}/reverse/",
+            {"reason": "Correction"},
+            key="reverse-rent",
+        )[0]
+        == 201
+    )
+    assert request("/api/v1/rent/spending-capacity/")[1] == {
+        "liquid_balance": "850.00",
+        "active_reserves": "100.00",
+        "safe_to_spend": "750.00",
+    }
+    assert request("/api/v1/accounts/summary/")[1]["personal_expense"] == "150.00"
+    reconcile(User.objects.get(email=credentials["email"]))
     with pytest.raises(HTTPError) as anonymous:
         urlopen(f"{live_server.url}/api/v1/accounts/", timeout=30)
     assert anonymous.value.code == 401

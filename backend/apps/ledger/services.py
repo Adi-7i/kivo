@@ -96,15 +96,13 @@ def _amount(value: int) -> None:
 def assert_fundable_history(user: User) -> None:
     """Reject unexplained historical shortfalls, including backdated edits and reversals."""
     balances: dict[UUID, int] = defaultdict(int)
-    for event in active_events(user):
-        amount = event.amount_paise
-        if event.kind in (Event.Kind.OPENING, Event.Kind.RECEIPT, Event.Kind.REFUND):
-            balances[event.account_id] += amount
-        else:
-            balances[event.account_id] -= amount
-            if event.kind == Event.Kind.TRANSFER:
-                balances[event.destination_id] += amount
-        if balances[event.account_id] < 0:
+    for event in active_events(user).prefetch_related("postings"):
+        touched = set()
+        for leg in event.postings.all():
+            if leg.book == Posting.Book.LIQUID:
+                balances[leg.account_id] += leg.amount_paise
+                touched.add(leg.account_id)
+        if any(balances[account_id] < 0 for account_id in touched):
             raise FinancialConflict(
                 {
                     "code": "insufficient_funds",
@@ -124,6 +122,17 @@ def _post(user: User, data: dict[str, Any], *, supersedes: Event | None = None) 
     if effective_date < account.opened_on:
         raise ValidationError({"effective_date": "Transaction precedes the account opening date."})
     kwargs: dict[str, Any] = {}
+    if data.get("contact"):
+        from apps.sharing.contacts import contact_for
+
+        kwargs["contact"] = contact_for(user, data["contact"])
+    classification = data.get("classification", "")
+    if classification not in ("", "gift", "treat") or (
+        classification and (kind != Event.Kind.EXPENSE or "contact" not in kwargs)
+    ):
+        raise ValidationError(
+            {"classification": "Gifts and treats require an expense and an owned contact."}
+        )
     destination = data.get("destination")
     category = data.get("category")
     original_id = data.get("original_expense")
@@ -150,6 +159,8 @@ def _post(user: User, data: dict[str, Any], *, supersedes: Event | None = None) 
         original = get_object_or_404(
             Event, user=user, public_id=original_id, kind=Event.Kind.EXPENSE, reversal__isnull=True
         )
+        if hasattr(original, "rent_payment"):
+            raise FinancialConflict("Use the linked rent payment correction or reversal workflow.")
         if effective_date < original.effective_date:
             raise ValidationError({"effective_date": "Refund precedes the original expense."})
         refunded = (
@@ -182,6 +193,7 @@ def _post(user: User, data: dict[str, Any], *, supersedes: Event | None = None) 
         notes=data.get("notes", ""),
         payment_method=data.get("payment_method", ""),
         funding_source=data.get("funding_source", ""),
+        classification=classification,
         supersedes=supersedes,
         root_event=(supersedes.root_event or supersedes) if supersedes else None,
         reason=data.get("reason", ""),
@@ -337,6 +349,7 @@ def _reverse(user: User, original: Event, reason: str, *, void: bool = False) ->
         reverses=original,
         reason=reason,
         is_void=void,
+        contact_id=original.contact_id,
     )
     Posting.objects.bulk_create(
         [
@@ -344,6 +357,7 @@ def _reverse(user: User, original: Event, reason: str, *, void: bool = False) ->
                 event=reversal,
                 account_id=leg.account_id,
                 book=leg.book,
+                claim_id=leg.claim_id,
                 amount_paise=-leg.amount_paise,
             )
             for leg in original.postings.all()
@@ -376,6 +390,8 @@ def correct_event(
 ) -> tuple[UUID, bool]:
     def action() -> UUID:
         original = get_object_or_404(Event, user=user, public_id=event_id)
+        if hasattr(original, "rent_payment"):
+            raise FinancialConflict("Use the linked rent payment correction endpoint.")
         if data["kind"] != original.kind:
             raise ValidationError(
                 {"kind": "A correction must preserve the financial operation kind."}

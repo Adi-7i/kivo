@@ -20,6 +20,7 @@ api_v1_patterns = [
     path("auth/", include("apps.users.urls")),
     path("", include("apps.ledger.urls")),
     path("funds/", include("apps.funds.urls")),
+    path("", include("apps.sharing.urls")),
 ]
 
 urlpatterns = [

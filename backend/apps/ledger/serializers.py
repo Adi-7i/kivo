@@ -87,6 +87,10 @@ class EventCreateSerializer(StrictSerializer):
     payment_method = serializers.CharField(max_length=50, required=False, allow_blank=True)
     funding_source = serializers.CharField(max_length=200, required=False, allow_blank=True)
     original_expense = serializers.UUIDField(required=False, allow_null=True)
+    contact = serializers.UUIDField(required=False, allow_null=True)
+    classification = serializers.ChoiceField(
+        choices=Event._meta.get_field("classification").choices, required=False
+    )
 
 
 class CorrectionSerializer(EventCreateSerializer):
@@ -105,7 +109,7 @@ class PostingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Posting
-        fields = ("book", "account", "amount")
+        fields = ("book", "account", "claim", "amount")
         read_only_fields = fields
 
 
@@ -151,6 +155,8 @@ class EventSerializer(serializers.ModelSerializer):
             "notes",
             "payment_method",
             "funding_source",
+            "contact",
+            "classification",
             "original_expense",
             "reverses",
             "supersedes",

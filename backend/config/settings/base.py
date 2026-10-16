@@ -34,6 +34,7 @@ LOCAL_APPS = [
     "apps.users",
     "apps.ledger",
     "apps.funds",
+    "apps.sharing",
     "common",
 ]
 

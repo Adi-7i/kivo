@@ -80,6 +80,10 @@ class Event(models.Model):
     notes = models.TextField(blank=True, max_length=4000)
     payment_method = models.CharField(max_length=50, blank=True)
     funding_source = models.CharField(max_length=200, blank=True)
+    contact = models.ForeignKey("sharing.Contact", on_delete=models.PROTECT, null=True, blank=True)
+    classification = models.CharField(
+        max_length=5, blank=True, choices=[("", "Personal"), ("gift", "Gift"), ("treat", "Treat")]
+    )
     original_expense = models.ForeignKey(
         "self", on_delete=models.PROTECT, null=True, blank=True, related_name="refunds"
     )
@@ -101,6 +105,11 @@ class Event(models.Model):
             models.Index(fields=["user", "effective_date", "id"], name="event_owner_date_idx")
         ]
         constraints = [
+            models.CheckConstraint(
+                condition=Q(classification="")
+                | Q(kind="expense", contact__isnull=False, classification__in=["gift", "treat"]),
+                name="event_gift_classification",
+            ),
             models.CheckConstraint(condition=Q(amount_paise__gt=0), name="event_positive_amount"),
             models.CheckConstraint(
                 condition=Q(
@@ -148,12 +157,17 @@ class Posting(models.Model):
         EQUITY = "equity", "Opening equity"
         EXTERNAL = "external", "External receipts"
         EXPENSE = "expense", "Personal expenses"
+        RECEIVABLE = "receivable", "Personal receivables"
+        PAYABLE = "payable", "Personal payables"
 
     event = models.ForeignKey(Event, on_delete=models.PROTECT, related_name="postings")
     account = models.ForeignKey(
         Account, on_delete=models.PROTECT, null=True, blank=True, related_name="postings"
     )
     book = models.CharField(max_length=10, choices=Book)
+    claim = models.ForeignKey(
+        "sharing.Claim", on_delete=models.PROTECT, null=True, blank=True, related_name="postings"
+    )
     amount_paise = models.BigIntegerField(
         help_text="Signed debit-positive amount; each event sums to zero."
     )
@@ -163,8 +177,17 @@ class Posting(models.Model):
             models.CheckConstraint(condition=~Q(amount_paise=0), name="posting_nonzero"),
             models.CheckConstraint(
                 condition=(
-                    Q(book="liquid", account__isnull=False)
-                    | (Q(book__in=["equity", "external", "expense"]) & Q(account__isnull=True))
+                    Q(book="liquid", account__isnull=False, claim__isnull=True)
+                    | Q(
+                        book__in=["equity", "external", "expense"],
+                        account__isnull=True,
+                        claim__isnull=True,
+                    )
+                    | Q(
+                        book__in=["receivable", "payable"],
+                        account__isnull=True,
+                        claim__isnull=False,
+                    )
                 ),
                 name="posting_book_account",
             ),

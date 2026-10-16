@@ -160,7 +160,7 @@ python backend/manage.py check
 * **Phase 2 prerequisite:** PASS on Python 3.14.4: 69 regression tests passed against isolated remote PostgreSQL. See [readiness evidence](docs/phases/phase-02-readiness.md).
 * **Phase 3:** PASS: 107 tests passed on Python 3.13.16 against isolated remote PostgreSQL. See [verification](docs/phases/phase-03-verification.md).
 * **Phase 4:** PASS: dedicated gate 25 passed; final full regression **129 passed** on Python 3.13.16 against isolated remote PostgreSQL. See [verification](docs/phases/phase-04-verification.md).
-* **Phase 5:** Not authorized and not implemented.
+* **Phase 5:** PARTIALLY COMPLETE. Contacts, personal rent and rent reserves pass the final **160-test** regression on isolated remote PostgreSQL. Lending/shared financial posting awaits the accounting decisions in [ADR-005](docs/decisions/ADR-005-personal-sharing-and-rent.md). See [Phase 5 evidence](docs/phases/phase-05-verification.md). Phase 6 readiness: NOT READY.
 * **Architecture Rules:** See [AGENTS.md](AGENTS.md) for permanent engineering principles, financial calculation invariants, and anti-hallucination policies.
 
 ## 10. Financial API contracts
@@ -254,10 +254,87 @@ python backend/manage.py rebuild_funds --all --check
 
 Backfill may record explicit incomplete legacy attribution and exit with an error;
 it never rewrites ledger history or fabricates funding. Recovery, negative-balance
-and manual-override policy decisions are deferred. Phase 5 is not implemented.
+and manual-override policy decisions are deferred. Phase 5 does not change the
+approved FIFO v1 policy while its proposed lending adapter remains unapproved.
 
 The requested Python 3.13 runtime was verified using a separately built Python
 3.13.16 environment under `/tmp/kivo-venv313`; the existing Python 3.14 environment
 was preserved. Substitute your activated Python 3.13 interpreter for the temporary
 verification prefix in the reports. No new application dependency was introduced.
-Phase 5 foundation readiness is READY; starting it requires separate authorization.
+Phase 5 is authorized by the current request. Phase 6 and 7 remain excluded.
+
+## 12. Phase 5 contacts, personal rent and reserves
+
+Phase 5 is **PARTIALLY COMPLETE**. The remaining lending, borrowing, shared-bill
+and settlement engine requires the pending recognition/attribution decisions in
+[ADR-005](docs/decisions/ADR-005-personal-sharing-and-rent.md). Claim and shared-bill
+models are foundations; they are not advertised as working financial workflows.
+Shared-rent payment attempts fail explicitly with 409 `policy_pending` until the
+required attribution policy is approved and implemented.
+
+| Route | Operations |
+| --- | --- |
+| `/api/v1/contacts/` | GET; POST display name, notes, roommate classification |
+| `/api/v1/contacts/{uuid}/` | GET; PATCH metadata/archive with audit history |
+| `/api/v1/contacts/{uuid}/history/` | GET linked financial history |
+| `/api/v1/rent/plans/` | GET; POST fixed monthly terms and personal/equal/custom shares |
+| `/api/v1/rent/plans/{uuid}/` | GET; PATCH active status |
+| `/api/v1/rent/plans/{uuid}/generate/` | POST `through` ISO date; generate unpaid monthly obligations |
+| `/api/v1/rent/plans/{uuid}/obligations/` | GET monthly history |
+| `/api/v1/rent/obligations/` and `/{uuid}/` | GET issued obligations and derived status |
+| `/api/v1/rent/obligations/{uuid}/change-status/` | POST action `skip`/`reopen` and reason |
+| `/api/v1/rent/obligations/{uuid}/history/` | GET status audit history |
+| `/api/v1/rent/obligations/{uuid}/payments/` | GET payment history; POST confirmed personal-rent payment |
+| `/api/v1/rent/payments/` and `/{uuid}/` | GET immutable linked payments |
+| `/api/v1/rent/payments/{uuid}/correct/` | POST replacement payment input and reason |
+| `/api/v1/rent/payments/{uuid}/reverse/` | POST reason; reopen outstanding rent and restore consumed reserve |
+| `/api/v1/rent/reserves/` and `/{uuid}/` | GET; POST an earmark linked to an obligation |
+| `/api/v1/rent/reserves/{uuid}/adjust/` | POST target amount and reason; zero releases the reserve |
+| `/api/v1/rent/reserves/{uuid}/history/` | GET signed changes and whether payment-linked consumption remains active |
+| `/api/v1/rent/spending-capacity/` | GET actual liquid balance, active reserves and signed safe-to-spend |
+
+All mutations require `Idempotency-Key`; the owner-wide namespace is shared with
+the ledger. Identical retries return 200; first successful mutation returns 201.
+Missing/foreign resources return 404. There are no financial DELETE endpoints.
+Session cookies and CSRF remain required as documented above. All money uses
+exact two-place INR strings.
+
+Rent plans accept `title`, `payee`, `start_date`, `due_day` (null for last day),
+`amount`, `category`, optional `split_method` and `participants`. Each participant
+has `contact` (null for the owner); custom splits also require `amount`. Equal
+splits omit individual amounts and distribute spare paise owner-first, then by
+contact UUID. Plans without participants describe personal rent. Terms are fixed;
+deactivate and replace a plan to change future terms. Existing obligations remain
+auditable. Generation handles February/leap years and clamps days 29–31. Each call
+can generate at most 120 new months; repeat calls continue from the last month.
+
+An obligation posts no cash or expense. Personal-rent confirmation accepts
+`account`, `amount`, `effective_date` and optional `title`, `notes`, `payment_method`.
+Partial payments cannot exceed outstanding rent and must pass historical funding
+checks. Corrections use the rent endpoint; generic transaction correction/refund
+cannot orphan its obligation. Reversal appends compensating postings and retains
+payment history. A skipped obligation needs a reason and cannot have active payments.
+
+Reserve creation accepts `obligation`, `label`, `amount`, `reason`. Adjustment
+accepts the new target `amount` and `reason`. Reserves do not alter ledger cash.
+Payment consumes linked reserves in creation order, and reversal restores only
+the amount consumed by that payment. Skipping unpaid rent releases its reserves.
+Per-obligation reserves cannot exceed unpaid gross rent. Safe-to-spend is signed:
+reserving future rent beyond current cash exposes a shortfall without inventing
+funding. Multiple rent earmarks can cover the 2,000 + 400 example; generic budgets
+and non-rent reserve workflows are outside this phase.
+
+Expense writes may explicitly use `classification: "gift"` or `"treat"` with an
+owned `contact`. These remain personal expenses and create no receivable. Archived
+contacts remain visible in existing financial history.
+
+Read-only reconciliation commands:
+
+```bash
+python backend/manage.py reconcile_ledger
+python backend/manage.py rebuild_funds --all --check
+python backend/manage.py reconcile_rent
+```
+
+Development journal counts are not substitutes for populated isolated PostgreSQL
+tests. The Phase 5 report records the actual verification boundaries.
