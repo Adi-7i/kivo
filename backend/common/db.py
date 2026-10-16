@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -57,8 +57,8 @@ def parse_supabase_db_url(url_str: str | None = None) -> dict[str, Any]:
     return {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": db_name,
-        "USER": parsed.username or "postgres",
-        "PASSWORD": parsed.password or "",
+        "USER": unquote(parsed.username) if parsed.username else "postgres",
+        "PASSWORD": unquote(parsed.password) if parsed.password else "",
         "HOST": parsed.hostname or "",
         "PORT": port,
         "OPTIONS": {

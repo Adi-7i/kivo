@@ -40,16 +40,13 @@ All dependencies must be installed inside an isolated virtual environment (never
 # 1. Clone repository (or navigate to workspace root)
 cd /path/to/Kivo
 
-# 2. Create Python virtual environment
+# 2. Create Python virtual environment inside backend/
 python3 -m venv backend/.venv
 
-# 3. Create root symlink for developer convenience
-ln -s backend/.venv .venv
+# 3. Activate virtual environment
+source backend/.venv/bin/activate
 
-# 4. Activate virtual environment
-source .venv/bin/activate
-
-# 5. Install pinned dependencies from lockfile
+# 4. Install pinned dependencies from lockfile
 pip install -r requirements.lock
 ```
 
@@ -99,7 +96,7 @@ python backend/manage.py migrate
 ## 6. Running the Development Server
 
 ```bash
-source .venv/bin/activate
+source backend/.venv/bin/activate
 python backend/manage.py runserver 127.0.0.1:8000
 ```
 

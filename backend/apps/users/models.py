@@ -20,6 +20,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=255,
         help_text=_("Required. Primary unique identity for authentication."),
     )
+    name = models.CharField(
+        _("full name"),
+        max_length=150,
+        blank=True,
+        default="",
+        help_text=_("Optional display or full name of the user."),
+    )
     is_staff = models.BooleanField(
         _("staff status"),
         default=False,
