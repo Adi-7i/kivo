@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/kivo-logo.png" alt="Kivo Logo" width="140" height="140" />
+</p>
+
 # Kivo — Personal Money & Expense Management Backend
 
 Kivo is a private, manual-entry personal finance, budgeting, and shared-living expense management application backend built with **Python 3.14/3.13**, **Django 6.1**, and **Django REST Framework**, persisting to a remote **Supabase-hosted PostgreSQL** database.
