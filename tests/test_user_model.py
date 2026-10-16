@@ -70,7 +70,9 @@ class TestUserManagerValidation:
             User.objects.create_superuser(email="admin@example.com", password="pwd", is_staff=False)
 
         with pytest.raises(ValueError, match="Superuser must have is_superuser=True"):
-            User.objects.create_superuser(email="admin@example.com", password="pwd", is_superuser=False)
+            User.objects.create_superuser(
+                email="admin@example.com", password="pwd", is_superuser=False
+            )
 
         with pytest.raises(ValueError, match="Superuser must have a password"):
             User.objects.create_superuser(email="admin@example.com", password=None)

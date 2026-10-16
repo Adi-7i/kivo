@@ -28,6 +28,7 @@ venv/
 ENV/
 env/
 backend/.venv/
+.venv/
 
 # Environment variables & secrets (CRITICAL: never commit actual secrets)
 .env

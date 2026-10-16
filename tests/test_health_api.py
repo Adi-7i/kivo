@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
+
 import pytest
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -21,9 +22,13 @@ class TestHealthCheckEndpoints:
         assert data["service"] == "kivo-backend"
         assert data["version"] == "0.1.0"
 
-    def test_database_health_check_returns_503_when_unavailable(self, api_client: APIClient) -> None:
+    def test_database_health_check_returns_503_when_unavailable(
+        self, api_client: APIClient
+    ) -> None:
         """GET /api/v1/health/db/ must return 503 when the database is unreachable."""
-        with patch("common.health.views.connection.cursor", side_effect=Exception("Connection refused")):
+        with patch(
+            "common.health.views.connection.cursor", side_effect=Exception("Connection refused")
+        ):
             response = api_client.get("/api/v1/health/db/")
             assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
             data = response.json()

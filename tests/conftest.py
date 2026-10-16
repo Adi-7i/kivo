@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import os
-from typing import Generator
+from collections.abc import Generator
+
 import pytest
 from rest_framework.test import APIClient
 
@@ -15,7 +16,7 @@ def api_client() -> APIClient:
 
 
 @pytest.fixture
-def clean_env() -> Generator[dict[str, str], None, None]:
+def clean_env() -> Generator[dict[str, str]]:
     """Fixture to safely isolate environment modifications during testing."""
     old_env = os.environ.copy()
     yield os.environ

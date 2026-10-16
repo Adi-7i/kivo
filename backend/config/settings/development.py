@@ -7,7 +7,6 @@ import os
 from common.db import parse_supabase_db_url
 from common.env import load_dotenv
 from config.settings.base import *  # noqa: F403
-from django.core.exceptions import ImproperlyConfigured
 
 # Load local environment variables from .env if present
 load_dotenv()
@@ -20,7 +19,7 @@ SECRET_KEY = os.environ.get(
     "django-insecure-development-key-kivo-do-not-use-in-production-2026",
 )
 
-allowed_hosts_raw = os.environ.get("ALLOWED_HOSTS", "127.0.0.1,localhost")
+allowed_hosts_raw = os.environ.get("ALLOWED_HOSTS", "127.0.0.1,localhost,testserver")
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_raw.split(",") if host.strip()]
 
 # Remote Supabase PostgreSQL Database Configuration
