@@ -1,0 +1,1 @@
+"""Django business applications package."""

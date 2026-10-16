@@ -1,0 +1,69 @@
+[project]
+name = "kivo"
+version = "0.1.0"
+description = "Kivo — Personal Money & Expense Management Application Backend"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "Kivo Engineering Team" }
+]
+dependencies = [
+    "Django==6.1.2",
+    "djangorestframework==3.18.3",
+    "psycopg[binary,pool]==3.3.6",
+    "drf-spectacular==0.30.0",
+    "django-filter==26.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.1.1",
+    "pytest-django==4.14.0",
+    "ruff==0.17.1",
+]
+
+[build-system]
+requires = ["setuptools>=70.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+exclude = [
+    ".git",
+    ".venv",
+    "backend/.venv",
+    "__pycache__",
+    "*/migrations/*",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+]
+ignore = [
+    "E501",  # line length handled by formatter
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.development"
+pythonpath = ["backend"]
+testpaths = ["tests", "backend/tests"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = "--strict-markers -ra"
+markers = [
+    "integration: marks tests as requiring external database",
+    "unit: marks unit tests",
+]
