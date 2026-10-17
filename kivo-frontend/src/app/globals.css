@@ -1,0 +1,145 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans:
+    var(--font-plus-jakarta-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  --font-heading:
+    var(--font-plus-jakarta-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+
+  /* Kivo Brand Tokens */
+  --color-kivo-primary: var(--kivo-primary);
+  --color-kivo-brand-dark: var(--kivo-brand-dark);
+  --color-kivo-secondary: var(--kivo-secondary);
+  --color-kivo-sage: var(--kivo-sage);
+  --color-kivo-stone: var(--kivo-stone);
+
+  /* Semantic Financial Colors */
+  --color-finance-income: var(--finance-income);
+  --color-finance-expense: var(--finance-expense);
+  --color-finance-transfer: var(--finance-transfer);
+  --color-finance-reserved: var(--finance-reserved);
+  --color-finance-neutral: var(--finance-neutral);
+
+  /* shadcn UI tokens */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+:root {
+  /* Brand palette */
+  --kivo-primary: #3a5a40;
+  --kivo-brand-dark: #344e41;
+  --kivo-secondary: #588157;
+  --kivo-sage: #a3b18a;
+  --kivo-stone: #dad7cd;
+
+  /* Semantic financial colors */
+  --finance-income: #2d6a4f;
+  --finance-expense: #b42318;
+  --finance-transfer: #325e82;
+  --finance-reserved: #8f5e14;
+  --finance-neutral: #5b685d;
+
+  /* Surface & Component tokens */
+  --background: #f8f9f6;
+  --foreground: #17251d;
+  --card: #ffffff;
+  --card-foreground: #17251d;
+  --popover: #ffffff;
+  --popover-foreground: #17251d;
+  --primary: #3a5a40;
+  --primary-foreground: #ffffff;
+  --secondary: #588157;
+  --secondary-foreground: #ffffff;
+  --muted: #eef2eb;
+  --muted-foreground: #5b685d;
+  --accent: #a3b18a;
+  --accent-foreground: #17251d;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --border: #e2e9df;
+  --input: #d3ddd0;
+  --ring: #3a5a40;
+  --radius: 0.625rem;
+}
+
+.dark {
+  /* Dark Brand palette */
+  --kivo-primary: #588157;
+  --kivo-brand-dark: #19271e;
+  --kivo-secondary: #344e41;
+  --kivo-sage: #a3b18a;
+  --kivo-stone: #2d3d32;
+
+  /* Dark Semantic financial colors */
+  --finance-income: #40916c;
+  --finance-expense: #e5484d;
+  --finance-transfer: #528eb8;
+  --finance-reserved: #d4a373;
+  --finance-neutral: #b7c1b4;
+
+  /* Dark Surface & Component tokens */
+  --background: #101a14;
+  --foreground: #f4f6f1;
+  --card: #19271e;
+  --card-foreground: #f4f6f1;
+  --popover: #19271e;
+  --popover-foreground: #f4f6f1;
+  --primary: #588157;
+  --primary-foreground: #ffffff;
+  --secondary: #344e41;
+  --secondary-foreground: #f4f6f1;
+  --muted: #1e2f24;
+  --muted-foreground: #b7c1b4;
+  --accent: #a3b18a;
+  --accent-foreground: #101a14;
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
+  --border: #26382c;
+  --input: #26382c;
+  --ring: #a3b18a;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+.font-tabular {
+  font-variant-numeric: tabular-nums;
+}
