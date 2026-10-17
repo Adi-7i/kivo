@@ -1,5 +1,13 @@
 # Phase 5 execution plan
 
+Current continuation (2026-10-17): the user approved immediate friend-paid
+expense/payable recognition and conditional FIFO v2. Deterministic rules were
+documented in ADR-005 before implementing the new engine. Lending, borrowing,
+claim settlements, shared bills and owner-paid shared rent are now under real
+Python 3.13/PostgreSQL verification. Linked friend-paid rent reserve handling is
+the explicit remaining policy question. The original plan/evidence below records
+the earlier partial implementation and does not establish the new completion gate.
+
 The latest Phase 5 prompt authorizes this phase only. Phase 6 and 7 remain out of
 scope. Existing uncommitted Phase 3–4 work is preserved. Available inputs are
 AGENTS.md, README, ADR-001 through ADR-004 and Phase 1–4 reports. No PRD,

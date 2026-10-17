@@ -201,17 +201,41 @@ class RentReserve(models.Model):
 
 
 class ReserveChange(models.Model):
-    """Signed earmark change; payment consumption is active only while payment is posted."""
+    """Append-only earmarks, claim assignments and reversible payment consumption."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     reserve = models.ForeignKey(RentReserve, on_delete=models.PROTECT, related_name="changes")
     delta_paise = models.BigIntegerField()
     payment = models.ForeignKey(RentPayment, on_delete=models.PROTECT, null=True, blank=True)
+    claim = models.ForeignKey(Claim, on_delete=models.PROTECT, null=True, blank=True)
+    settlement = models.ForeignKey(
+        "ledger.Event",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="rent_reserve_changes",
+    )
     reason = models.CharField(max_length=500)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["created_at", "id"]
         constraints = [
-            models.CheckConstraint(condition=~Q(delta_paise=0), name="reserve_change_nonzero")
+            models.CheckConstraint(condition=~Q(delta_paise=0), name="reserve_change_nonzero"),
+            models.CheckConstraint(
+                condition=Q(claim__isnull=True, settlement__isnull=True)
+                | Q(
+                    claim__isnull=False,
+                    payment__isnull=False,
+                    settlement__isnull=True,
+                    delta_paise__gt=0,
+                )
+                | Q(
+                    claim__isnull=False,
+                    payment__isnull=False,
+                    settlement__isnull=False,
+                    delta_paise__lt=0,
+                ),
+                name="reserve_claim_change_valid",
+            ),
         ]

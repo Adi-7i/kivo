@@ -10,12 +10,14 @@ from dataclasses import asdict
 from django.db import transaction
 from django.db.models import Sum
 
-from apps.funds.engine import POLICY_VERSION, Entry, Gap, allocate
+from apps.funds.engine import Gap
+from apps.funds.engine_v2 import POLICY_VERSION, Entry, Portion, allocate
 from apps.funds.models import (
     Allocation,
     AllocationGap,
     AllocationRun,
     BatchCapacity,
+    ClaimPosition,
     FundingBatch,
     FundPosition,
 )
@@ -26,19 +28,45 @@ from apps.users.models import User
 
 
 def _inputs(user: User) -> tuple[list[Entry], str]:
-    entries = [
-        Entry(
-            event.id,
-            event.kind,
-            event.amount_paise,
-            event.effective_date,
-            event.sequence,
-            event.account_id,
-            event.destination_id,
-            event.original_expense_id,
+    from django.db.models import Prefetch
+
+    entries = []
+    legs = Posting.objects.select_related("claim", "claim__source_event")
+    for event in active_events(user).prefetch_related(Prefetch("postings", queryset=legs)):
+        postings = list(event.postings.all())
+        claim_legs = [leg for leg in postings if leg.claim_id]
+        claim = claim_legs[0].claim if len(claim_legs) == 1 else None
+        portions = (
+            tuple(
+                Portion(leg.claim_id, leg.amount_paise)
+                for leg in sorted(
+                    [leg for leg in postings if leg.book in ("expense", "receivable")],
+                    key=lambda leg: (
+                        leg.claim_id is not None,
+                        str(leg.claim.contact_id) if leg.claim_id else "",
+                    ),
+                )
+            )
+            if event.kind == "shared_paid"
+            else ()
         )
-        for event in active_events(user)
-    ]
+        entries.append(
+            Entry(
+                event.id,
+                event.kind,
+                event.amount_paise,
+                event.effective_date,
+                event.sequence,
+                event.account_id,
+                event.destination_id,
+                event.original_expense_id,
+                portions,
+                claim.id if claim else None,
+                claim.source_event_id
+                if claim and event.kind == "repay_out" and claim.source_event.kind == "shared_due"
+                else None,
+            )
+        )
     tip = Event.objects.filter(user=user).order_by("-id").values_list("id", flat=True).first()
     digest = hashlib.sha256(
         json.dumps(
@@ -88,6 +116,18 @@ def rebuild_attribution(
             if row["total"]
         }
         gaps = list(result.gaps)
+        projected_claims: dict[object, int] = defaultdict(int)
+        for (claim_id, _), amount in result.claim_positions.items():
+            projected_claims[claim_id] += amount
+        actual_claims = {
+            row["claim_id"]: row["total"]
+            for row in Posting.objects.filter(event__user=user, book="receivable")
+            .values("claim_id")
+            .annotate(total=Sum("amount_paise"))
+            if row["total"]
+        }
+        if not gaps and dict(projected_claims) != actual_claims:
+            raise FinancialConflict("Receivable source holdings do not reconcile with the ledger.")
         if not gaps and dict(projected) != actual:
             for account_id in set(projected) | set(actual):
                 difference = abs(projected.get(account_id, 0) - actual.get(account_id, 0))
@@ -102,9 +142,9 @@ def rebuild_attribution(
             )
         batches = {batch.source_id: batch for batch in FundingBatch.objects.filter(user=user)}
         # Include reversed historical receipts too: every installment remains independently traceable.
-        missing_sources = Event.objects.filter(user=user, kind__in=["opening", "receipt"]).exclude(
-            pk__in=batches
-        )
+        missing_sources = Event.objects.filter(
+            user=user, kind__in=["opening", "receipt", "borrow"]
+        ).exclude(pk__in=batches)
         new_batches = [FundingBatch(user=user, source=source) for source in missing_sources]
         FundingBatch.objects.bulk_create(new_batches)
         batches.update({batch.source_id: batch for batch in new_batches})
@@ -147,8 +187,18 @@ def rebuild_attribution(
                     amount_paise=movement.amount_paise,
                     from_account_id=movement.from_account_id,
                     to_account_id=movement.to_account_id,
+                    claim_id=movement.claim_id,
+                    expense_event_id=movement.expense_event_id,
                 )
                 for movement in result.movements
+            ]
+        )
+        ClaimPosition.objects.bulk_create(
+            [
+                ClaimPosition(
+                    run=run, batch=batches[source_id], claim_id=claim_id, amount_paise=amount
+                )
+                for (claim_id, source_id), amount in result.claim_positions.items()
             ]
         )
         AllocationGap.objects.bulk_create(
@@ -212,6 +262,8 @@ def check_attribution(user: User) -> None:
                 row.amount_paise,
                 row.from_account_id,
                 row.to_account_id,
+                row.claim_id,
+                row.expense_event_id,
             )
             for row in run.allocations.select_related("batch")
         }
@@ -223,12 +275,19 @@ def check_attribution(user: User) -> None:
                 row.amount_paise,
                 row.from_account_id,
                 row.to_account_id,
+                row.claim_id,
+                row.expense_event_id,
             )
             for row in expected.movements
         }
         if (
             capacities != wanted
             or positions != expected.positions
+            or {
+                (row.claim_id, row.batch.source_id): row.amount_paise
+                for row in run.claim_positions.select_related("batch")
+            }
+            != expected.claim_positions
             or allocations != wanted_allocations
             or expected.gaps
             or run.gaps.exists()

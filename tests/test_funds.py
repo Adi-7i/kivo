@@ -35,7 +35,7 @@ def test_postgres_fifo_scenario_a_and_source_journey_contracts(ledger: dict[str,
         ("1000.00", "0.00"),
         ("200.00", "300.00"),
     ]
-    assert all(row["policy_version"] == "account-fifo-v1" for row in rows)
+    assert all(row["policy_version"] == "account-fifo-v2" for row in rows)
     allocations = (
         ledger["client"]
         .get(f"/api/v1/funds/allocations/?transaction={expense.json()['id']}")

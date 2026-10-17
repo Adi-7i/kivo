@@ -8,7 +8,14 @@ from django.db.models import BigIntegerField, Case, F, Prefetch, QuerySet, Sum, 
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 
-from apps.funds.models import Allocation, AllocationRun, BatchCapacity, FundingBatch, FundPosition
+from apps.funds.models import (
+    Allocation,
+    AllocationRun,
+    BatchCapacity,
+    ClaimPosition,
+    FundingBatch,
+    FundPosition,
+)
 from apps.users.models import User
 
 
@@ -26,6 +33,11 @@ def batches_for(user: User, run: AllocationRun | None) -> QuerySet[FundingBatch]
         .prefetch_related(
             Prefetch("capacities", queryset=capacities, to_attr="snapshot_capacities"),
             Prefetch("positions", queryset=positions, to_attr="snapshot_positions"),
+            Prefetch(
+                "claim_positions",
+                queryset=ClaimPosition.objects.filter(run=run),
+                to_attr="snapshot_claim_positions",
+            ),
         )
         .annotate(sequence=Coalesce("source__root_event_id", "source_id"))
         .order_by("source__effective_date", "sequence", "source_id")
@@ -35,7 +47,7 @@ def batches_for(user: User, run: AllocationRun | None) -> QuerySet[FundingBatch]
 def allocations_for(user: User, run: AllocationRun | None) -> QuerySet[Allocation]:
     return (
         Allocation.objects.filter(run=run, run__user=user)
-        .select_related("event", "event__original_expense", "batch", "run")
+        .select_related("event", "event__original_expense", "expense_event", "batch", "run")
         .annotate(sequence=Coalesce("event__root_event_id", "event_id"))
         .order_by("event__effective_date", "sequence", "event_id", "id")
     )
@@ -48,9 +60,15 @@ def breakdown_for(user: User, run: AllocationRun | None, batch: FundingBatch) ->
         .order_by()
         .annotate(
             date=F("event__effective_date"),
-            category=Coalesce("event__category_id", "event__original_expense__category_id"),
+            category=Coalesce(
+                "expense_event__category_id",
+                "event__category_id",
+                "event__original_expense__category_id",
+            ),
             category_name=Coalesce(
-                "event__category__name", "event__original_expense__category__name"
+                "expense_event__category__name",
+                "event__category__name",
+                "event__original_expense__category__name",
             ),
         )
         .values("date", "category", "category_name")

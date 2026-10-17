@@ -1,6 +1,12 @@
 from django.urls import path
 from rest_framework.routers import SimpleRouter
 
+from apps.sharing.financial_views import (
+    ClaimViewSet,
+    LoanViewSet,
+    SettlementViewSet,
+    SharedBillViewSet,
+)
 from apps.sharing.views import (
     ContactViewSet,
     RentObligationViewSet,
@@ -12,6 +18,10 @@ from apps.sharing.views import (
 
 router = SimpleRouter(use_regex_path=False)
 router.register("contacts", ContactViewSet, basename="contact")
+router.register("claims", ClaimViewSet, basename="claim")
+router.register("loans", LoanViewSet, basename="loan")
+router.register("settlements", SettlementViewSet, basename="settlement")
+router.register("shared-bills", SharedBillViewSet, basename="shared-bill")
 router.register("rent/plans", RentPlanViewSet, basename="rent-plan")
 router.register("rent/obligations", RentObligationViewSet, basename="rent-obligation")
 router.register("rent/payments", RentPaymentViewSet, basename="rent-payment")

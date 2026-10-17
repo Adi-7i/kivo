@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 from http.cookiejar import CookieJar
 from typing import Any
@@ -178,6 +180,85 @@ def test_real_http_financial_lifecycle(live_server: Any) -> None:
         "safe_to_spend": "750.00",
     }
     assert request("/api/v1/accounts/summary/")[1]["personal_expense"] == "150.00"
+    code, loan = request(
+        "/api/v1/loans/",
+        {
+            **base,
+            "kind": "lend",
+            "amount": "300.00",
+            "contact": contact["id"],
+        },
+        key="http-lend",
+    )
+    assert code == 201
+    assert request("/api/v1/accounts/summary/")[1]["liquid_balance"] == "550.00"
+    code, settlement = request(
+        "/api/v1/settlements/",
+        {
+            **base,
+            "claim": loan["claims"][0],
+            "amount": "100.00",
+        },
+        key="http-recover",
+    )
+    assert code == 201
+    assert request(f"/api/v1/claims/{loan['claims'][0]}/")[1]["outstanding"] == "200.00"
+    code, shared = request(
+        "/api/v1/shared-bills/",
+        {
+            **base,
+            "amount": "60.00",
+            "category": category["id"],
+            "split_method": "equal",
+            "participants": [{"contact": None}, {"contact": contact["id"]}],
+        },
+        key="http-shared",
+    )
+    assert code == 201
+    assert request("/api/v1/accounts/summary/")[1] == {
+        "liquid_balance": "590.00",
+        "personal_expense": "180.00",
+        "external_receipts": "1000.00",
+    }
+    assert request(f"/api/v1/contacts/{contact['id']}/")[1]["receivable"] == "230.00"
+    assert request("/api/v1/funds/summary/")[1]["remaining_capacity"] == "820.00"
+    code, budget = request(
+        "/api/v1/budgets/",
+        {
+            "name": "HTTP October",
+            "period_start": "2025-10-01",
+            "period_end": "2025-10-31",
+            "limit": "200.00",
+        },
+        key="http-budget",
+    )
+    assert code == 201
+    assert (budget["spent"], budget["warning_state"]) == ("180.00", "warning")
+    current = request("/api/v1/dashboard/?period=all")[1]
+    assert (
+        current["liquid_balance"],
+        current["receivables"],
+        current["reserved"],
+        current["safe_to_spend"],
+    ) == ("590.00", "230.00", "100.00", "490.00")
+    assert request("/api/v1/reports/summary/?period=all")[1]["personal_expense"] == "180.00"
+    assert (
+        request("/api/v1/reports/trends/?period=all&interval=month")[1]["results"][0]["amount"]
+        == "180.00"
+    )
+    assert (
+        request("/api/v1/reports/breakdown/?period=all&dimension=category")[1]["results"][0][
+            "amount"
+        ]
+        == "180.00"
+    )
+    assert request("/api/v1/reports/funds/")[1]["results"][0]["advanced_to_receivables"] == "330.00"
+    with opener.open(
+        f"{live_server.url}/api/v1/reports/export/?period=all", timeout=30
+    ) as exported:
+        assert exported.status == 200
+        rows = list(csv.DictReader(io.StringIO(exported.read().decode("utf-8-sig"))))
+        assert sum(int(row["net_expense_inr"].replace(".", "")) for row in rows) == 18000
     reconcile(User.objects.get(email=credentials["email"]))
     with pytest.raises(HTTPError) as anonymous:
         urlopen(f"{live_server.url}/api/v1/accounts/", timeout=30)

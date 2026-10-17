@@ -62,11 +62,19 @@ def obligations_for(user: User) -> QuerySet[RentObligation]:
     changes = ObligationChange.objects.filter(obligation_id=OuterRef("pk")).order_by(
         "-created_at", "-id"
     )
+    payables = Posting.objects.filter(
+        event__user=user,
+        book="payable",
+        claim__source_event__rent_payment__obligation_id=OuterRef("pk"),
+    )
     return (
         RentObligation.objects.filter(user=user)
         .select_related("plan")
         .annotate(
             paid_paise=_money_sum(payments, "obligation_id", "event__amount_paise"),
+            friend_payable_paise=-_money_sum(
+                payables, "claim__source_event__rent_payment__obligation_id"
+            ),
             last_action=Subquery(changes.values("action")[:1]),
             last_reason=Subquery(changes.values("reason")[:1]),
         )
@@ -82,8 +90,14 @@ def reserves_for(user: User) -> QuerySet[RentReserve]:
                 Sum(
                     "changes__delta_paise",
                     filter=(
-                        Q(changes__payment__isnull=True)
-                        | Q(changes__payment__event__reversal__isnull=True)
+                        (
+                            Q(changes__payment__isnull=True)
+                            | Q(changes__payment__event__reversal__isnull=True)
+                        )
+                        & (
+                            Q(changes__settlement__isnull=True)
+                            | Q(changes__settlement__reversal__isnull=True)
+                        )
                     ),
                 ),
                 Value(0),

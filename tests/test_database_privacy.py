@@ -17,10 +17,10 @@ def test_django_tables_are_private_from_supabase_client_roles() -> None:
                 has_table_privilege('service_role', c.oid, 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
             FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
             WHERE n.nspname='public' AND c.relkind='r'
-                AND (c.relname LIKE 'ledger_%%' OR c.relname LIKE 'funds_%%' OR c.relname LIKE 'sharing_%%' OR c.relname IN ('users', 'django_session'))
+                AND (c.relname LIKE 'ledger_%%' OR c.relname LIKE 'funds_%%' OR c.relname LIKE 'sharing_%%' OR c.relname LIKE 'reports_%%' OR c.relname IN ('users', 'django_session'))
         """)
         rows = cursor.fetchall()
-    assert len(rows) >= 25
+    assert len(rows) >= 28
     assert all(
         rls and not anon and not authenticated and not service
         for _, rls, anon, authenticated, service in rows

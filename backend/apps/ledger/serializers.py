@@ -73,7 +73,9 @@ class CategorySerializer(serializers.ModelSerializer):
 class EventCreateSerializer(StrictSerializer):
     kind = serializers.ChoiceField(
         choices=[
-            choice for choice in Event.Kind.choices if choice[0] not in ("opening", "reversal")
+            choice
+            for choice in Event.Kind.choices
+            if choice[0] in ("receipt", "expense", "transfer", "refund")
         ]
     )
     amount = MoneyField(source="amount_paise")
@@ -95,7 +97,11 @@ class EventCreateSerializer(StrictSerializer):
 
 class CorrectionSerializer(EventCreateSerializer):
     kind = serializers.ChoiceField(
-        choices=[choice for choice in Event.Kind.choices if choice[0] != "reversal"]
+        choices=[
+            choice
+            for choice in Event.Kind.choices
+            if choice[0] in ("opening", "receipt", "expense", "transfer", "refund")
+        ]
     )
     reason = serializers.CharField(max_length=500)
 
@@ -127,6 +133,7 @@ class EventSerializer(serializers.ModelSerializer):
         source="reversal.public_id", read_only=True, allow_null=True
     )
     financial_effects = PostingSerializer(source="postings", many=True, read_only=True)
+    claims = serializers.PrimaryKeyRelatedField(source="source_claims", many=True, read_only=True)
     status = serializers.SerializerMethodField()
 
     @extend_schema_field(
@@ -164,5 +171,6 @@ class EventSerializer(serializers.ModelSerializer):
             "reason",
             "status",
             "financial_effects",
+            "claims",
         )
         read_only_fields = fields
