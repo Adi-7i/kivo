@@ -7,11 +7,13 @@ from typing import Any
 from uuid import UUID
 
 from django.db import transaction
+from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError
 
 from apps.funds.services import rebuild_attribution
 from apps.ledger.exceptions import FinancialConflict
+from apps.ledger.models import Event
 from apps.ledger.selectors import financial_summary
 from apps.ledger.services import (
     _amount,
@@ -23,9 +25,11 @@ from apps.ledger.services import (
     assert_fundable_history,
 )
 from apps.sharing.calendar import month_start, monthly_schedule, next_month
-from apps.sharing.finance import post_bill
+from apps.sharing.contacts import contact_for
+from apps.sharing.finance import assert_claim_history, post_bill
 from apps.sharing.models import (
     BillShare,
+    Claim,
     MetadataChange,
     ObligationChange,
     RentObligation,
@@ -36,7 +40,7 @@ from apps.sharing.models import (
     ReserveChange,
 )
 from apps.sharing.participants import validated_shares
-from apps.sharing.selectors import obligations_for, reserves_for
+from apps.sharing.selectors import claims_for, obligations_for, reserves_for
 from apps.sharing.splits import Share, partial_shares
 from apps.users.models import User
 
@@ -121,6 +125,114 @@ def _reserve_amount(user: User, reserve_id: UUID) -> RentReserve:
     return get_object_or_404(reserves_for(user), pk=reserve_id)
 
 
+def _claim_earmarks(user: User, obligation: RentObligation) -> dict[tuple[UUID, UUID], int]:
+    """Derive protected portions from active audit changes, never a second balance."""
+    rows = (
+        ReserveChange.objects.filter(
+            reserve__user=user,
+            reserve__obligation=obligation,
+            claim__isnull=False,
+            payment__event__reversal__isnull=True,
+        )
+        .filter(Q(settlement__isnull=True) | Q(settlement__reversal__isnull=True))
+        .values("reserve_id", "claim_id")
+        .annotate(amount=Sum("delta_paise"))
+    )
+    return {(row["reserve_id"], row["claim_id"]): row["amount"] for row in rows}
+
+
+def _assign_claim_reserves(user: User, obligation: RentObligation) -> None:
+    """Assign uncommitted earmarks to oldest linked payables without releasing money.
+
+    Each assignment is a zero-net pair: debit unassigned capacity, credit the
+    claim's protected portion. Both entries follow the originating rent event.
+    """
+    portions = _claim_earmarks(user, obligation)
+    reserves = list(reserves_for(user).filter(obligation=obligation))
+    available = {
+        reserve.id: reserve.reserved_paise
+        - sum(amount for (reserve_id, _), amount in portions.items() if reserve_id == reserve.id)
+        for reserve in reserves
+    }
+    claims = (
+        claims_for(user)
+        .filter(
+            direction="payable",
+            source_event__rent_payment__obligation=obligation,
+            source_event__reversal__isnull=True,
+        )
+        .select_related("source_event__rent_payment")
+        .order_by("source_event__effective_date", "source_event__id", "id")
+    )
+    for claim in claims:
+        needed = claim.outstanding_paise - sum(
+            amount for (_, claim_id), amount in portions.items() if claim_id == claim.id
+        )
+        for reserve in reserves:
+            used = min(needed, available[reserve.id])
+            if used > 0:
+                payment = claim.source_event.rent_payment
+                ReserveChange.objects.bulk_create(
+                    [
+                        ReserveChange(
+                            reserve=reserve,
+                            payment=payment,
+                            delta_paise=-used,
+                            reason="Assign rent earmark to friend payable",
+                        ),
+                        ReserveChange(
+                            reserve=reserve,
+                            payment=payment,
+                            claim=claim,
+                            delta_paise=used,
+                            reason="Preserve rent earmark until friend settlement",
+                        ),
+                    ]
+                )
+                available[reserve.id] -= used
+                needed -= used
+            if needed <= 0:
+                break
+
+
+def settle_rent_reserves(user: User, claim: Claim, event: Event, outstanding_before: int) -> None:
+    """Release only this claim's protected capacity, proportionally in integer paise.
+
+    Round total release down; allocate spare paise by largest remainder, then
+    reserve creation time/UUID. Final settlement releases every protected paisa.
+    Reversing the settlement deactivates these exact changes.
+    """
+    if claim.direction != "payable" or not hasattr(claim.source_event, "rent_payment"):
+        return
+    payment = claim.source_event.rent_payment
+    obligation = payment.obligation
+    portions = _claim_earmarks(user, obligation)
+    reserves = list(reserves_for(user).filter(obligation=obligation))
+    amounts = [portions.get((reserve.id, claim.id), 0) for reserve in reserves]
+    total = sum(amounts)
+    release = total * event.amount_paise // outstanding_before
+    if not release:
+        return
+    values = [divmod(release * amount, total) for amount in amounts]
+    spare = release - sum(base for base, _ in values)
+    priority = sorted(range(len(reserves)), key=lambda i: (-values[i][1], i))
+    extras = set(priority[:spare])
+    ReserveChange.objects.bulk_create(
+        [
+            ReserveChange(
+                reserve=reserve,
+                payment=payment,
+                claim=claim,
+                settlement=event,
+                delta_paise=-(values[i][0] + (i in extras)),
+                reason="Repayment of friend-paid rent",
+            )
+            for i, reserve in enumerate(reserves)
+            if values[i][0] + (i in extras)
+        ]
+    )
+
+
 def adjust_reserve(
     *, user: User, key: str, data: dict[str, Any], reserve_id: UUID | None = None
 ) -> tuple[UUID, bool]:
@@ -132,6 +244,15 @@ def adjust_reserve(
             reserve = _reserve_amount(user, reserve_id)
             obligation = get_object_or_404(obligations_for(user), pk=reserve.obligation_id)
             current = reserve.reserved_paise
+            protected = sum(
+                amount
+                for (row_id, _), amount in _claim_earmarks(user, obligation).items()
+                if row_id == reserve.id
+            )
+            if target < protected:
+                raise FinancialConflict(
+                    "Repay or reverse the friend-paid rent before releasing its earmark."
+                )
         else:
             obligation = get_object_or_404(obligations_for(user), pk=data["obligation"])
             if not target:
@@ -146,12 +267,15 @@ def adjust_reserve(
             row.reserved_paise
             for row in reserves_for(user).filter(obligation=obligation).exclude(pk=reserve.id)
         )
-        if target + reserved_elsewhere > obligation.plan.amount_paise - obligation.paid_paise:
+        if target + reserved_elsewhere > (
+            obligation.plan.amount_paise - obligation.paid_paise + obligation.friend_payable_paise
+        ):
             raise FinancialConflict("Reserves exceed this obligation's unpaid rent.")
         if target != current:
             ReserveChange.objects.create(
                 reserve=reserve, delta_paise=target - current, reason=data["reason"]
             )
+        _assign_claim_reserves(user, obligation)
         return reserve.id
 
     return _idempotent(
@@ -229,10 +353,15 @@ def pay_rent(
         _amount(data["amount_paise"])
         if data["amount_paise"] > obligation.plan.amount_paise - obligation.paid_paise:
             raise FinancialConflict("Payment exceeds this month's outstanding rent.")
+        payer = contact_for(user, data["payer"]) if data.get("payer") else None
+        if bool(payer) == bool(data.get("account")):
+            raise ValidationError(
+                {"payer": "Supply exactly one of payer (friend) or account (owner)."}
+            )
         payment_data = {
             "kind": "expense",
             "amount_paise": data["amount_paise"],
-            "account": data["account"],
+            "account": data.get("account"),
             "effective_date": data["effective_date"],
             "title": data.get("title", obligation.plan.title),
             "category": obligation.plan.category_id,
@@ -241,7 +370,10 @@ def pay_rent(
             "payment_method": data.get("payment_method", ""),
             "reason": data.get("reason", ""),
         }
-        if obligation.plan.shares.filter(contact__isnull=False, amount_paise__gt=0).exists():
+        if (
+            payer
+            or obligation.plan.shares.filter(contact__isnull=False, amount_paise__gt=0).exists()
+        ):
             prior_shares: dict[UUID | None, int] = {}
             for share in BillShare.objects.filter(
                 bill__event__rent_payment__obligation=obligation, bill__event__reversal__isnull=True
@@ -249,15 +381,26 @@ def pay_rent(
                 prior_shares[share.contact_id] = (
                     prior_shares.get(share.contact_id, 0) + share.amount_paise
                 )
+            prior_shares[None] = prior_shares.get(None, 0) + (
+                RentPayment.objects.filter(
+                    obligation=obligation,
+                    event__kind="expense",
+                    event__reversal__isnull=True,
+                ).aggregate(total=Sum("event__amount_paise"))["total"]
+                or 0
+            )
             remaining_shares = [
                 Share(row.contact_id, row.amount_paise - prior_shares.get(row.contact_id, 0))
                 for row in obligation.plan.shares.all()
             ]
             shares = partial_shares(data["amount_paise"], remaining_shares)
+            if payer and payer.id not in {row.contact_id for row in shares}:
+                shares.append(Share(payer.id, 0))
             event = post_bill(
                 user,
                 {
                     **payment_data,
+                    "payer": payer.id if payer else None,
                     "split_method": "custom",
                     "participants": [
                         {"contact": row.contact_id, "amount_paise": row.amount_paise}
@@ -272,23 +415,41 @@ def pay_rent(
                 payment_data,
                 supersedes=original,
             )
+        if original and original.kind != event.kind:
+            raise ValidationError({"payer": "A correction must preserve the original payer kind."})
         payment = RentPayment.objects.create(obligation=obligation, event=event)
-        remaining = data["amount_paise"]
-        for reserve in (
-            reserves_for(user).filter(obligation=obligation).order_by("created_at", "id")
-        ):
-            used = min(remaining, reserve.reserved_paise)
+        _assign_claim_reserves(user, obligation)
+        protected = _claim_earmarks(user, obligation)
+        # Friend-paid cash belonging to other participants is no longer an owner
+        # commitment. Only excess unassigned earmarks can be released here.
+        current = get_object_or_404(obligations_for(user), pk=obligation.id)
+        reserve_rows = list(reserves_for(user).filter(obligation=obligation))
+        remaining = (
+            max(
+                0,
+                sum(row.reserved_paise for row in reserve_rows)
+                - (current.plan.amount_paise - current.paid_paise + current.friend_payable_paise),
+            )
+            if payer
+            else data["amount_paise"]
+        )
+        for reserve in reserve_rows:
+            assigned = sum(
+                amount for (row_id, _), amount in protected.items() if row_id == reserve.id
+            )
+            used = min(remaining, reserve.reserved_paise - assigned)
             if used:
                 ReserveChange.objects.create(
                     reserve=reserve,
                     payment=payment,
                     delta_paise=-used,
-                    reason="Confirmed rent payment",
+                    reason="Release non-owner rent shares" if payer else "Confirmed rent payment",
                 )
                 remaining -= used
             if not remaining:
                 break
         assert_fundable_history(user)
+        assert_claim_history(user)
         rebuild_attribution(user=user, trigger_event=event)
         return payment.id
 
@@ -318,8 +479,27 @@ def check_rent(user: User) -> dict[str, int]:
             reserved = reserved_by_obligation.get(obligation.id, 0)
             if not 0 <= obligation.paid_paise <= obligation.plan.amount_paise:
                 raise FinancialConflict("Rent payments do not reconcile with the obligation.")
-            if reserved > obligation.plan.amount_paise - obligation.paid_paise:
+            if reserved > (
+                obligation.plan.amount_paise
+                - obligation.paid_paise
+                + obligation.friend_payable_paise
+            ):
                 raise FinancialConflict("Rent reserves exceed outstanding rent.")
+            portions = _claim_earmarks(user, obligation)
+            for reserve in (row for row in reserves if row.obligation_id == obligation.id):
+                held = sum(
+                    amount for (row_id, _), amount in portions.items() if row_id == reserve.id
+                )
+                if held > reserve.reserved_paise or any(amount < 0 for amount in portions.values()):
+                    raise FinancialConflict("Protected rent earmarks do not reconcile.")
+            for claim in claims_for(user).filter(source_event__rent_payment__obligation=obligation):
+                if (
+                    sum(
+                        amount for (_, claim_id), amount in portions.items() if claim_id == claim.id
+                    )
+                    > claim.outstanding_paise
+                ):
+                    raise FinancialConflict("Protected rent earmarks exceed the friend payable.")
             if obligation.last_action == "skip" and (obligation.paid_paise or reserved):
                 raise FinancialConflict("Skipped rent retains an active payment or reserve.")
         return {"obligations": len(obligations), "reserves": len(reserves)}

@@ -364,7 +364,9 @@ class RentReserveViewSet(OwnedReadViewSet):
     @extend_schema(responses=ReserveChangeSerializer(many=True))
     @action(detail=True, methods=["get"])
     def history(self, request: Request, **kwargs: Any) -> Response:
-        rows = self.get_object().changes.select_related("payment__event__reversal")
+        rows = self.get_object().changes.select_related(
+            "payment__event__reversal", "settlement__reversal"
+        )
         return self.get_paginated_response(
             ReserveChangeSerializer(self.paginate_queryset(rows), many=True).data
         )

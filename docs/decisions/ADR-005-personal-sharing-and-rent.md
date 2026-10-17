@@ -117,7 +117,9 @@ creation; deactivate and replace a plan to change future terms. Deactivation
 stops generation without cancelling already issued obligations. An unpaid
 obligation may be skipped with a recorded reason and reopened explicitly.
 
-Actual confirmed payments alone recognize rent expense and cash movement.
+Actual owner payments recognize rent expense and cash movement. Confirmed
+friend payments recognize the owner's rent expense and payable immediately,
+without any owner cash posting.
 Shared-rent payments must use the same shared-bill recognition and claim paths
 and never book a second full personal expense. Partial shared-rent payments use
 integer proportional allocation of remaining contractual shares, distributing
@@ -125,7 +127,7 @@ spare paise by largest remainder and stable participant order. Reversed payments
 reopen the relevant outstanding amounts; excess payments are rejected.
 
 Unpaid rent generation stays unrecognized. The rent payment endpoint confirms an
-actual owner payment; for shared rent it creates exactly one shared bill/event,
+actual owner or friend payment; for shared rent it creates exactly one shared bill/event,
 one rent-payment link and the same claim portions. Generic shared-bill creation
 cannot attach itself to rent or mark an obligation paid; use the rent workflow.
 Friend-paid shared bills recognize the approved payable; recording a landlord
@@ -133,14 +135,17 @@ payment by a friend against a generated rent obligation is not inferred from a
 bill title or date. Such cross-workflow matching is not automatic. Rent-payment
 correction/reversal uses the linked endpoint and never duplicates recognition.
 
-**Pending rent-overlap decision, requested explicitly:** when an actual
-friend-paid landlord bill is linked to a generated obligation, retain reserves
-up to the owner's unpaid share payable (release excess, consume on settlement),
-or release rent reserves immediately and track the payable separately? The first
-option is recommended, but is not implemented without an answer. Until resolved,
-friend-paid bills are standalone; rent confirmations accept owner payments only.
-No bill title/date matching or implied rent payment is fabricated. This question
-does not reopen the approved immediate friend-paid expense/payable recognition.
+**Approved friend-paid rent policy (2026-10-17):** retain the reserve protecting
+the owner's share until repayment to the friend. Partial settlements release it
+proportionally; final settlement releases all remaining protected capacity.
+This closes the previously pending decision. No title/date matching is inferred.
+POST to the existing obligation `/payments/` endpoint with exactly one of `payer`
+(owned contact; friend paid the landlord) or `account` (owner paid). A friend may
+pay personal rent without a contractual share; the generated bill includes that
+payer with a zero share. `amount` is the gross landlord installment and the fixed
+plan's remaining split determines the owner's recognized amount. Ordinary unpaid
+obligations still have no financial recognition. `paid`/`outstanding` describe
+landlord payments; `friend_payable` separately exposes the owner's remaining debt.
 
 ## Rent reserves
 
@@ -151,11 +156,63 @@ while that payment remains posted. Reversing a payment therefore restores the
 consumed reserve at the same time as cash, without a second cash deduction.
 Skipping an unpaid obligation releases its reserves with an auditable reason.
 
-Active reserves for an obligation cannot exceed its unpaid gross rent. Distinct
+Active reserves cannot exceed unpaid gross landlord rent plus the owner's
+outstanding payables from explicitly linked friend-paid rent. Distinct
 reserves can earmark multiple future rent obligations. `safe_to_spend` is exactly
 actual liquid postings minus active earmarks. It is signed: earmarking future
 rent beyond today's cash exposes a shortfall without inventing money or a cleared
 overdraft. This phase adds no generic budgeting, alerts or analytics.
+
+### Deterministic protected portions and settlements
+
+The existing `ReserveChange` audit journal carries optional claim and settlement
+references; no separate cash or claim balance is introduced. A claim assignment
+appends a negative unassigned change and an equal positive protected change,
+both linked to the originating `RentPayment`. Its net reserve/cash effect is zero.
+
+1. On friend payment or reserve creation/increase, assign available unassigned
+   capacity to linked active payables by source effective date, source event ID,
+   then claim UUID. Assign reserves in `(created_at, UUID)` order, up to each
+   payable's actual outstanding amount. Previously protected portions stay with
+   their claim. Partial landlord installments remain separate events/claims.
+2. Owner rent payments consume only unassigned portions in reserve creation
+   order. Explicit reserve adjustments cannot drop below protected portions.
+   Friend payment never releases the owner's protected amount. For shared gross
+   rent, unassigned excess beyond remaining landlord rent plus owner payables
+   belongs to other participants' shares and is released with the original
+   friend-payment link and an explicit reason. This is not owner-debt consumption.
+3. Let `C` be this claim's currently protected paise, `O` its outstanding paise
+   immediately before settlement, and `S` the actual repayment. Release
+   `floor(C*S/O)` paise. Allocate that release proportionally across this claim's
+   reserve portions, using integer largest remainders and creation-time/UUID ties.
+   Floor rounding retains a residual earmark rather than releasing it early;
+   when `S=O`, all `C` is released. Other claims' portions are untouched. A partially
+   backed claim releases only its proportional backing; its unreserved remainder
+   still reduces cash on settlement.
+4. Consumption references the original rent payment, payable claim and actual
+   settlement event. It is active only while both events remain unreversed.
+   Reversal restores the exact consumed portions and cash/payable; it does not
+   append a second cash movement or recompute an unrelated claim's earmark.
+   Reverse active settlements before correcting/reversing their originating rent
+   payment. Corrections append opposite postings and replacement records through
+   the existing endpoints; reserve assignment is recalculated for the replacement.
+5. Reserves follow audited operation order and current outstanding amounts, not
+   a fabricated historic cash movement. A backdated financial write still uses
+   the existing complete ledger/claim validation and FIFO replay. Historic
+   reserve changes are never rewritten; out-of-order settlement reversal restores
+   its original signed portions. The owner lock makes concurrent release,
+   outstanding checks, idempotency and source attribution one atomic operation.
+6. PostgreSQL independently checks reference ownership, positive assignments,
+   negative settlement consumption, nonnegative portions, protected capacity
+   bounded by both the reserve and payable, assignments unable to create capacity, and total
+   settlement consumption no larger than the repayment. Existing immutable
+   audit triggers and private-table grants remain in force.
+
+For cash INR 3000/reserve INR 2000, friend payment INR 2000 leaves both unchanged,
+recognizes expense/payable INR 2000, and leaves safe-to-spend INR 1000. Repayment
+INR 800 gives cash INR 2200/payable and reserve INR 1200. Final INR 1200 gives
+cash INR 1000/payable and reserve zero. Expense stays INR 2000 and safe-to-spend
+INR 1000 throughout. Actual execution evidence belongs in the phase reports.
 
 ## Security and verification
 

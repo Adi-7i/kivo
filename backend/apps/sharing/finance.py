@@ -149,6 +149,9 @@ def post_settlement(user: User, data: dict[str, Any], *, supersedes: Event | Non
             ),
         ]
     )
+    from apps.sharing.rent import settle_rent_reserves
+
+    settle_rent_reserves(user, claim, event, claim.outstanding_paise)
     return event
 
 

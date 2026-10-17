@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -199,6 +201,7 @@ class GenerateSerializer(StrictSerializer):
 class ObligationSerializer(serializers.ModelSerializer):
     amount = MoneyField(source="plan.amount_paise", read_only=True)
     paid = MoneyField(source="paid_paise", read_only=True)
+    friend_payable = MoneyField(source="friend_payable_paise", read_only=True)
     outstanding = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     overdue = serializers.SerializerMethodField()
@@ -245,6 +248,7 @@ class ObligationSerializer(serializers.ModelSerializer):
             "due_date",
             "amount",
             "paid",
+            "friend_payable",
             "outstanding",
             "status",
             "overdue",
@@ -289,14 +293,19 @@ class ReserveSerializer(serializers.ModelSerializer):
 
 class ReserveChangeSerializer(serializers.ModelSerializer):
     delta = MoneyField(source="delta_paise", read_only=True)
+    settlement = serializers.UUIDField(
+        source="settlement.public_id", read_only=True, allow_null=True
+    )
     active = serializers.SerializerMethodField()
 
     def get_active(self, change: ReserveChange) -> bool:
-        return change.payment_id is None or not hasattr(change.payment.event, "reversal")
+        return (change.payment_id is None or not hasattr(change.payment.event, "reversal")) and (
+            change.settlement_id is None or not hasattr(change.settlement, "reversal")
+        )
 
     class Meta:
         model = ReserveChange
-        fields = ("id", "delta", "payment", "reason", "active", "created_at")
+        fields = ("id", "delta", "payment", "claim", "settlement", "reason", "active", "created_at")
         read_only_fields = fields
 
 
@@ -316,12 +325,22 @@ class RentPaymentSerializer(serializers.ModelSerializer):
 
 
 class RentPaymentCreateSerializer(StrictSerializer):
-    account = serializers.UUIDField()
+    """Confirm landlord payment with exactly one of owner account or friend payer."""
+
+    account = serializers.UUIDField(required=False)
+    payer = serializers.UUIDField(
+        required=False, help_text="Owned friend who paid the landlord; omit account."
+    )
     amount = MoneyField(source="amount_paise")
     effective_date = serializers.DateField()
     title = serializers.CharField(max_length=200, required=False)
     notes = serializers.CharField(max_length=4000, required=False, allow_blank=True)
     payment_method = serializers.CharField(max_length=50, required=False, allow_blank=True)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if bool(attrs.get("payer")) == bool(attrs.get("account")):
+            raise serializers.ValidationError("Supply exactly one of account or payer.")
+        return attrs
 
 
 class RentPaymentCorrectSerializer(RentPaymentCreateSerializer):

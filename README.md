@@ -164,8 +164,8 @@ python backend/manage.py check
 * **Phase 2 prerequisite:** PASS on Python 3.14.4: 69 regression tests passed against isolated remote PostgreSQL. See [readiness evidence](docs/phases/phase-02-readiness.md).
 * **Phase 3:** PASS: 107 tests passed on Python 3.13.16 against isolated remote PostgreSQL. See [verification](docs/phases/phase-03-verification.md).
 * **Phase 4:** PASS: dedicated gate 25 passed; final full regression **129 passed** on Python 3.13.16 against isolated remote PostgreSQL. See [verification](docs/phases/phase-04-verification.md).
-* **Phase 5:** PARTIALLY COMPLETE; approved lending/shared posting and FIFO v2 have passing Python 3.13/PostgreSQL evidence (56 selected Phase 5 module cases in the combined run; complete socket HTTP passed on retry). The earlier **160-test** run covers the previous contacts/personal-rent/reserve scope. A linked friend-paid rent reserve decision is pending in [ADR-005](docs/decisions/ADR-005-personal-sharing-and-rent.md). See [Phase 5 evidence](docs/phases/phase-05-verification.md). Phase 6 readiness: NOT READY.
-* **Phase 6:** PARTIALLY COMPLETE. Budgets, dashboard, shared history filtering, reports and streaming CSV are implemented and tested on Python 3.13/PostgreSQL. Full regression: **224 passed / 1 Supabase connection-timeout failure**; the complete HTTP + CSV focused retry then **2 passed**. A clean full-suite gate and the pending Phase 5 rent decision remain open. See [current evidence](docs/phases/phase-06-verification.md), [plan](docs/phases/phase-06-plan.md) and [ADR-006](docs/decisions/ADR-006-budgets-and-reporting.md). Phase 7 readiness: NOT READY.
+* **Phase 5:** PARTIALLY COMPLETE; approved lending/shared posting and FIFO v2 have passing Python 3.13/PostgreSQL evidence (56 selected Phase 5 module cases in the earlier combined run; complete socket HTTP passed on retry). The friend-paid rent reserve policy is now approved and implemented; targeted verification is recorded in [Phase 5 evidence](docs/phases/phase-05-verification.md). The clean full-suite gate remains open. Phase 6 readiness: NOT READY.
+* **Phase 6:** PARTIALLY COMPLETE. Budgets, dashboard, shared history filtering, reports and streaming CSV are implemented and tested on Python 3.13/PostgreSQL. Earlier full regression: **224 passed / 1 Supabase connection-timeout failure**; the complete HTTP + CSV focused retry then **2 passed**. A clean full-suite gate remains open; the prior Phase 5 rent policy question is resolved. See [current evidence](docs/phases/phase-06-verification.md), [plan](docs/phases/phase-06-plan.md) and [ADR-006](docs/decisions/ADR-006-budgets-and-reporting.md). Phase 7 readiness: NOT READY.
 * **Architecture Rules:** See [AGENTS.md](AGENTS.md) for permanent engineering principles, financial calculation invariants, and anti-hallucination policies.
 
 ## 10. Financial API contracts
@@ -269,12 +269,13 @@ The temporary Python 3.13.16 verification environment has been rebuilt under
 diagnostics used Python 3.14.4; current Phase 5 evidence records the new Python
 3.13 runs separately. No new application dependency was introduced. The renewed
 Phase 6 request authorizes reporting over the implemented ledger/FIFO v2 paths;
-the pending friend-paid rent link remains explicit. Phase 7 remains excluded.
+the friend-paid rent link follows the approved retained-reserve policy in ADR-005.
+Phase 7 remains excluded.
 
 ## 12. Phase 5 contacts, personal rent and reserves
 
-Phase 5 is **PARTIALLY COMPLETE** pending the full verification gate and the
-linked friend-paid rent reserve decision. Recognition and FIFO v2 rules were
+Phase 5 is **PARTIALLY COMPLETE** pending the full verification gate. The
+friend-paid rent reserve decision is approved. Recognition and FIFO v2 rules were
 approved and are documented in
 [ADR-005](docs/decisions/ADR-005-personal-sharing-and-rent.md). The implemented
 claims/shared-bill workflows are described below; unexecuted tests are not passes.
@@ -291,7 +292,7 @@ claims/shared-bill workflows are described below; unexecuted tests are not passe
 | `/api/v1/rent/obligations/` and `/{uuid}/` | GET issued obligations and derived status |
 | `/api/v1/rent/obligations/{uuid}/change-status/` | POST action `skip`/`reopen` and reason |
 | `/api/v1/rent/obligations/{uuid}/history/` | GET status audit history |
-| `/api/v1/rent/obligations/{uuid}/payments/` | GET payment history; POST confirmed owner-paid personal/shared rent |
+| `/api/v1/rent/obligations/{uuid}/payments/` | GET payment history; POST confirmed owner-paid or friend-paid personal/shared rent |
 | `/api/v1/rent/payments/` and `/{uuid}/` | GET immutable linked payments |
 | `/api/v1/rent/payments/{uuid}/correct/` | POST replacement payment input and reason |
 | `/api/v1/rent/payments/{uuid}/reverse/` | POST reason; reopen outstanding rent and restore consumed reserve |
@@ -317,6 +318,10 @@ can generate at most 120 new months; repeat calls continue from the last month.
 
 An obligation posts no cash or expense. Owner-paid rent confirmation accepts
 `account`, `amount`, `effective_date` and optional `title`, `notes`, `payment_method`.
+Friend-paid confirmation supplies an owned `payer` contact instead of `account`.
+It immediately recognizes the owner's expense/payable, with no owner cash posting.
+Obligation `paid`/`outstanding` refer to the landlord; `friend_payable` separately
+shows the remaining debt. Generic bills never infer this obligation link.
 Partial payments cannot exceed outstanding rent and must pass historical funding
 checks. Corrections use the rent endpoint; generic transaction correction/refund
 cannot orphan its obligation. Reversal appends compensating postings and retains
@@ -327,9 +332,16 @@ integer largest-remainder rounding; only the owner's share is personal expense.
 
 Reserve creation accepts `obligation`, `label`, `amount`, `reason`. Adjustment
 accepts the new target `amount` and `reason`. Reserves do not alter ledger cash.
-Payment consumes linked reserves in creation order, and reversal restores only
-the amount consumed by that payment. Skipping unpaid rent releases its reserves.
-Per-obligation reserves cannot exceed unpaid gross rent. Safe-to-spend is signed:
+Owner payments consume unassigned reserve portions in creation order. Friend-paid
+rent preserves protected portions until repayment; partial settlements release
+them proportionally with exact integer rounding, and final settlement releases
+all remaining protection. Repayments post no new expense. Reversal restores the
+exact consumed portions. Manual adjustment cannot release protected portions.
+Multiple reserves and claims use ADR-005's deterministic assignment/release rules.
+Reserve history includes original payment, claim, settlement and active status.
+Skipping unpaid rent releases its unassigned reserves. Per-obligation reserves
+cannot exceed unpaid gross landlord rent plus linked outstanding friend payables.
+Safe-to-spend is signed:
 reserving future rent beyond current cash exposes a shortfall without inventing
 funding. Multiple rent earmarks can cover the 2,000 + 400 example; generic budgets
 and non-rent reserve workflows are outside this phase.
@@ -383,8 +395,8 @@ receivables without income. A friend-paid bill immediately posts only the owner'
 expense/payable; later settlement does not recognize another expense. Event face
 amount is the gross bill; `financial_effects` exposes actual signed owner effects.
 Generic shared-bill writes do not infer or attach rent obligations. Use the rent
-workflow for owner-paid rent; friend-paid rent linking awaits the documented
-reserve decision so it cannot silently mark rent paid or duplicate its recognition.
+workflow for owner-paid or friend-paid rent to preserve the obligation, payable,
+reserve and settlement links without duplicating recognition.
 
 All writes use the existing owner-wide idempotency namespace and PostgreSQL owner
 lock. Corrections require complete replacement data plus `reason` and preserve

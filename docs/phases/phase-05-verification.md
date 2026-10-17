@@ -4,8 +4,10 @@ Status: **PARTIALLY COMPLETE**. Phase 6 readiness: **NOT READY**.
 
 This is not a completed Phase 5 gate. The user has approved the original
 recognition/FIFO decisions; the continuation below implements those workflows
-and records new verification separately. Linked friend-paid rent reserve handling
-has a newly documented pending decision. No answer is inferred from elapsed time.
+and records new verification separately. The user has now explicitly approved
+retaining friend-paid rent reserves until proportional/final repayment. The
+targeted implementation and its new evidence are recorded at the end of this
+report; prior pending-decision statements below are historical.
 See [ADR-005](../decisions/ADR-005-personal-sharing-and-rent.md) and the
 [execution plan](phase-05-plan.md). The user subsequently renewed Phase 6
 authorization; its implementation/evidence is recorded separately in the
@@ -394,3 +396,101 @@ safe-to-spend with INR 100 reserved. The earlier failed run remains recorded.
 Phase 5 is still PARTIALLY COMPLETE because the explicit linked friend-paid rent
 reserve decision in ADR-005 remains unanswered. These tests verify implemented
 approved workflows, not the unsupported pending path. Phase 7 was not started.
+
+## Targeted friend-paid rent reserve fix — 2026-10-17
+
+The latest user directive explicitly closes the reserve policy question: keep
+the owner's rent earmark until actual repayment to the friend, release it
+proportionally on partial repayment, and release the remainder on full repayment.
+The historical pending-policy statements above are superseded by this decision.
+The whole-suite verification gap recorded above is not silently marked passed.
+
+Reviewed AGENTS.md, ADR-005, the Phase 5/6 evidence and actual rent, claim,
+settlement, reserve, ledger, FIFO, serializer, permission and migration code.
+PRD/Blueprint/Final Suite files remain unavailable in this repository; no review
+of those unavailable documents is claimed. Target runtime is the existing
+`/tmp/kivo-venv313/bin/python`: Python **3.13.16**, Django **6.1.2**.
+
+Changes are confined to the sharing implementation, its new tests and relevant
+documentation. No authentication, infrastructure, ledger posting rules, FIFO
+algorithm or new Phase 6/7 feature was introduced.
+
+Changed implementation files: `backend/apps/sharing/{models,rent,finance,selectors,serializers,views}.py`,
+`backend/apps/sharing/migrations/0004_friend_paid_rent_reserves.py`, and
+`tests/test_friend_paid_rent.py`. Documentation changes are README, ADR-005 and
+the Phase 5/6 verification reports.
+
+- Existing rent obligation `/payments/` accepts exactly one of an owner `account`
+  or owned friend `payer`. The friend path creates one shared bill/event and
+  rent-payment link, recognizing only owner expense/payable without cash.
+- `ReserveChange` gains nullable `claim` and `settlement` references. Equal/opposite
+  assignment entries protect existing reserve capacity without changing its sum.
+  Repayment consumes only its claim's protected portions. Owner rent payments and
+  manual adjustment cannot consume/release another outstanding claim's protection.
+- Active changes require both the original payment and settlement to be unreversed.
+  Corrections/reversals use existing opposite postings, retry receipts and FIFO
+  replay. Obligation responses distinguish landlord outstanding from friend payable.
+- ADR-005 documents multiple-reserve/claim order, partial installments, proportional
+  integer release, conservative rounding, reversals and backdated operation order.
+- Additive migration `sharing.0004_friend_paid_rent_reserves` adds two nullable
+  protected foreign keys, their indexes, a check constraint and updated PostgreSQL
+  guards. It changes no historic row and creates no competing balance table.
+  Existing immutable triggers/RLS/private grants remain; the new helper function
+  explicitly revokes Supabase client-role execution.
+
+Migration inspection and development checks actually executed:
+
+```bash
+/tmp/kivo-venv313/bin/python --version
+/tmp/kivo-venv313/bin/python backend/manage.py makemigrations sharing --name friend_paid_rent_reserves
+/tmp/kivo-venv313/bin/python backend/manage.py migrate --plan
+/tmp/kivo-venv313/bin/python backend/manage.py sqlmigrate sharing 0004
+/tmp/kivo-venv313/bin/python backend/manage.py migrate --noinput
+/tmp/kivo-venv313/bin/python backend/manage.py showmigrations sharing
+/tmp/kivo-venv313/bin/python backend/manage.py makemigrations --check --dry-run
+```
+
+Version and migration generation exited **0**. Generation's sandboxed database
+history check warned that DNS resolution was unavailable; that warning is not a
+connectivity pass. The first sandboxed `migrate --plan` exited **1** for the same
+network restriction. The network-authorized plan, SQL inspection, actual migration,
+showmigrations and drift check each exited **0**. Migration 0004 is applied;
+the subsequent plan exited **0**, reporting no planned operations. No application
+tables/migrations were reset. Destructive tests use the existing separate remote
+`test_postgres` database guarded by `tests/conftest.py`.
+
+Read-only development `reconcile_rent`, `reconcile_ledger` and
+`rebuild_funds --all --check` returned PASS (combined command exit **0**), with
+**0** owners/obligations/reserves/events. These empty audits are not populated
+financial evidence; the actual test assertions supply that evidence.
+
+Initial pure baseline:
+
+```bash
+/tmp/kivo-venv313/bin/python -m pytest -v tests/test_rent_calendar.py tests/test_rent_status.py tests/test_sharing_splits.py tests/test_fifo_v2.py --tb=short
+/tmp/kivo-venv313/bin/python -m pytest -v tests/test_friend_paid_rent.py -m unit --tb=short
+```
+
+Both exited **0**: **27 passed in 0.13 s**, and **4 passed / 14 deliberately
+deselected in 0.11 s**, respectively. These are calendar/FIFO/input tests, not
+PostgreSQL integration passes. Further integration results are recorded below.
+
+New targeted PostgreSQL/API run:
+
+```bash
+/tmp/kivo-venv313/bin/python -m pytest -v tests/test_friend_paid_rent.py --reuse-db --maxfail=1 --tb=short --junitxml=/tmp/kivo-friend-rent-initial.xml
+```
+
+Exit **0**: **12 passed in 857.61 s**, **0 failed / 0 skipped**. This run collected
+the initial 12 database cases; four serializer unit cases and three additional
+integration/HTTP cases were subsequently added and are recorded separately.
+These passes include the exact INR 3000/2000 → 2200/1200 → 1000/0 cash/reserve
+sequence with safe-to-spend INR 1000 throughout and expense fixed at INR 2000;
+immediate payable recognition, no initial cash posting, partial/full settlement,
+same-key replay/conflict, exact reversal restoration, settlement/origin correction,
+protected owner-payment behavior, shared gross/owner-share recognition, multiple
+reserves and paise rounding, later reserve creation, overpayment/pre-origin rejection,
+foreign-owner denial and raw PostgreSQL corruption rejection. Three separate-
+connection concurrency cases passed: identical-key retry, distinct-key excess
+settlement, and two valid partial settlements. Ledger, claim, reserve and actual
+FIFO replay reconciliation run inside these populated cases.

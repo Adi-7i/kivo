@@ -1,8 +1,10 @@
 # Phase 6 verification: budgets, dashboard, analytics and CSV
 
 Date: 2026-10-17. Status: **PARTIALLY COMPLETE**. Required features are implemented and the
-financial/API cases passed, but the clean full-suite gate and the pending Phase 5
-prerequisite decision are not signed off.
+financial/API cases passed, but a clean full-suite gate remains outstanding.
+The user has now approved the Phase 5 friend-paid rent reserve policy; the
+targeted fix/evidence is recorded in the addendum below. Earlier pending-policy
+statements describe the prior verification run.
 Phase 7 readiness: **NOT READY**. No Phase 7 implementation.
 
 ## Scope and prerequisite provenance
@@ -191,8 +193,10 @@ throughput benchmark is invented. Unexecuted gates are not skipped pytest cases.
 
 ## Outstanding limitations and decisions
 
-- ADR-005 friend-paid rent-obligation linking/reserve handling remains pending;
-  ordinary generated rent remains unrecognized until an approved actual payment.
+- The formerly pending ADR-005 friend-paid rent reserve policy is now approved.
+  The targeted fix preserves earmarks until actual friend settlement; ordinary
+  generated rent remains unrecognized until an actual owner/friend payment.
+  New verification is recorded in the addendum below.
 - Reports identify the configured Asia/Kolkata calendar; no new per-user timezone
   preference or currency conversion was introduced.
 - Category budgets cover the exact category. Per-participant filtered shared
@@ -220,10 +224,45 @@ matters remain. Phase 7 readiness is NOT READY; no Phase 7 work was started.
 | Actual HTTP flow | PASS on focused rerun; earlier timeout failure retained |
 | Measured query efficiency | PASS for the stated small representative datasets: 1 aggregate / 6 budgets; 20 dashboard queries / 6 current budgets; 6 CSV queries / 202 events |
 | Clean full regression command | FAIL: recorded exit 1, 224 passed / 1 failed; targeted retry exit 0 does not rewrite it |
-| Phase 5 friend-paid rent/reserve prerequisite | BLOCKED pending the explicit ADR-005 business decision |
+| Phase 5 friend-paid rent/reserve prerequisite | Policy resolved; targeted implementation evidence in the addendum below |
 | Phase 6 overall | PARTIALLY COMPLETE |
 | Phase 7 readiness | NOT READY |
 
 No pytest cases were silently skipped. Full-run skipped count is 0; the targeted
 subset intentionally deselected two cases that subsequently ran in the full
 suite. Pending business/gate items are not invented as blocked pytest counts.
+
+## Targeted friend-paid rent reconciliation addendum — 2026-10-17
+
+The user explicitly approved retaining the owner's rent reserve until actual
+repayment to the friend, with proportional partial releases and complete release
+on final settlement. ADR-005 now documents deterministic protected portions,
+multi-reserve rounding and reversal behavior. No new Phase 6 feature is part of
+this fix. Source-derived dashboard/reserve selectors use the existing earmark
+journal, now with claim/settlement references and reversal-aware activation.
+
+The initial fix-specific run on Python **3.13.16** against isolated remote
+PostgreSQL exited **0**, **12 passed in 857.61 s**, **0 failed / 0 skipped**:
+
+```bash
+/tmp/kivo-venv313/bin/python -m pytest -v tests/test_friend_paid_rent.py --reuse-db --maxfail=1 --tb=short --junitxml=/tmp/kivo-friend-rent-initial.xml
+```
+
+It verifies cash/reserve INR 3000/2000, 2200/1200 and 1000/0, safe-to-spend INR
+1000 throughout, expense INR 2000 recognized once, exact repayment reversals,
+corrections, deterministic multiple-reserve release, protected owner-payment
+behavior, owner isolation, raw PostgreSQL guards and three actual concurrent
+settlement scenarios. The four pure serializer cases separately passed (exit
+0, 4 passed / 14 deselected, 0.11 s). Details, migration evidence and subsequent
+regression results are in [Phase 5's targeted addendum](phase-05-verification.md#targeted-friend-paid-rent-reserve-fix--2026-10-17).
+
+Migration `sharing.0004_friend_paid_rent_reserves` was inspected and applied to
+the authorized development database (exit 0); showmigrations, drift check and
+the empty subsequent migration plan each exited 0. There is no destructive
+application-database test or reset. Populated assertions use the distinct remote
+test database, not mocks or an SQLite substitute.
+
+A clean entire-project regression after this targeted fix is **NOT VERIFIED**.
+The earlier full-suite timeout failure is retained above. This task does not
+investigate that unrelated timeout or claim Phase 6 complete. Phase 7 readiness
+remains **NOT READY**.
