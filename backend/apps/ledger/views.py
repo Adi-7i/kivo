@@ -4,16 +4,15 @@ from __future__ import annotations
 
 from typing import Any
 
-import django_filters
 from django.db.models import QuerySet
-from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import filters, mixins, viewsets
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
+from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.ledger import services
+from apps.ledger.history import HistoryFilterBackend, HistoryQuerySerializer
 from apps.ledger.models import Account, Category, Event
 from apps.ledger.selectors import accounts_for, events_for, financial_summary
 from apps.ledger.serializers import (
@@ -115,32 +114,13 @@ class CategoryViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         return Response(CategorySerializer(services.seed_categories(request.user), many=True).data)
 
 
-class EventFilter(django_filters.FilterSet):
-    account = django_filters.UUIDFilter(field_name="account_id")
-    destination = django_filters.UUIDFilter(field_name="destination_id")
-    category = django_filters.UUIDFilter(field_name="category_id")
-    date_from = django_filters.DateFilter(field_name="effective_date", lookup_expr="gte")
-    date_to = django_filters.DateFilter(field_name="effective_date", lookup_expr="lte")
-
-    class Meta:
-        model = Event
-        fields = ["kind", "account", "destination", "category", "date_from", "date_to"]
-
-
+@extend_schema_view(list=extend_schema(parameters=[HistoryQuerySerializer]))
 class EventViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     lookup_value_converter = "uuid"
     serializer_class = EventSerializer
     lookup_field = "public_id"
     http_method_names = ["get", "post", "head", "options"]
-    filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter,
-        filters.OrderingFilter,
-    ]
-    filterset_class = EventFilter
-    search_fields = ["title", "merchant", "notes", "funding_source"]
-    ordering_fields = ["effective_date", "created_at", "amount_paise"]
-    ordering = ["-effective_date", "-id"]
+    filter_backends = [HistoryFilterBackend]
 
     def get_queryset(self) -> QuerySet[Event]:
         if getattr(self, "swagger_fake_view", False):

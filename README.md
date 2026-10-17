@@ -164,8 +164,8 @@ python backend/manage.py check
 * **Phase 2 prerequisite:** PASS on Python 3.14.4: 69 regression tests passed against isolated remote PostgreSQL. See [readiness evidence](docs/phases/phase-02-readiness.md).
 * **Phase 3:** PASS: 107 tests passed on Python 3.13.16 against isolated remote PostgreSQL. See [verification](docs/phases/phase-03-verification.md).
 * **Phase 4:** PASS: dedicated gate 25 passed; final full regression **129 passed** on Python 3.13.16 against isolated remote PostgreSQL. See [verification](docs/phases/phase-04-verification.md).
-* **Phase 5:** PARTIALLY COMPLETE; approved lending/shared posting and FIFO v2 are undergoing Python 3.13/PostgreSQL verification. The earlier **160-test** run covers the previous contacts/personal-rent/reserve scope. A linked friend-paid rent reserve decision is pending in [ADR-005](docs/decisions/ADR-005-personal-sharing-and-rent.md). See [Phase 5 evidence](docs/phases/phase-05-verification.md). Phase 6 readiness: NOT READY.
-* **Phase 6:** Authorized, **BLOCKED** at the Phase 5 prerequisite gate. The current diagnostic run passed **39 tests on Python 3.14.4**, including real remote PostgreSQL checks; it does not verify the missing lending/shared workflows or Phase 6 features. See [evidence](docs/phases/phase-06-verification.md) and the [implementation plan](docs/phases/phase-06-plan.md). Phase 7 readiness: NOT READY.
+* **Phase 5:** PARTIALLY COMPLETE; approved lending/shared posting and FIFO v2 have passing Python 3.13/PostgreSQL evidence (56 selected Phase 5 module cases in the combined run; complete socket HTTP passed on retry). The earlier **160-test** run covers the previous contacts/personal-rent/reserve scope. A linked friend-paid rent reserve decision is pending in [ADR-005](docs/decisions/ADR-005-personal-sharing-and-rent.md). See [Phase 5 evidence](docs/phases/phase-05-verification.md). Phase 6 readiness: NOT READY.
+* **Phase 6:** PARTIALLY COMPLETE. Budgets, dashboard, shared history filtering, reports and streaming CSV are implemented and tested on Python 3.13/PostgreSQL. Full regression: **224 passed / 1 Supabase connection-timeout failure**; the complete HTTP + CSV focused retry then **2 passed**. A clean full-suite gate and the pending Phase 5 rent decision remain open. See [current evidence](docs/phases/phase-06-verification.md), [plan](docs/phases/phase-06-plan.md) and [ADR-006](docs/decisions/ADR-006-budgets-and-reporting.md). Phase 7 readiness: NOT READY.
 * **Architecture Rules:** See [AGENTS.md](AGENTS.md) for permanent engineering principles, financial calculation invariants, and anti-hallucination policies.
 
 ## 10. Financial API contracts
@@ -267,8 +267,9 @@ includes recoverable receivables and is not cash.
 The temporary Python 3.13.16 verification environment has been rebuilt under
 `/tmp/kivo-venv313` with the unchanged lockfile. Earlier Phase 6 prerequisite
 diagnostics used Python 3.14.4; current Phase 5 evidence records the new Python
-3.13 runs separately. No new application dependency was introduced. Phase 6
-implementation must wait for every mandatory Phase 5 gate. Phase 7 remains excluded.
+3.13 runs separately. No new application dependency was introduced. The renewed
+Phase 6 request authorizes reporting over the implemented ledger/FIFO v2 paths;
+the pending friend-paid rent link remains explicit. Phase 7 remains excluded.
 
 ## 12. Phase 5 contacts, personal rent and reserves
 
@@ -399,3 +400,84 @@ sources, never income. Journey kinds distinguish `expense`, `transfer`, `refund`
 link the bill's public `expense_event`; allocation date and recognition date may
 differ. Batch `receivable_positions` identifies recoverable claim portions.
 Lending alone does not exhaust a source. Old `?run=` snapshots remain immutable.
+
+## 14. Phase 6 budgets, dashboard and reports
+
+All endpoints use existing authenticated sessions and ownership scoping. OpenAPI
+at `/api/schema/` describes actual input/output serializers. Monetary JSON values
+are exact INR strings. Reports derive from immutable ledger effects and existing
+FIFO snapshots; they never maintain or modify another balance.
+
+| Route | Operations |
+| --- | --- |
+| `/api/v1/budgets/` | GET paginated; POST owned overall/category budget |
+| `/api/v1/budgets/{uuid}/` | GET progress; PATCH configuration/archive |
+| `/api/v1/dashboard/` | GET current accounts, spending, claims, rent, budgets, reserves and activities |
+| `/api/v1/transactions/` | Existing history, extended shared filters and stable sorting |
+| `/api/v1/reports/summary/` | GET recognized expenses, cash-flow classes, averages and prior-period comparison |
+| `/api/v1/reports/trends/` | GET net expense by `interval=day\|week\|month` |
+| `/api/v1/reports/breakdown/` | GET `dimension=category\|merchant\|account\|payment_method\|contact` |
+| `/api/v1/reports/funds/` | GET paginated existing funding batches plus classified attribution movements; optional owned `run` |
+| `/api/v1/reports/export/` | GET filtered streaming UTF-8 CSV |
+
+Budget creation requires `name`, `period_start`, `period_end`, and `limit`.
+`period_type` defaults to `monthly`, which requires one full calendar month;
+`custom` permits other inclusive periods. `category` null means overall. A category
+budget covers that exact category and its refunds; parent/child budgets are not
+implicitly combined. `warning_percent` defaults to 80 (allowed 1–100). All budget
+writes require `Idempotency-Key`. Conflicting retries return 409; overlapping
+active periods in the same owner/category scope return 400. Archive using PATCH
+`archived: true`; audit records are automatic and append-only in PostgreSQL.
+
+Progress returns signed `spent`, `remaining`, `overspending`, exact
+`utilization_percent` and `warning_state`: `ok`, `warning`, `at_limit`, `exceeded`.
+Zero limits have null utilization, with positive spending marked exceeded.
+Budgets never reject otherwise valid spending or change cash. Dashboard reserve
+and safe-to-spend values reuse the existing rent earmarks. Current dashboard
+budget details are capped at 20 with `budget_count`; use the budget list for more.
+
+History, reports and CSV share `date`, inclusive `date_from`/`date_to`, or
+`period=today|yesterday|week|last_seven_days|month|previous_month|year|all`.
+`week` is Monday–Sunday; rolling seven days includes today and six prior dates.
+Do not combine presets with explicit dates. Add `account`, `destination`,
+`category`, `kind`, `contact`, `payment_method`, `merchant`, `search`, and
+`sort=newest|oldest|highest|lowest`. Legacy comma-separated `ordering` over
+effective date, creation timestamp and amount remains supported, with stable ID
+ties. Search retains DRF's term/quoted-phrase behavior and includes associated
+contacts. Unknown, repeated, invalid and contradictory parameters return 400.
+
+History defaults to all retained records. Reports and export default to the
+current full calendar month. Reports identify INR, Asia/Kolkata, effective-date
+bounds, inclusive calendar-day denominator and incomplete-period state. Future
+effective entries within a selected full period are included; dashboard calendar
+spending separately runs through today. Prior-period percentage comparison is
+null for an incomplete current period or nonpositive prior expense. The daily
+average includes every selected calendar date, even dates with no expense.
+
+Shared spending is the owner's recognized expense, with borrowing, lending,
+recovery, principal returns and transfers separately classified. Rent due alone
+is not spending. Refunds reduce expense and budget consumption; corrections and
+reversals recalculate through active economic history. Primary-contact breakdown
+uses a direct contact or friend payer; multi-contact owner-paid bills appear in
+the unassigned group. Contact filters include participants, so separately filtered
+participant reports can overlap and should not be added together.
+
+Fund reports expose `expense_attributed`, `refund_restored`, `principal_returned`,
+`advanced_to_receivables`, `recovered_from_receivables` and `internal_transferred`.
+Advance/recovery/transfer totals are movements, not consumed source capacity.
+Remaining capacity includes recoverable receivables; it is not cash. Existing
+batch detail/journey endpoints provide provenance and historical snapshots.
+
+CSV includes effective date, stable transaction ID/type, face amount, account,
+category, merchant, contacts/source, payment method, notes and status. User text
+is protected against spreadsheet formulas. Retained reversed/voided originals
+and technical reversals have zero `net_expense_inr`/`net_external_cash_inr`
+contribution. Sum those columns to reconcile reports; never sum gross face
+amounts as personal spending. The external cash column excludes opening equity
+and own transfers. Streaming preloads relationships in chunks of 200.
+
+Multi-query reports and CSV hold the existing owner lock for a consistent read.
+An unfinished stream can delay that owner's writes until closed. No cache,
+background worker or alternate financial database was introduced. See ADR-006
+for date, comparison, classification and concurrency semantics, and the Phase 6
+report for executed evidence and remaining gates.

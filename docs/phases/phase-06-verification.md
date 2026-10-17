@@ -1,168 +1,229 @@
-# Phase 6 prerequisite verification
+# Phase 6 verification: budgets, dashboard, analytics and CSV
 
-Date: 2026-10-17. Phase 6 status: **BLOCKED**. Phase 7 readiness: **NOT READY**.
+Date: 2026-10-17. Status: **PARTIALLY COMPLETE**. Required features are implemented and the
+financial/API cases passed, but the clean full-suite gate and the pending Phase 5
+prerequisite decision are not signed off.
+Phase 7 readiness: **NOT READY**. No Phase 7 implementation.
 
-This report preserves the prerequisite inspection before the user's subsequent
-recognition/FIFO approval. The original questions below were later approved;
-remaining Phase 5 implementation and verification are recorded in the
-[Phase 5 continuation](phase-05-verification.md#approved-continuation-2026-10-17).
-That continuation also records the new linked friend-paid rent reserve question.
-No Phase 6 application implementation has begun. Diagnostic results below remain
-historical observations and are not rewritten as current compatibility evidence.
+## Scope and prerequisite provenance
 
-No Phase 6 application features, endpoints or migrations have been implemented.
-The latest request authorizes Phase 6, but its required Phase 1–5 prerequisite
-gate is not satisfied. This report records actual diagnostic execution, not a
-completed Phase 6 or Phase 5 verification gate.
+The renewed user directive explicitly requests Phase 6 implementation. The entry
+commit is `874bfe2`, containing the approved Phase 5 lending, borrowing, repayment,
+shared-bill, owner-paid shared-rent and FIFO v2 workflows. Earlier inspection at
+`59aaad8` found those missing; that historical BLOCKED assessment and its 39-test
+Python 3.14 diagnostic run do not describe the current code. Original recognition
+and FIFO decisions were subsequently approved, documented and implemented.
 
-## Observed prerequisite blocker
+The preceding Python 3.13 domain gate passed **22 tests in 641.49 seconds** before
+final Phase 5 batching/concurrency additions. Its later 185-test full run was
+interrupted across turns: no final exit/JUnit artifact was available, so no full
+pass is inferred. The combined run below records fresh regression evidence. The separate pending
+friend-paid landlord-bill/rent-obligation reserve policy remains explicit in
+[ADR-005](../decisions/ADR-005-personal-sharing-and-rent.md); Phase 6 does not assign
+that financial write rule or claim that path works. Phase 5 remains partially
+complete until its mandatory pending matter is resolved.
 
-The checkout was clean at inspection, at commit `59aaad8`. The existing
-[Phase 5 report](phase-05-verification.md) explicitly says PARTIALLY COMPLETE.
-Source inspection and an executed capability probe confirm:
+Reviewed AGENTS.md, README, ADRs 001–005, existing API/schema configuration and
+Phase 1–5 reports; inspected real journal, FIFO, sharing/rent/reserve, auth,
+migrations and test code. PRD, Backend Blueprint and Final Development Suite
+files are absent; no review of unavailable material is claimed. Follow the
+[implementation plan](phase-06-plan.md) and [ADR-006](../decisions/ADR-006-budgets-and-reporting.md)
+for actual reporting semantics and limits.
 
-- `ledger.Event.Kind` supports opening, receipt, expense, transfer, refund and
-  reversal. Lending, borrowing, repayments and shared financial events are absent.
-- The actual FIFO engine remains `account-fifo-v1`. Calling its `allocate`
-  function with each proposed `lend`, `borrow`, `repay_in`, `repay_out`,
-  `shared_paid` and `shared_due` kind raises `ValueError` for an unsupported
-  attribution operation. No loan-capable engine is claimed.
-- Claim/shared-bill models are structural foundations. `/api/v1/claims/` and
-  `/api/v1/shared-bills/` do not resolve to endpoints. Shared-rent confirmation
-  explicitly returns 409 `policy_pending`; the selected database test verifies
-  that it creates no postings, allocation run or reserve consumption.
-- `/api/v1/dashboard/` and `/api/v1/reports/summary/` do not resolve. No dashboard,
-  budget, reporting or CSV behavior is advertised as implemented.
+## Implemented features and files
 
-These omissions prevent the required Phase 6 lending, borrowing/repayment and
-shared-bill reconciliation scenarios, as well as verified claim and fund-source
-reporting. Returning zeros for unavailable workflows would conceal the blocker.
+- `backend/apps/reports/models.py`, `services.py`: owned overall/category monthly
+  and custom-period budgets; archival, warning configuration, nonoverlapping
+  active scopes, durable retry protection and existing atomic owner locking.
+  PostgreSQL appends immutable before/after configuration audit rows.
+- `reports/selectors.py`: SQL-derived budget progress, current liquid/claim/rent
+  and reserve dashboard, net personal expense, classified gross external cash
+  flow, averages, highest spending day, calendar trends and additive breakdowns.
+  No editable/cached financial totals or second balance system.
+- `reports/serializers.py`, `views.py`, `urls.py`: versioned budget, dashboard,
+  summary, trends, breakdown, fund-source integration and CSV contracts. Funds
+  reuse immutable v1/v2 runs and expose separate expense, refund, principal,
+  advance, recovery and transfer attribution amounts.
+- `backend/apps/ledger/history.py` and existing `ledger/views.py`: one strict
+  shared filter contract, exact/preset/inclusive ranges, participant/contact
+  search, merchant/payment filters, backwards-compatible multi-field ordering
+  and deterministic tie IDs. No duplicate history endpoint or posting engine.
+- `reports/export.py`: streaming UTF-8/BOM CSV, chunks of 200, related-resource
+  preloading, formula escaping, precise INR, retained status and explicit net
+  contribution columns for reversal-safe reconciliation.
+- `backend/config/settings/base.py`, `config/urls.py`: app and v1 routes only;
+  authentication, environment DB configuration and dependencies are preserved.
+- `tests/test_reporting.py`, `test_reporting_concurrency.py`, extended
+  `test_finance_http.py` and `test_database_privacy.py`: actual financial/API,
+  isolation, filtering, export, concurrency and query-count scenarios.
+- README, ADR-006, plans and phase reports document scope and actual evidence.
 
-[ADR-005](../decisions/ADR-005-personal-sharing-and-rent.md) leaves two decisions
-pending explicit answers:
-
-1. Recognize a friend-paid owner share immediately as expense plus payable, with
-   later settlement reducing cash/payable, or recognize expense on settlement?
-2. Approve the proposed FIFO v2 policy retaining source lineage in receivables,
-   restoring it on repayment, treating borrowing as liability-funded capacity
-   rather than income, and separating principal returns from personal expense?
-
-The Phase 5 instruction says: "If this policy is still unresolved, document the
-decision and ask before implementing ambiguous financial behavior." The policy
-question has been submitted again; no answer has been inferred from the Phase 6
-request. This requirement comes from the user's Phase 5 instruction, not an
-extra permission rule invented by the implementation. The latest Phase 6 request
-also requires verifying critical prerequisites before proceeding.
-
-## Specifications and runtime
-
-Reviewed AGENTS.md, README, repository ADRs, available Phase 1–5 reports and
-relevant ledger, FIFO, sharing/rent, route and test sources. The requested PRD,
-Backend Blueprint and Final Development Suite files are not present; no review
-of those unavailable documents is claimed.
-
-The earlier reports' `/tmp/kivo-venv313` environment no longer exists, and
-`python3.13` is not on PATH. Initial commands through that temporary environment
-exited **127** before executing checks:
-
-```bash
-/tmp/kivo-venv313/bin/python -m pytest -v tests/test_fifo_engine.py tests/test_rent_calendar.py tests/test_sharing_splits.py tests/test_rent_status.py tests/test_schema.py tests/test_ledger.py::test_required_receipt_and_expense_scenario tests/test_rent.py::test_shared_rent_pending_policy_fails_without_posting_or_consuming_reserve tests/test_database_privacy.py --reuse-db --maxfail=1 --tb=short
-/tmp/kivo-venv313/bin/python backend/manage.py check
-/tmp/kivo-venv313/bin/ruff check .
-/tmp/kivo-venv313/bin/ruff format --check .
-/tmp/kivo-venv313/bin/python backend/manage.py spectacular --validate --fail-on-warn --file /tmp/kivo-phase-06-prerequisite-openapi.yaml
-```
-
-The subsequent diagnostic commands use the existing `backend/.venv`, whose
-interpreter reports **Python 3.14.4**. They do not establish target Python 3.13
-verification. No dependencies, credentials, authentication or application code
-were changed.
-
-## Executed diagnostic commands
-
-Executed from the repository root:
-
-```bash
-backend/.venv/bin/python --version
-backend/.venv/bin/python backend/manage.py check
-backend/.venv/bin/python backend/manage.py makemigrations --check --dry-run
-backend/.venv/bin/python backend/manage.py migrate --plan
-backend/.venv/bin/python backend/manage.py showmigrations ledger funds sharing
-backend/.venv/bin/python backend/manage.py spectacular --validate --fail-on-warn --file /tmp/kivo-phase-06-prerequisite-openapi.yaml
-backend/.venv/bin/ruff check .
-backend/.venv/bin/ruff format --check .
-backend/.venv/bin/python -m pytest -v tests/test_fifo_engine.py tests/test_rent_calendar.py tests/test_sharing_splits.py tests/test_rent_status.py tests/test_schema.py tests/test_ledger.py::test_required_receipt_and_expense_scenario tests/test_rent.py::test_shared_rent_pending_policy_fails_without_posting_or_consuming_reserve tests/test_database_privacy.py --reuse-db --maxfail=1 --tb=short
-```
-
-| Check | Exit | Observed result |
-| --- | --- | --- |
-| Interpreter version | 0 | Python 3.14.4 |
-| Django system check | 0 | No issues |
-| Migration drift | 0 | No changes detected |
-| Development migration plan | 0 | No planned operations |
-| Development migration state | 0 | Ledger 0001–0005, funds 0001–0003, sharing 0001–0003 applied |
-| Existing OpenAPI generation/validation | 0 | No warnings; validates existing APIs only |
-| Ruff check | 0 | All checks passed |
-| Ruff format check | 0 | 102 files already formatted |
-| Focused prerequisite pytest run | 0 | **39 passed in 50.36 s; 0 failed, 0 skipped** |
-| Read-only model/FIFO/route capability probe | 0 | Assertions confirm missing financial kinds and routes; this is blocker evidence, not a passing financial gate |
-| Final `git diff --check` after documentation changes | 0 | No whitespace errors |
-| Final Ruff check / format check after documentation changes | 0 / 0 | All checks passed; 104 files already formatted |
-
-The capability probe initialized Django using the existing development settings,
-inspected event choices, invoked the real pure FIFO engine and called Django's
-URL resolver. It did not mutate the database or mock an implemented capability.
-
-The test run used the existing fail-closed fixture requiring a remote PostgreSQL
-engine and a separate `test_` database distinct from development, with
-`--reuse-db`. Database tests operated on the isolated remote test database; no
-SQLite or local PostgreSQL fallback was used. Development commands inspected
-migration state only. No migration was applied and no development financial data
-was changed in this session.
-
-## Financial and security evidence boundaries
-
-- PASS: existing receipt/expense database scenario receives INR 1,000, spends
-  INR 120 + 40, and verifies INR 840 liquid balance and INR 160 personal expense.
-- PASS: real pure FIFO tests exercise scenarios A/B/C, stable ordering, partial
-  transfer/refund lineage, incomplete allocation and invalid input rejection.
-  These are algorithm tests, not database-concurrency evidence.
-- PASS: the shared-rent PostgreSQL/API test verifies explicit policy rejection
-  and atomic preservation of postings, allocation history and reserve changes.
-  It does not establish working shared-rent posting.
-- PASS: the PostgreSQL privacy test verifies at least 25 private tables have RLS
-  and no checked table privileges for `anon`, `authenticated` or `service_role`.
-- NOT VERIFIED: Phase 6 financial scenarios, new endpoint authorization, CSV
-  formula protection, filtered-export reconciliation and query efficiency. There
-  is no Phase 6 implementation to test. No Phase 6 socket HTTP flow or performance
-  measurement has been executed.
-
-Of the 39 passing tests, three are database-backed (receipt/expense,
-shared-rent policy rejection and private-table privileges); the remaining tests
-exercise existing pure logic/schema behavior. They must not be described as 39
-PostgreSQL integration tests or a full Phase 1–5 gate.
-
-The previous Phase 5 report's 160-test Python 3.13 run is historical evidence for
-its implemented scope. That full suite was not rerun in this session after the
-critical missing workflows were confirmed. It never covered working lending or
-shared-bill posting. Phase 6 tests executed: **0**. Missing required scenarios
-are unimplemented/NOT VERIFIED, not silently skipped pytest cases; no blocked
-pytest count is fabricated.
-
-## Changes and completion requirements
-
-Only README and the Phase 6 plan/report were changed. No application file,
-financial model, API, dependency or migration changed. The
-[implementation plan](phase-06-plan.md) describes the conditional sequence after
-the decisions and Phase 5 gate are resolved. Phase 6 authorization itself does
-not need to be requested again. Phase 7 was not started.
-
-| Required gate | Status |
+| Endpoint | Implemented behavior |
 | --- | --- |
-| Available prerequisite diagnostics on Python 3.14.4 | PASS for the selected 39 tests and checks only |
-| Complete Phase 5 financial prerequisite | BLOCKED: lending/shared workflows and policy answers missing |
-| Current Python 3.13 verification | NOT VERIFIED: temporary environment absent |
-| Budgets, dashboard, advanced history, reports and CSV | BLOCKED at the prerequisite gate; not implemented |
-| Phase 6 financial/security/HTTP/performance tests | NOT VERIFIED |
-| Phase 6 completion | BLOCKED |
+| `/api/v1/budgets/` | GET paginated / POST with Idempotency-Key |
+| `/api/v1/budgets/{uuid}/` | GET progress / PATCH configuration and archival |
+| `/api/v1/dashboard/` | Current source-derived balances, spending, claims, rent, budget progress, earmarks, safe-to-spend and activities |
+| `/api/v1/transactions/` | Existing API extended with shared strict filters/search/stable pagination |
+| `/api/v1/reports/summary/` | Net expense, cash-flow classifications, counts, average, highest day and comparison |
+| `/api/v1/reports/trends/` | Day, Monday-based week or month aggregation |
+| `/api/v1/reports/breakdown/` | Category, merchant, account, payment method or primary contact |
+| `/api/v1/reports/funds/` | Paginated existing batch snapshots with classified attribution movements; owned historic run selection |
+| `/api/v1/reports/export/` | Authorized filtered CSV with exact net contribution columns |
+
+## Environment and database evidence
+
+Target commands use `/tmp/kivo-venv313/bin/python` (**Python 3.13.16**), with the
+unchanged locked Django 6.1.2/DRF 3.18.3/psycopg 3.3.6 dependencies. This is the
+restored temporary environment documented in the Phase 5 report, not a Python
+3.14 compatibility substitution. No dependency or credential file was changed.
+
+The configured remote Supabase TLS PostgreSQL development database is used for
+additive migrations/read-only checks. Destructive tests use the distinct existing
+remote `test_postgres` database, guarded by `tests/conftest.py`; no SQLite/local
+PostgreSQL, mocks presented as integration, reset or migration-history deletion.
+
+One new migration: `reports.0001_initial`. Its creation transaction adds two
+budget/audit tables, owner/period indexes and amount/date/threshold constraints;
+locks owners and validates category ownership, monthly calendars and active
+scope overlap; protects identity/history; automatically audits raw SQL updates;
+enables RLS and revokes PUBLIC/anon/authenticated/service_role table privileges.
+There are no new integer sequences. Applied existing ledger/fund migrations were
+not edited.
+
+| Executed command/check | Exit | Actual result |
+| --- | --- | --- |
+| `python --version` using target prefix | 0 | Python 3.13.16 |
+| Sandbox `makemigrations reports --dry-run`, then `makemigrations reports` | 0 / 0 | Migration generated; both warned that sandbox DNS prevented migration-history verification |
+| Network-enabled `makemigrations --check --dry-run` | 0 | No model drift, actual history connection |
+| Network-enabled `migrate --plan` | 0 | Only additive reports 0001 planned; inspected before application |
+| Sandbox `sqlmigrate reports 0001` | 1 | DNS resolution failure; not a database verification pass |
+| Network-enabled `sqlmigrate reports 0001` | 0 | Inspected generated schema, guards, audit and privacy SQL |
+| Network-enabled `migrate --noinput` | 0 | reports.0001_initial applied successfully in development |
+| Initial strict OpenAPI generation | 1 | Duplicate Breakdown component name warning; fixed by naming the report schema explicitly |
+| Repeated `spectacular --validate --fail-on-warn --file /tmp/kivo-phase-06-openapi.yaml` | 0 | Expanded actual contracts validate with no warnings |
+| Pure Phase 6 `pytest ... -m 'not django_db'` | 0 | 25 passed, 10 deselected in 0.19 s; after pagination addition, 25 passed, 11 deselected in 0.22 s |
+| First target PostgreSQL run | 1 | 2 passed, 1 failed in 161.26 s; test reserve request omitted existing required reason |
+| Corrected request, target rerun | 1 | 2 passed, 1 failed in 159.21 s; exposed dashboard nullable rent-status exclusion bug |
+| Rent selector repair / remaining targeted run | 0 | **38 passed, 2 deselected, 0 failed, 0 skipped in 435.15 s**; 25 pure tests and 13 database-backed tests including concurrency |
+| Intermediate Django check / Ruff check / Ruff format / whitespace | 0 | No system issues; lint clean; 123 files formatted; whitespace clean |
+| Final Django check | 0 | No system issues |
+| Final Ruff check / format check | 0 / 0 | Lint clean; 123 files already formatted |
+| Final strict OpenAPI validation | 0 | `/tmp/kivo-phase-06-final-openapi.yaml`, no warnings |
+| Generated contract assertions | 0 | Required routes, string money, required budget retry header and text/csv media type verified |
+| Final migration drift / plan / readback | 0 / 0 / 0 | No model changes or pending migrations; ledger 0001–0008, funds 0001–0005, sharing 0001–0003 and reports 0001 applied |
+| Final read-only ledger / FIFO / rent audits | 0 / 0 / 0 | Development contains 0 financial events/owners/obligations/reserves; operational checks, not populated financial evidence |
+| First combined 224-test run | 2 | Stale process after turn interruption; explicitly stopped, no tests completed in its observed 635.85 s result; no passing gate |
+| Second combined 224-test run | 2 | 37 passed in 345.12 s before deliberate restart to include strengthened performance cases; not a completed gate |
+| Strengthened current-budget / multi-chunk CSV checks | 0 | 2 passed in 84.88 s; six current budgets correct, 202 streamed events reconcile with actual ledger/FIFO |
+| Full combined 225-test run | **1** | **224 passed, 1 failed, 0 skipped in 2670.94 s**; real HTTP failed on a Supabase session-connection timeout during `/categories/`, before Phase 6 calls |
+| Focused real HTTP / corrected CSV measurement rerun | **0** | **2 passed, 0 failed, 0 skipped in 268.92 s**; complete genuine session/CSRF HTTP financial + Phase 6 flow, CSV query count corrected and verified |
+
+The reserve test now supplies its required audit reason. The dashboard bug was
+repaired by explicitly retaining obligations with no status-change record;
+assertions were kept. Neither failure was hidden or weakened. Some earlier
+passing target results preceded later filter/fund-report refinements, so they
+are intermediate evidence, not a final completion claim.
+
+Actual test commands (all from the repository root):
+
+```bash
+/tmp/kivo-venv313/bin/python -m pytest -v tests/test_reporting.py -m 'not django_db' --tb=short
+/tmp/kivo-venv313/bin/python -m pytest -v tests/test_reporting.py tests/test_database_privacy.py --reuse-db --maxfail=1 --tb=short --junitxml=/tmp/kivo-phase-06-targeted.xml
+/tmp/kivo-venv313/bin/python -m pytest -v tests/test_reporting.py tests/test_reporting_concurrency.py tests/test_database_privacy.py --reuse-db --maxfail=1 --tb=short --junitxml=/tmp/kivo-phase-06-targeted-fixed.xml
+/tmp/kivo-venv313/bin/python -m pytest -v tests/test_reporting.py tests/test_reporting_concurrency.py tests/test_database_privacy.py -k 'not reporting_distinguishes and not shared_recognition' --reuse-db --maxfail=1 --tb=short --junitxml=/tmp/kivo-phase-06-targeted-rent-fixed.xml -o junit_logging=system-out
+/tmp/kivo-venv313/bin/python -m pytest -v tests/test_reporting.py::test_budget_aggregation_query_count_does_not_grow_per_row tests/test_reporting.py::test_csv_streams_multiple_chunks_without_per_event_queries --reuse-db --maxfail=1 --tb=short --junitxml=/tmp/kivo-phase-06-performance.xml -o junit_logging=system-out
+/tmp/kivo-venv313/bin/python -m pytest -v --reuse-db --tb=short --junitxml=/tmp/kivo-phase-06-final-225.xml -o junit_logging=system-out
+/tmp/kivo-venv313/bin/python -m pytest -v tests/test_finance_http.py::test_real_http_financial_lifecycle tests/test_reporting.py::test_csv_streams_multiple_chunks_without_per_event_queries --reuse-db --tb=short --junitxml=/tmp/kivo-phase-06-http-csv-rerun.xml -o junit_logging=system-out
+```
+
+## Financial, security and performance gates
+
+Observed intermediate PostgreSQL passes include the required 1000 received / 800
+spent / 200 lent case; owned transfers; borrowing/recoveries without income;
+shared 6000 gross / 2000 owner expense; reimbursement and immediate friend-paid
+recognition; unpaid rent/reserves/payment reversal; budget warning thresholds,
+zero limits and overspending; and refund/backdated correction recalculation.
+The full run confirms all 15 required Phase 6 accounting/filter/security scenarios:
+1000/800/200 receipt-expense-lending; owned transfer conservation; non-income
+borrowing/recovery and non-expense principal; 6000/2000 shared recognition;
+unpaid rent; reserves; refunds/reversals; backdated recalculation; inclusive date
+boundaries; empty periods; budget thresholds; cross-user isolation; formula
+escaping; filtered export reconciliation; and actual FIFO source analysis.
+These are executed assertions against the production selectors/domain services,
+with real remote PostgreSQL for database cases and pure tests identified as such.
+
+The targeted run passed cross-user isolation, filtered CSV/report equivalence,
+formula protection, raw privacy guards, immutable budget audit, row-lock report
+consistency and concurrent same/distinct-key budget creation. Measured budget
+progress used one SQL aggregate for six budgets with actual expense data. The
+observed dashboard baseline used 19 queries with two events and six stored
+historical budgets. The strengthened test checks six currently applicable
+budgets and observes **20 SQL queries**, including the aggregate for their real
+spending. Both assertions and actual count passed.
+
+The multi-chunk case populates 201 balanced ORM expense events after an actual
+receipt, retaining PostgreSQL financial guards and invoking the actual solvency
+and FIFO services. It verifies all 202 exported events, INR 201 expense and INR
+799 cash, with ledger/FIFO reconciliation. Its initial diagnostic printed the
+query context after later HTTP calls reset Django's query log, yielding an
+invalid zero measurement. That number is not accepted as evidence. The test now
+snapshots the count immediately and requires it to be nonzero. The focused rerun
+passed with **6 SQL queries for 202 CSV events** across chunks of 200. The earlier
+zero diagnostic is superseded, not presented as a performance pass.
+
+The full run completed with 224 passes and one failure. The failure traceback is
+an OperationalError connection timeout while loading the database-backed session
+for POST `/api/v1/categories/`; urllib observed HTTP 500. No financial assertion
+was weakened or application connection configuration changed. The focused rerun
+then passed the complete real socket registration/login/CSRF, receipt, expense,
+transfer, refund, lending/recovery, shared bill, rent, budget, dashboard, report,
+fund-source and CSV flow. Its assertions reconcile INR 590 liquid, INR 180 personal
+expense, INR 230 receivables, INR 100 reserved and INR 490 safe-to-spend.
+
+Every implemented test case has passing execution evidence across these runs,
+but the successful focused rerun does **not** turn the recorded failed full run
+into a clean full-suite exit 0. That mandatory completion gate remains open.
+Full-run XML is `/tmp/kivo-phase-06-final-225.xml`; focused evidence is
+`/tmp/kivo-phase-06-http-csv-rerun.xml`. The runner persists
+`/tmp/kivo-phase-06-final-225.log` and `/tmp/kivo-phase-06-final-225-status.json`
+so interruption cannot be mistaken for success. No blocked-test count or
+throughput benchmark is invented. Unexecuted gates are not skipped pytest cases.
+
+## Outstanding limitations and decisions
+
+- ADR-005 friend-paid rent-obligation linking/reserve handling remains pending;
+  ordinary generated rent remains unrecognized until an approved actual payment.
+- Reports identify the configured Asia/Kolkata calendar; no new per-user timezone
+  preference or currency conversion was introduced.
+- Category budgets cover the exact category. Per-participant filtered shared
+  reports can overlap; primary-contact breakdown avoids invented split expense.
+- Report/export reads serialize with owner writes. A slow CSV stream holds that
+  owner's lock until completion/closure; no unmeasured throughput claim.
+- Current dashboard budget detail is capped at 20, with total count and paginated
+  budget API for the rest. Source remaining capacity includes receivables, not cash.
+- A clean full-suite exit 0 has not been recorded after the transient full-run
+  HTTP connection failure. The focused retry passed; the failed run remains FAIL.
+  No production-readiness claim is made.
+
+Phase 6 is not claimed complete while mandatory verification or prerequisite
+matters remain. Phase 7 readiness is NOT READY; no Phase 7 work was started.
+
+## Final gate assessment
+
+| Gate | Evidence-backed result |
+| --- | --- |
+| Target Python 3.13 / installed dependencies | PASS |
+| Actual additive development migration / no drift | PASS |
+| Budget, dashboard, filtering, report and CSV financial assertions | PASS |
+| Owner isolation, private PostgreSQL tables and immutable audit | PASS |
+| Actual concurrency, duplicate prevention and rollback | PASS |
+| Actual HTTP flow | PASS on focused rerun; earlier timeout failure retained |
+| Measured query efficiency | PASS for the stated small representative datasets: 1 aggregate / 6 budgets; 20 dashboard queries / 6 current budgets; 6 CSV queries / 202 events |
+| Clean full regression command | FAIL: recorded exit 1, 224 passed / 1 failed; targeted retry exit 0 does not rewrite it |
+| Phase 5 friend-paid rent/reserve prerequisite | BLOCKED pending the explicit ADR-005 business decision |
+| Phase 6 overall | PARTIALLY COMPLETE |
 | Phase 7 readiness | NOT READY |
+
+No pytest cases were silently skipped. Full-run skipped count is 0; the targeted
+subset intentionally deselected two cases that subsequently ran in the full
+suite. Pending business/gate items are not invented as blocked pytest counts.

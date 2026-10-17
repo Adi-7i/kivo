@@ -1,10 +1,12 @@
 # Phase 6 implementation plan
 
 Phase 6 is authorized by the latest user request. Phase 7 remains excluded.
-Implementation is **BLOCKED** at the prerequisite gate: Phase 5 is partially
-complete. The user subsequently approved the original recognition/FIFO questions;
-remaining Phase 5 verification and linked friend-paid rent reserve handling must
-be resolved first. This document is a plan, not Phase 6 application implementation.
+The user renewed explicit Phase 6 implementation authorization after the core
+Phase 5 lending/shared/FIFO v2 code was committed. Reporting now builds on those
+implemented paths. The pending linked friend-paid rent reserve policy remains
+unsupported; no new financial write rule is assigned by Phase 6. The interrupted
+full Phase 5 run has no inferred final pass. A new combined regression must verify
+all implemented earlier-phase behavior alongside Phase 6.
 See [current evidence](phase-06-verification.md) and
 [ADR-005](../decisions/ADR-005-personal-sharing-and-rent.md).
 
@@ -19,13 +21,15 @@ See [current evidence](phase-06-verification.md) and
    against real isolated PostgreSQL, including corrections and FIFO replay.
 3. Use the restored isolated Python 3.13 verification environment with the approved
    dependencies. Inspect additive migration plans, apply only authorized
-   development changes, and pass the complete Phase 1–5 gate before Phase 6 code.
+   development changes, and execute a fresh combined Phase 1–6 regression.
+   Preserve the interrupted prerequisite run as NOT VERIFIED rather than
+   retroactively declaring that the original sequential gate passed.
 
 The PRD, Backend Technology Blueprint and Final Development Suite are not present
 in the repository. Available specifications are the user prompts, AGENTS.md,
 README, ADRs and phase reports. No review of unavailable documents is claimed.
 
-## Conditional implementation sequence
+## Implementation sequence
 
 1. Add owned monthly/category budgets with validated periods, configurable
    warning thresholds, archival and progress derived from recognized personal

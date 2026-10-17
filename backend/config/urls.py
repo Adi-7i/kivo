@@ -21,6 +21,7 @@ api_v1_patterns = [
     path("", include("apps.ledger.urls")),
     path("funds/", include("apps.funds.urls")),
     path("", include("apps.sharing.urls")),
+    path("", include("apps.reports.urls")),
 ]
 
 urlpatterns = [

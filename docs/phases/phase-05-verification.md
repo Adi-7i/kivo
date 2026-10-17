@@ -7,8 +7,10 @@ recognition/FIFO decisions; the continuation below implements those workflows
 and records new verification separately. Linked friend-paid rent reserve handling
 has a newly documented pending decision. No answer is inferred from elapsed time.
 See [ADR-005](../decisions/ADR-005-personal-sharing-and-rent.md) and the
-[execution plan](phase-05-plan.md). No Phase 6 or 7 application implementation was
-started. The original sections below are historical evidence for the initial
+[execution plan](phase-05-plan.md). The user subsequently renewed Phase 6
+authorization; its implementation/evidence is recorded separately in the
+[Phase 6 report](phase-06-verification.md). Phase 7 remains excluded.
+The original sections below are historical evidence for the initial
 contacts/personal-rent/reserve scope, not the current capability inventory.
 
 ## Prerequisite evidence
@@ -306,9 +308,13 @@ test database and fail-closed fixture, never SQLite/local PostgreSQL.
 The initial database failure was a polymorphic PL/pgSQL trigger expression
 accessing `NEW.event_id` on a fund-position record. The forward repair isolates
 gap-only field access in a table-specific branch. Tests and financial assertions
-were not weakened. The repaired domain gate passed. The full regression is now
-running against the final application code and expanded tests; **185 collected**
-does not mean 185 passed. Final results are not inferred from intermediate cases.
+were not weakened. The repaired domain gate passed. The later full regression
+collected 185 tests and showed passing progress through the first concurrent rent
+payment case. Across the turn interruption its command handle stopped providing
+output and no final JUnit file or exit status was available. A read-only
+PostgreSQL probe found no active test sessions. This run is **NOT VERIFIED** as
+a full gate; 185 collected is not 185 passed. The final combined regression in
+the Phase 6 report will record new executed evidence separately.
 
 Commands used for these gates:
 
@@ -349,3 +355,42 @@ financially significant ambiguity remains. No answer has been inferred.
 Phase 5 remains PARTIALLY COMPLETE; Phase 6 readiness remains NOT READY until all
 mandatory coverage and the rent-overlap decision are resolved. No unexecuted test
 count or completion result is claimed.
+
+
+### Combined Phase 1–6 verification continuation
+
+The renewed Phase 6 session executed the full current suite on Python 3.13.16
+against isolated remote PostgreSQL:
+
+```bash
+/tmp/kivo-venv313/bin/python -m pytest -v --reuse-db --tb=short --junitxml=/tmp/kivo-phase-06-final-225.xml -o junit_logging=system-out
+```
+
+Exit **1**: **224 passed, 1 failed, 0 skipped in 2670.94 s**. The failure was a
+Supabase connection timeout while loading the session for `/categories/` in the
+socket HTTP flow, before Phase 6 API calls. No clean full-suite pass is claimed.
+
+All **56 cases** in the selected Phase 5 modules passed in that actual combined
+run: personal finance 18; rent 7; rent security 4; FIFO v2 7; rent calendar 11;
+rent status 1; sharing splits 8. The first 29 are database-backed and the remaining
+27 are pure algorithm/calendar/status tests; these are not 56 PostgreSQL-only
+tests. Observed coverage includes lending/borrowing, partial/full/excess repayment,
+shared owner/friend-paid bills, reimbursement, exact splits, atomic rollback,
+backdating/corrections/reversals, multibatch recovery, retained v1 snapshots,
+shared rent, raw PostgreSQL claim caps, concurrent repayments/rent generation and
+payments, ownership, reserve conservation and audit history.
+
+The real socket HTTP flow and final CSV measurement were then rerun, exit **0**:
+
+```bash
+/tmp/kivo-venv313/bin/python -m pytest -v tests/test_finance_http.py::test_real_http_financial_lifecycle tests/test_reporting.py::test_csv_streams_multiple_chunks_without_per_event_queries --reuse-db --tb=short --junitxml=/tmp/kivo-phase-06-http-csv-rerun.xml -o junit_logging=system-out
+```
+
+**2 passed in 268.92 s, 0 failed, 0 skipped**. The complete session/CSRF financial
+flow includes actual lending/recovery/shared bills and reconciles INR 590 cash,
+INR 180 expense, INR 230 receivables, INR 820 remaining source capacity and INR 490
+safe-to-spend with INR 100 reserved. The earlier failed run remains recorded.
+
+Phase 5 is still PARTIALLY COMPLETE because the explicit linked friend-paid rent
+reserve decision in ADR-005 remains unanswered. These tests verify implemented
+approved workflows, not the unsupported pending path. Phase 7 was not started.
