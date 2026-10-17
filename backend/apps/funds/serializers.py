@@ -7,7 +7,13 @@ from datetime import date
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from apps.funds.models import Allocation, AllocationGap, BatchCapacity, FundingBatch, FundPosition
+from apps.funds.models import (
+    Allocation,
+    AllocationGap,
+    BatchCapacity,
+    FundingBatch,
+    FundPosition,
+)
 from apps.ledger.money import MoneyField, format_money
 
 
@@ -33,6 +39,17 @@ class FundingBatchSerializer(serializers.ModelSerializer):
     elapsed_calendar_days = serializers.SerializerMethodField()
     attribution_status = serializers.SerializerMethodField()
     positions = PositionSerializer(source="snapshot_positions", many=True, read_only=True)
+    receivable_positions = serializers.SerializerMethodField()
+
+    @extend_schema_field(
+        serializers.ListField(child=serializers.DictField(child=serializers.CharField()))
+    )
+    def get_receivable_positions(self, batch: FundingBatch) -> list[dict[str, str]]:
+        return [
+            {"claim": str(row.claim_id), "amount": format_money(row.amount_paise)}
+            for row in batch.snapshot_claim_positions
+        ]
+
     run_id = serializers.SerializerMethodField()
     policy_version = serializers.SerializerMethodField()
 
@@ -91,6 +108,7 @@ class FundingBatchSerializer(serializers.ModelSerializer):
             "allocated_amount",
             "remaining_capacity",
             "positions",
+            "receivable_positions",
             "exhausted_on",
             "elapsed_calendar_days",
             "attribution_status",
@@ -106,11 +124,14 @@ class AllocationSerializer(serializers.ModelSerializer):
     title = serializers.CharField(source="event.title", read_only=True)
     amount = MoneyField(source="amount_paise", read_only=True)
     run_id = serializers.UUIDField(source="run.public_id", read_only=True)
+    expense_event = serializers.UUIDField(
+        source="expense_event.public_id", read_only=True, allow_null=True
+    )
     category = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.UUIDField(allow_null=True))
     def get_category(self, allocation: Allocation) -> str | None:
-        event = (
+        event = allocation.expense_event or (
             allocation.event.original_expense if allocation.kind == "refund" else allocation.event
         )
         return str(event.category_id) if event.category_id else None
@@ -128,6 +149,8 @@ class AllocationSerializer(serializers.ModelSerializer):
             "to_account",
             "category",
             "run_id",
+            "claim",
+            "expense_event",
         )
         read_only_fields = fields
 

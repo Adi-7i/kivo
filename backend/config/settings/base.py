@@ -141,6 +141,9 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
+    "ENUM_NAME_OVERRIDES": {
+        "LoanKindEnum": [("lend", "Money lent"), ("borrow", "Money borrowed")],
+    },
 }
 
 # Base Logging Configuration

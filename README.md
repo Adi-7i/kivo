@@ -164,7 +164,8 @@ python backend/manage.py check
 * **Phase 2 prerequisite:** PASS on Python 3.14.4: 69 regression tests passed against isolated remote PostgreSQL. See [readiness evidence](docs/phases/phase-02-readiness.md).
 * **Phase 3:** PASS: 107 tests passed on Python 3.13.16 against isolated remote PostgreSQL. See [verification](docs/phases/phase-03-verification.md).
 * **Phase 4:** PASS: dedicated gate 25 passed; final full regression **129 passed** on Python 3.13.16 against isolated remote PostgreSQL. See [verification](docs/phases/phase-04-verification.md).
-* **Phase 5:** PARTIALLY COMPLETE. Contacts, personal rent and rent reserves pass the final **160-test** regression on isolated remote PostgreSQL. Lending/shared financial posting awaits the accounting decisions in [ADR-005](docs/decisions/ADR-005-personal-sharing-and-rent.md). See [Phase 5 evidence](docs/phases/phase-05-verification.md). Phase 6 readiness: NOT READY.
+* **Phase 5:** PARTIALLY COMPLETE; approved lending/shared posting and FIFO v2 are undergoing Python 3.13/PostgreSQL verification. The earlier **160-test** run covers the previous contacts/personal-rent/reserve scope. A linked friend-paid rent reserve decision is pending in [ADR-005](docs/decisions/ADR-005-personal-sharing-and-rent.md). See [Phase 5 evidence](docs/phases/phase-05-verification.md). Phase 6 readiness: NOT READY.
+* **Phase 6:** Authorized, **BLOCKED** at the Phase 5 prerequisite gate. The current diagnostic run passed **39 tests on Python 3.14.4**, including real remote PostgreSQL checks; it does not verify the missing lending/shared workflows or Phase 6 features. See [evidence](docs/phases/phase-06-verification.md) and the [implementation plan](docs/phases/phase-06-plan.md). Phase 7 readiness: NOT READY.
 * **Architecture Rules:** See [AGENTS.md](AGENTS.md) for permanent engineering principles, financial calculation invariants, and anti-hallucination policies.
 
 ## 10. Financial API contracts
@@ -258,23 +259,24 @@ python backend/manage.py rebuild_funds --all --check
 
 Backfill may record explicit incomplete legacy attribution and exit with an error;
 it never rewrites ledger history or fabricates funding. Recovery, negative-balance
-and manual-override policy decisions are deferred. Phase 5 does not change the
-approved FIFO v1 policy while its proposed lending adapter remains unapproved.
+and manual-override policies remain restricted. Phase 5's approved FIFO v2 extends
+attribution to receivable custody, recovery and liability-funded borrowing sources.
+Prior v1 snapshots and its algorithm remain available. V2 remaining capacity
+includes recoverable receivables and is not cash.
 
-The requested Python 3.13 runtime was verified using a separately built Python
-3.13.16 environment under `/tmp/kivo-venv313`; the existing Python 3.14 environment
-was preserved. Substitute your activated Python 3.13 interpreter for the temporary
-verification prefix in the reports. No new application dependency was introduced.
-Phase 5 is authorized by the current request. Phase 6 and 7 remain excluded.
+The temporary Python 3.13.16 verification environment has been rebuilt under
+`/tmp/kivo-venv313` with the unchanged lockfile. Earlier Phase 6 prerequisite
+diagnostics used Python 3.14.4; current Phase 5 evidence records the new Python
+3.13 runs separately. No new application dependency was introduced. Phase 6
+implementation must wait for every mandatory Phase 5 gate. Phase 7 remains excluded.
 
 ## 12. Phase 5 contacts, personal rent and reserves
 
-Phase 5 is **PARTIALLY COMPLETE**. The remaining lending, borrowing, shared-bill
-and settlement engine requires the pending recognition/attribution decisions in
-[ADR-005](docs/decisions/ADR-005-personal-sharing-and-rent.md). Claim and shared-bill
-models are foundations; they are not advertised as working financial workflows.
-Shared-rent payment attempts fail explicitly with 409 `policy_pending` until the
-required attribution policy is approved and implemented.
+Phase 5 is **PARTIALLY COMPLETE** pending the full verification gate and the
+linked friend-paid rent reserve decision. Recognition and FIFO v2 rules were
+approved and are documented in
+[ADR-005](docs/decisions/ADR-005-personal-sharing-and-rent.md). The implemented
+claims/shared-bill workflows are described below; unexecuted tests are not passes.
 
 | Route | Operations |
 | --- | --- |
@@ -288,7 +290,7 @@ required attribution policy is approved and implemented.
 | `/api/v1/rent/obligations/` and `/{uuid}/` | GET issued obligations and derived status |
 | `/api/v1/rent/obligations/{uuid}/change-status/` | POST action `skip`/`reopen` and reason |
 | `/api/v1/rent/obligations/{uuid}/history/` | GET status audit history |
-| `/api/v1/rent/obligations/{uuid}/payments/` | GET payment history; POST confirmed personal-rent payment |
+| `/api/v1/rent/obligations/{uuid}/payments/` | GET payment history; POST confirmed owner-paid personal/shared rent |
 | `/api/v1/rent/payments/` and `/{uuid}/` | GET immutable linked payments |
 | `/api/v1/rent/payments/{uuid}/correct/` | POST replacement payment input and reason |
 | `/api/v1/rent/payments/{uuid}/reverse/` | POST reason; reopen outstanding rent and restore consumed reserve |
@@ -312,12 +314,15 @@ deactivate and replace a plan to change future terms. Existing obligations remai
 auditable. Generation handles February/leap years and clamps days 29–31. Each call
 can generate at most 120 new months; repeat calls continue from the last month.
 
-An obligation posts no cash or expense. Personal-rent confirmation accepts
+An obligation posts no cash or expense. Owner-paid rent confirmation accepts
 `account`, `amount`, `effective_date` and optional `title`, `notes`, `payment_method`.
 Partial payments cannot exceed outstanding rent and must pass historical funding
 checks. Corrections use the rent endpoint; generic transaction correction/refund
 cannot orphan its obligation. Reversal appends compensating postings and retains
 payment history. A skipped obligation needs a reason and cannot have active payments.
+Shared rent creates one linked shared bill and one ledger event per payment.
+Partial payments distribute remaining contractual shares proportionally with
+integer largest-remainder rounding; only the owner's share is personal expense.
 
 Reserve creation accepts `obligation`, `label`, `amount`, `reason`. Adjustment
 accepts the new target `amount` and `reason`. Reserves do not alter ledger cash.
@@ -342,3 +347,55 @@ python backend/manage.py reconcile_rent
 
 Development journal counts are not substitutes for populated isolated PostgreSQL
 tests. The Phase 5 report records the actual verification boundaries.
+
+## 13. Personal lending, shared bills and FIFO v2
+
+| Route | Operations |
+| --- | --- |
+| `/api/v1/loans/` and `/{event_uuid}/` | GET history/detail; POST `lend` or `borrow` |
+| `/api/v1/loans/{event_uuid}/correct/` and `/reverse/` | POST audited replacement or reversal |
+| `/api/v1/claims/` and `/{uuid}/` | GET ledger-derived principal, outstanding and settlement status |
+| `/api/v1/claims/{uuid}/history/` | GET originating, settlement and reversal events |
+| `/api/v1/settlements/` and `/{event_uuid}/` | GET; POST a partial/full settlement of one owned claim |
+| `/api/v1/settlements/{event_uuid}/correct/` and `/reverse/` | POST audited correction or reversal |
+| `/api/v1/shared-bills/` and `/{bill_uuid}/` | GET; POST owner-paid or friend-paid bill |
+| `/api/v1/shared-bills/{bill_uuid}/correct/` and `/reverse/` | POST full replacement or reversal |
+
+Loans require `kind`, `contact`, `account`, `amount`, `effective_date`, `title`;
+settlements require `claim` instead of `kind`/`contact`. Optional text fields are
+`notes` and `payment_method`. A settlement targets exactly one claim and cannot
+exceed its posted outstanding amount. Archived contacts cannot receive new
+claims, but existing claims may still be settled. Loans create no personal
+expense; borrowing and principal recovery create no external income.
+
+Shared bills require gross `amount`, `title`, `effective_date`, `category`,
+`split_method` and `participants`; optional fields are `merchant`, `notes` and
+`payment_method`. Null/omitted `payer` means the owner paid and requires `account`.
+An owned participating contact as `payer` means friend-paid and requires no owner
+account. The owner appears exactly once as a null contact. Equal splits omit
+share amounts; custom splits supply exact amounts conserving the gross bill.
+Zero owner share is valid and creates no personal expense/payable.
+
+An owner-paid INR 6,000 bill split equally between three participants posts
+6,000 cash out, 2,000 personal expense and 4,000 receivables. Reimbursements reduce
+receivables without income. A friend-paid bill immediately posts only the owner's
+expense/payable; later settlement does not recognize another expense. Event face
+amount is the gross bill; `financial_effects` exposes actual signed owner effects.
+Generic shared-bill writes do not infer or attach rent obligations. Use the rent
+workflow for owner-paid rent; friend-paid rent linking awaits the documented
+reserve decision so it cannot silently mark rent paid or duplicate its recognition.
+
+All writes use the existing owner-wide idempotency namespace and PostgreSQL owner
+lock. Corrections require complete replacement data plus `reason` and preserve
+operation kind. Reverse dependent settlements before correcting/reversing an
+origin. Historical shortfalls roll back the entire write. Shared-bill corrections
+use their linked workflow; a generic expense refund is not a shared-bill refund.
+
+FIFO v2 retains original source portions in receivable custody, recovers oldest
+source portions of the selected claim into the selected account, and resumes
+ordinary account FIFO on later spending. Borrowing creates distinct liability
+sources, never income. Journey kinds distinguish `expense`, `transfer`, `refund`,
+`advance`, `recover` and `principal`. Expense allocations on friend-paid settlement
+link the bill's public `expense_event`; allocation date and recognition date may
+differ. Batch `receivable_positions` identifies recoverable claim portions.
+Lending alone does not exhaust a source. Old `?run=` snapshots remain immutable.

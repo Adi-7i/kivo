@@ -392,10 +392,11 @@ def test_gifts_are_personal_expense_and_preserve_archived_contact_history(
 
 
 @pytest.mark.django_db
-def test_shared_rent_pending_policy_fails_without_posting_or_consuming_reserve(
+def test_shared_rent_uses_one_bill_and_consumes_reserve_with_owner_expense_only(
     ledger: dict[str, Any],
 ) -> None:
-    from apps.funds.models import AllocationRun
+    from apps.funds.services import check_attribution
+    from apps.sharing.models import SharedBill
 
     contact = write(ledger, "contacts/", {"display_name": "Roommate"}).json()
     rent_plan = plan(
@@ -412,23 +413,23 @@ def test_shared_rent_pending_policy_fails_without_posting_or_consuming_reserve(
         {"obligation": obligation["id"], "label": "Room", "amount": "100.00", "reason": "Earmark"},
     )
     assert reserve.status_code == 201, reserve.data
-    before = (Event.objects.count(), ReserveChange.objects.count(), AllocationRun.objects.count())
+    before = Event.objects.count()
     response = write(
         ledger,
         f"rent/obligations/{obligation['id']}/payments/",
         {"account": str(ledger["cash"].id), "amount": "20.00", "effective_date": "2025-10-16"},
-        key="shared-pending",
+        key="shared-approved",
+    )
+    assert response.status_code == 201, response.data
+    assert Event.objects.count() == before + 1
+    assert SharedBill.objects.count() == 1
+    assert summary(ledger)["liquid_balance"] == "80.00"
+    assert summary(ledger)["personal_expense"] == "10.00"
+    assert (
+        ledger["client"].get(f"/api/v1/contacts/{contact['id']}/").json()["receivable"] == "10.00"
     )
     assert (
-        response.status_code == 409
-        and response.json()["error"]["details"]["code"] == "policy_pending"
+        ledger["client"].get(f"/api/v1/rent/reserves/{reserve.json()['id']}/").json()["reserved"]
+        == "80.00"
     )
-    assert before == (
-        Event.objects.count(),
-        ReserveChange.objects.count(),
-        AllocationRun.objects.count(),
-    )
-    assert (
-        summary(ledger)["liquid_balance"] == "100.00"
-        and summary(ledger)["personal_expense"] == "0.00"
-    )
+    check_attribution(ledger["user"])

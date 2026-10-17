@@ -1,12 +1,15 @@
-# Phase 5 verification: personal contacts and rent
+# Phase 5 verification: personal claims, shared bills and rent
 
 Status: **PARTIALLY COMPLETE**. Phase 6 readiness: **NOT READY**.
 
-This is not a completed Phase 5 gate. Lending, borrowing, shared financial
-posting, settlements and their FIFO integration remain blocked on the accounting
-decisions requested from the user. No answer has been inferred from elapsed time.
+This is not a completed Phase 5 gate. The user has approved the original
+recognition/FIFO decisions; the continuation below implements those workflows
+and records new verification separately. Linked friend-paid rent reserve handling
+has a newly documented pending decision. No answer is inferred from elapsed time.
 See [ADR-005](../decisions/ADR-005-personal-sharing-and-rent.md) and the
-[execution plan](phase-05-plan.md). No Phase 6 or 7 implementation was started.
+[execution plan](phase-05-plan.md). No Phase 6 or 7 application implementation was
+started. The original sections below are historical evidence for the initial
+contacts/personal-rent/reserve scope, not the current capability inventory.
 
 ## Prerequisite evidence
 
@@ -171,7 +174,7 @@ run and warning remain recorded above.
 Empty development reconciliation/counts are operational migration/isolation
 evidence only. Populated test-database scenarios above supply financial evidence.
 
-## Remaining completion requirements
+## Initial completion requirements (historical, before user approval)
 
 | Required area | Current status |
 | --- | --- |
@@ -183,7 +186,7 @@ evidence only. Populated test-database scenarios above supply financial evidence
 | User-paid shared bills, shared rent and settlement attribution | BLOCKED: required FIFO integration pending |
 | Full post-change regression and final security audit | PASS for implemented scope: 160 passed, 0 failed/skipped/warnings; unimplemented lending/shared requirements remain blocked |
 
-Proposed decisions awaiting explicit user answers:
+The decisions awaiting answers at that earlier gate were:
 
 1. Friend-paid bills: expense plus payable on the bill date, with later settlement
    reducing cash/payable only (recommended), or cash-basis recognition on settlement.
@@ -191,6 +194,158 @@ Proposed decisions awaiting explicit user answers:
    lineage on repayment, identify borrowing as liability-funded capacity rather
    than income, and classify principal-return allocation separately from expense.
 
-The required lending examples and INR 6,000 three-roommate financial example
-have **NOT VERIFIED** status. Passing rent tests cannot establish those features.
-Phase 5 cannot be marked complete and Phase 6 must not begin.
+At that earlier gate, the required lending examples and INR 6,000 three-roommate
+financial example were **NOT VERIFIED**. Passing rent tests did not establish them.
+Those examples were unverified at that earlier gate. See the approved continuation
+below for current evidence; a historical failure/blocker is not erased by later work.
+
+## Approved continuation: 2026-10-17
+
+The user approved the contact/claim/split/rent/reserve architecture, immediate
+friend-paid expense/payable recognition and conditional FIFO v2. ADR-005 was
+updated with deterministic claim-specific recovery, original-source ordering,
+borrowing/principal classification, backdating, reversal dependencies and owner
+serialization before implementing the new engine. No Phase 6 application code
+was added. Existing uncommitted Phase 6 prerequisite documentation was preserved.
+
+### Implemented continuation
+
+- `sharing/finance.py`, `financial_views.py`, serializers and routes: lending,
+  borrowing, claim listing/details/history, partial/full settlements, exact shared
+  bills, friend-paid expense/payable recognition, superseding corrections and
+  reversals. Claim balances derive exclusively from signed ledger postings.
+- `ledger/`: six new economic kinds, nullable account only for noncash shared
+  recognition/reversal, exact operation-specific multi-leg journal validation,
+  claim-preserving reversals, dependency checks, historical settlement limits and
+  database owner locking. Generic transaction creation remains limited to its
+  original supported kinds; domain financial writes use their dedicated endpoints.
+- `funds/engine_v2.py`: real account FIFO plus receivable custody/recovery, one
+  liability-funded source per borrowing, distinct principal-return allocations
+  and recognized-expense references for later payable settlements. The v1 engine
+  and historical runs remain intact. Remaining capacity includes receivables and
+  is explicitly not another liquid balance.
+- `funds/` snapshots/selectors/contracts: immutable claim positions, expanded
+  allocation kinds and public expense-event references, conservation across
+  consumed/liquid/receivable capacity, and strict reconciliation in financial writes.
+- `sharing/rent.py`: actual owner-paid shared rent creates one shared bill/event
+  and one payment link. Partial payments allocate remaining contractual shares;
+  correction/reversal reopens obligations and claim/reserve history together.
+- New tests are `test_fifo_v2.py`, `test_personal_finance.py`; existing rent,
+  funds, privacy, socket HTTP and journal reconciliation assertions were updated.
+  The journal assertion now compares exact operation-specific posting multisets,
+  preserving the two-leg invariant for legacy kinds while verifying shared legs.
+  `sharing/participants.py` shares participant authorization/validation between
+  rent and bills; contact lookups and shared claims/shares are batched.
+
+New endpoints are `/api/v1/loans/`, `/claims/`, `/settlements/` and `/shared-bills/`
+with owned details, linked history and correction/reversal actions as applicable.
+The [README contract table](../../README.md#13-personal-lending-shared-bills-and-fifo-v2)
+documents actual inputs and the friend-paid rent limitation.
+
+### Runtime restoration
+
+`python3.13` was unavailable and the earlier temporary environment had expired.
+The existing environment was preserved. Python 3.13.16 was downloaded from the
+[official release](https://www.python.org/downloads/release/python-31316/), its
+source SHA-256 verified, and built under `/tmp/kivo-python313`. Ubuntu OpenSSL
+and libffi development headers were extracted under `/tmp` with their published
+package hashes checked; no system packages were installed. Initial symlink
+creation reported existing package links; they were corrected to the installed
+runtime libraries. The first build lacked SSL because configure did not locate
+OpenSSL; reconfiguration with an explicit prefix and rebuilding fixed it.
+
+Observed final interpreter/import probe, exit 0: **Python 3.13.16**, OpenSSL
+3.5.5, successful `ssl`, `ctypes`, Django 6.1.2 and psycopg 3.3.6 imports. A new
+`/tmp/kivo-venv313` uses the unchanged `requirements.lock`. Initial sandboxed pip
+installation failed with exit 1/no matching package from the restricted index;
+the escalated retry installed the locked requirements, exit 0. The first source
+download also failed DNS resolution in the sandbox; the authorized retry passed.
+These bootstrap failures are not compatibility passes. Subsequent test commands
+below use Python 3.13.16 unless explicitly labelled otherwise.
+
+### Additive development migrations and observed intermediate checks
+
+Inspected the migration plan and generated ledger/funds SQL before authorized
+development application. Applied through the configured remote Supabase TLS
+connection, exit 0:
+
+1. `ledger.0006_remove_event_event_valid_kind_and_more`
+2. `ledger.0007_personal_financial_guards`
+3. `funds.0004_claimposition_and_more` (new claim-position table receives RLS,
+   revoked client-role/PUBLIC table and sequence grants, owner/immutability and
+   deferred conservation guards in its creation transaction)
+4. `funds.0005_fix_position_guard_dispatch` (forward-only repair below)
+5. `ledger.0008_serialize_journal_relationships` (raw journal insert locking and
+   archived-account rejection)
+
+No previously applied migration was edited/reset. No development financial data
+was created by tests. Destructive tests use the existing isolated remote PostgreSQL
+test database and fail-closed fixture, never SQLite/local PostgreSQL.
+
+| Executed continuation check | Exit | Actual observation |
+| --- | --- | --- |
+| Initial Ruff check during implementation | 1 | Import formatting violations, subsequently fixed |
+| Initial expanded OpenAPI validation on Python 3.14 | 1 | Two enum naming warnings, no schema errors; explicit loan enum and matching split choices resolved them |
+| Pure v1/v2 FIFO, calendar and split tests on Python 3.14 | 0 | 39 passed in 0.12 s; algorithm evidence only |
+| Python 3.13 Django system check | 0 | No issues |
+| Python 3.13 strict OpenAPI validation | 0 | No warnings; `/tmp/kivo-phase-05-approved-openapi.yaml` |
+| Initial new PostgreSQL gate | 1 | **1 failed in 31.01 s**, stopped on the first test; a funding receipt returned masked 500 and rolled back |
+| Forward repair plan/application | 0 / 0 | Inspected/applied funds 0005; original applied SQL preserved |
+| Repaired Python 3.13 domain gate | 0 | **22 passed in 641.49 s; 0 failed, 0 skipped**; before final batching and expanded raw-concurrency/history tests |
+| Model/migration drift check | 0 | No changes detected |
+| Intermediate Ruff / format / whitespace | 0 / 0 / 0 | All checks passed; 109 files already formatted |
+| Development migration readback on Python 3.13 | 1 | Initial DNS failure; retry and migration-plan readback hit connection timeouts |
+| Sanitized connection diagnostic on Python 3.13 | 1 | DNS resolved one address; new PostgreSQL connection raised OperationalError |
+| Development migration readback on existing Python 3.14 | 0 | Ledger through 0008, funds through 0005, sharing through 0003 applied; no target-runtime compatibility claim from this check |
+| Retried development migration plan on Python 3.13 | 0 | No planned migration operations after connectivity recovered |
+| Read-only `reconcile_ledger` on Python 3.13 | 0 | 0 development financial events; operational state only, not populated financial evidence |
+| Read-only `rebuild_funds --all --check` on Python 3.13 | 0 | 0 development owners; no mutation |
+| Read-only `reconcile_rent` on Python 3.13 | 0 | 0 development owners, obligations and reserves; no mutation |
+| Signature and generated-contract audit on Python 3.13 | 0 | New financial signatures annotated; money inputs are strings, retry headers required, expense references use public UUIDs; no Phase 6 endpoints |
+
+The initial database failure was a polymorphic PL/pgSQL trigger expression
+accessing `NEW.event_id` on a fund-position record. The forward repair isolates
+gap-only field access in a table-specific branch. Tests and financial assertions
+were not weakened. The repaired domain gate passed. The full regression is now
+running against the final application code and expanded tests; **185 collected**
+does not mean 185 passed. Final results are not inferred from intermediate cases.
+
+Commands used for these gates:
+
+```bash
+backend/.venv/bin/python -m pytest -q tests/test_fifo_v2.py tests/test_fifo_engine.py tests/test_rent_calendar.py tests/test_sharing_splits.py
+/tmp/kivo-venv313/bin/python backend/manage.py check
+/tmp/kivo-venv313/bin/python backend/manage.py spectacular --validate --fail-on-warn --file /tmp/kivo-phase-05-approved-openapi.yaml
+/tmp/kivo-venv313/bin/python backend/manage.py migrate --plan
+/tmp/kivo-venv313/bin/python backend/manage.py migrate --noinput
+/tmp/kivo-venv313/bin/python backend/manage.py makemigrations --check --dry-run
+/tmp/kivo-venv313/bin/python -m pytest -v tests/test_fifo_v2.py tests/test_personal_finance.py tests/test_rent.py::test_shared_rent_uses_one_bill_and_consumes_reserve_with_owner_expense_only tests/test_database_privacy.py --reuse-db --maxfail=1 --tb=short
+/tmp/kivo-venv313/bin/python -m pytest -v tests/test_personal_finance.py tests/test_rent.py::test_shared_rent_uses_one_bill_and_consumes_reserve_with_owner_expense_only tests/test_database_privacy.py tests/test_fifo_v2.py --reuse-db --maxfail=1 --tb=short
+/tmp/kivo-venv313/bin/python -m pytest -v --reuse-db --tb=short --junitxml=/tmp/kivo-phase-05-final-results.xml
+```
+
+The initial development migration/SQL inspection used `backend/.venv/bin/python`
+(Python 3.14.4) while Python 3.13 was being restored. Later repairs and checks use
+the Python 3.13 prefix. No mocked connection is counted as PostgreSQL evidence.
+
+### Explicit pending matter
+
+For a friend-paid landlord bill linked to a generated rent obligation, reserve
+retention versus immediate release remains unanswered. The exact question and
+recommended retention of the owner's unpaid share are in ADR-005. This does not
+reopen the approved standalone friend-paid recognition. Current rent confirmation
+accepts owner payments, including shared rent; generic bills cannot claim to pay
+an obligation by matching its title/date. The linked friend-paid rent path is not
+implemented until the user supplies that financially significant decision.
+
+This affects available money: illustratively, with INR 6,000 cash/reserved rent,
+a friend paying the full landlord bill and an owner share of INR 2,000 would leave
+cash unchanged. Retaining INR 2,000 makes safe-to-spend INR 4,000; releasing all
+earmarks makes it INR 6,000 while the payable remains INR 2,000. These are proposed
+policy outcomes, not implemented/tested results. Instruction 4 of the latest user
+request says to "stop and request a decision instead of inventing a rule" when a
+financially significant ambiguity remains. No answer has been inferred.
+
+Phase 5 remains PARTIALLY COMPLETE; Phase 6 readiness remains NOT READY until all
+mandatory coverage and the rent-overlap decision are resolved. No unexecuted test
+count or completion result is claimed.

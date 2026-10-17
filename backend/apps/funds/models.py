@@ -85,6 +85,23 @@ class FundPosition(models.Model):
         ]
 
 
+class ClaimPosition(models.Model):
+    """Recoverable source portions, derived from the ledger in an immutable run."""
+
+    run = models.ForeignKey(AllocationRun, on_delete=models.PROTECT, related_name="claim_positions")
+    batch = models.ForeignKey(
+        FundingBatch, on_delete=models.PROTECT, related_name="claim_positions"
+    )
+    claim = models.ForeignKey("sharing.Claim", on_delete=models.PROTECT)
+    amount_paise = models.BigIntegerField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["run", "batch", "claim"], name="claim_position_unique"),
+            models.CheckConstraint(condition=Q(amount_paise__gt=0), name="claim_position_positive"),
+        ]
+
+
 class Allocation(models.Model):
     run = models.ForeignKey(AllocationRun, on_delete=models.PROTECT, related_name="allocations")
     batch = models.ForeignKey(FundingBatch, on_delete=models.PROTECT, related_name="allocations")
@@ -93,7 +110,22 @@ class Allocation(models.Model):
     )
     kind = models.CharField(
         max_length=10,
-        choices=[("expense", "Expense"), ("transfer", "Transfer"), ("refund", "Refund")],
+        choices=[
+            ("expense", "Expense"),
+            ("transfer", "Transfer"),
+            ("refund", "Refund"),
+            ("advance", "Receivable advance"),
+            ("recover", "Receivable recovery"),
+            ("principal", "Payable principal return"),
+        ],
+    )
+    claim = models.ForeignKey("sharing.Claim", on_delete=models.PROTECT, null=True, blank=True)
+    expense_event = models.ForeignKey(
+        "ledger.Event",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="expense_attributions",
     )
     amount_paise = models.BigIntegerField()
     from_account = models.ForeignKey(
@@ -106,11 +138,15 @@ class Allocation(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["run", "event", "batch"], name="allocation_run_event_batch_unique"
+                fields=["run", "event", "batch", "kind", "claim"],
+                nulls_distinct=False,
+                name="allocation_run_event_batch_unique",
             ),
             models.CheckConstraint(condition=Q(amount_paise__gt=0), name="allocation_positive"),
             models.CheckConstraint(
-                condition=Q(kind__in=["expense", "transfer", "refund"]),
+                condition=Q(
+                    kind__in=["expense", "transfer", "refund", "advance", "recover", "principal"]
+                ),
                 name="allocation_valid_kind",
             ),
         ]

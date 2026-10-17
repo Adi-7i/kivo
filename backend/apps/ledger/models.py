@@ -62,6 +62,12 @@ class Event(models.Model):
         TRANSFER = "transfer", "Internal transfer"
         REFUND = "refund", "Expense refund"
         REVERSAL = "reversal", "Historical reversal"
+        LEND = "lend", "Money lent"
+        BORROW = "borrow", "Money borrowed"
+        REPAY_IN = "repay_in", "Receivable repayment"
+        REPAY_OUT = "repay_out", "Payable repayment"
+        SHARED_PAID = "shared_paid", "Owner-paid shared bill"
+        SHARED_DUE = "shared_due", "Friend-paid shared bill"
 
     id = models.BigAutoField(primary_key=True)
     public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
@@ -70,7 +76,9 @@ class Event(models.Model):
     amount_paise = models.BigIntegerField()
     effective_date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
-    account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name="events")
+    account = models.ForeignKey(
+        Account, on_delete=models.PROTECT, related_name="events", null=True, blank=True
+    )
     destination = models.ForeignKey(
         Account, on_delete=models.PROTECT, null=True, blank=True, related_name="incoming_transfers"
     )
@@ -113,7 +121,20 @@ class Event(models.Model):
             models.CheckConstraint(condition=Q(amount_paise__gt=0), name="event_positive_amount"),
             models.CheckConstraint(
                 condition=Q(
-                    kind__in=["opening", "receipt", "expense", "transfer", "refund", "reversal"]
+                    kind__in=[
+                        "opening",
+                        "receipt",
+                        "expense",
+                        "transfer",
+                        "refund",
+                        "reversal",
+                        "lend",
+                        "borrow",
+                        "repay_in",
+                        "repay_out",
+                        "shared_paid",
+                        "shared_due",
+                    ]
                 ),
                 name="event_valid_kind",
             ),
@@ -129,10 +150,19 @@ class Event(models.Model):
             ),
             models.CheckConstraint(
                 condition=(
-                    Q(kind="expense", category__isnull=False)
-                    | (~Q(kind="expense") & Q(category__isnull=True))
+                    Q(kind__in=["expense", "shared_paid", "shared_due"], category__isnull=False)
+                    | (
+                        ~Q(kind__in=["expense", "shared_paid", "shared_due"])
+                        & Q(category__isnull=True)
+                    )
                 ),
                 name="event_expense_category",
+            ),
+            models.CheckConstraint(
+                condition=Q(kind="shared_due", account__isnull=True)
+                | Q(kind="reversal")
+                | (~Q(kind="shared_due") & Q(account__isnull=False)),
+                name="event_account_required",
             ),
             models.CheckConstraint(
                 condition=(

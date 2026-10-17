@@ -115,7 +115,7 @@ def _post(user: User, data: dict[str, Any], *, supersedes: Event | None = None) 
     kind = data["kind"]
     amount = data["amount_paise"]
     _amount(amount)
-    if kind not in Event.Kind.values or kind == Event.Kind.REVERSAL:
+    if kind not in ("opening", "receipt", "expense", "transfer", "refund"):
         raise ValidationError({"kind": "Unsupported posting kind."})
     account = _account(user, data["account"])
     effective_date = data["effective_date"]
@@ -330,13 +330,21 @@ def create_event(*, user: User, key: str, data: dict[str, Any]) -> tuple[UUID, b
 
 
 def _reverse(user: User, original: Event, reason: str, *, void: bool = False) -> Event:
+    if not isinstance(reason, str) or not reason.strip():
+        raise ValidationError({"reason": "An audit reason is required."})
     if original.kind == Event.Kind.REVERSAL or Event.objects.filter(reverses=original).exists():
         raise FinancialConflict("A reversal or an already reversed event cannot be reversed again.")
     if original.refunds.filter(reversal__isnull=True).exists():
         raise FinancialConflict(
             "Reverse linked refunds before reversing or correcting this expense."
         )
-    _account(user, original.account_id)
+    if original.source_claims.filter(
+        postings__event__reversal__isnull=True,
+        postings__event__kind__in=["repay_in", "repay_out"],
+    ).exists():
+        raise FinancialConflict("Reverse linked settlements before correcting their origin.")
+    if original.account_id:
+        _account(user, original.account_id)
     if original.destination_id:
         _account(user, original.destination_id)
     reversal = Event.objects.create(
@@ -373,6 +381,9 @@ def reverse_event(
         original = get_object_or_404(Event, user=user, public_id=event_id)
         reversal = _reverse(user, original, reason, void=void)
         assert_fundable_history(user)
+        from apps.sharing.finance import assert_claim_history
+
+        assert_claim_history(user)
         rebuild_attribution(user=user, trigger_event=reversal)
         return reversal.public_id
 

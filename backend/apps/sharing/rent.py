@@ -23,8 +23,9 @@ from apps.ledger.services import (
     assert_fundable_history,
 )
 from apps.sharing.calendar import month_start, monthly_schedule, next_month
-from apps.sharing.contacts import contact_for
+from apps.sharing.finance import post_bill
 from apps.sharing.models import (
+    BillShare,
     MetadataChange,
     ObligationChange,
     RentObligation,
@@ -34,36 +35,10 @@ from apps.sharing.models import (
     RentShare,
     ReserveChange,
 )
+from apps.sharing.participants import validated_shares
 from apps.sharing.selectors import obligations_for, reserves_for
-from apps.sharing.splits import Share, split_bill
+from apps.sharing.splits import Share, partial_shares
 from apps.users.models import User
-
-
-def validated_shares(user: User, data: dict[str, Any]) -> list[Share]:
-    supplied = data.get("participants", [])
-    method = data.get("split_method", "custom")
-    if supplied and (
-        (method == "equal" and any("amount_paise" in row for row in supplied))
-        or (method == "custom" and any("amount_paise" not in row for row in supplied))
-    ):
-        raise ValidationError(
-            {"participants": "Equal splits omit amounts; custom splits require every amount."}
-        )
-    participants = data.get(
-        "participants", [{"contact": None, "amount_paise": data["amount_paise"]}]
-    )
-    try:
-        shares = split_bill(
-            data["amount_paise"],
-            data.get("split_method", "custom"),
-            [Share(row.get("contact"), row.get("amount_paise", 0)) for row in participants],
-        )
-    except ValueError as exc:
-        raise ValidationError({"participants": str(exc)}) from exc
-    for share in shares:
-        if share.contact_id:
-            contact_for(user, share.contact_id)
-    return shares
 
 
 def create_plan(*, user: User, key: str, data: dict[str, Any]) -> tuple[UUID, bool]:
@@ -254,29 +229,49 @@ def pay_rent(
         _amount(data["amount_paise"])
         if data["amount_paise"] > obligation.plan.amount_paise - obligation.paid_paise:
             raise FinancialConflict("Payment exceeds this month's outstanding rent.")
+        payment_data = {
+            "kind": "expense",
+            "amount_paise": data["amount_paise"],
+            "account": data["account"],
+            "effective_date": data["effective_date"],
+            "title": data.get("title", obligation.plan.title),
+            "category": obligation.plan.category_id,
+            "merchant": obligation.plan.payee,
+            "notes": data.get("notes", ""),
+            "payment_method": data.get("payment_method", ""),
+            "reason": data.get("reason", ""),
+        }
         if obligation.plan.shares.filter(contact__isnull=False, amount_paise__gt=0).exists():
-            raise FinancialConflict(
+            prior_shares: dict[UUID | None, int] = {}
+            for share in BillShare.objects.filter(
+                bill__event__rent_payment__obligation=obligation, bill__event__reversal__isnull=True
+            ):
+                prior_shares[share.contact_id] = (
+                    prior_shares.get(share.contact_id, 0) + share.amount_paise
+                )
+            remaining_shares = [
+                Share(row.contact_id, row.amount_paise - prior_shares.get(row.contact_id, 0))
+                for row in obligation.plan.shares.all()
+            ]
+            shares = partial_shares(data["amount_paise"], remaining_shares)
+            event = post_bill(
+                user,
                 {
-                    "code": "policy_pending",
-                    "detail": "Shared-rent financial posting awaits approval of the Phase 5 FIFO policy.",
-                }
+                    **payment_data,
+                    "split_method": "custom",
+                    "participants": [
+                        {"contact": row.contact_id, "amount_paise": row.amount_paise}
+                        for row in shares
+                    ],
+                },
+                supersedes=original,
             )
-        event = _post(
-            user,
-            {
-                "kind": "expense",
-                "amount_paise": data["amount_paise"],
-                "account": data["account"],
-                "effective_date": data["effective_date"],
-                "title": data.get("title", obligation.plan.title),
-                "category": obligation.plan.category_id,
-                "merchant": obligation.plan.payee,
-                "notes": data.get("notes", ""),
-                "payment_method": data.get("payment_method", ""),
-                "reason": data.get("reason", ""),
-            },
-            supersedes=original,
-        )
+        else:
+            event = _post(
+                user,
+                payment_data,
+                supersedes=original,
+            )
         payment = RentPayment.objects.create(obligation=obligation, event=event)
         remaining = data["amount_paise"]
         for reserve in (

@@ -9,6 +9,7 @@ from rest_framework import serializers
 from apps.ledger.money import MoneyField
 from apps.ledger.serializers import EventSerializer, StrictSerializer
 from apps.sharing.models import (
+    BillShare,
     Claim,
     Contact,
     ObligationChange,
@@ -18,6 +19,7 @@ from apps.sharing.models import (
     RentReserve,
     RentShare,
     ReserveChange,
+    SharedBill,
 )
 
 
@@ -83,6 +85,66 @@ class ParticipantSerializer(StrictSerializer):
     amount = MoneyField(source="amount_paise", required=False)
 
 
+class FinancialWriteSerializer(StrictSerializer):
+    account = serializers.UUIDField()
+    amount = MoneyField(source="amount_paise")
+    effective_date = serializers.DateField()
+    title = serializers.CharField(max_length=200)
+    notes = serializers.CharField(max_length=4000, required=False, allow_blank=True)
+    payment_method = serializers.CharField(max_length=50, required=False, allow_blank=True)
+
+
+class LoanWriteSerializer(FinancialWriteSerializer):
+    kind = serializers.ChoiceField(choices=[("lend", "Money lent"), ("borrow", "Money borrowed")])
+    contact = serializers.UUIDField()
+
+
+class LoanCorrectSerializer(LoanWriteSerializer):
+    reason = serializers.CharField(max_length=500)
+
+
+class SettlementWriteSerializer(FinancialWriteSerializer):
+    claim = serializers.UUIDField()
+
+
+class SettlementCorrectSerializer(SettlementWriteSerializer):
+    reason = serializers.CharField(max_length=500)
+
+
+class BillWriteSerializer(FinancialWriteSerializer):
+    account = serializers.UUIDField(required=False, allow_null=True)
+    category = serializers.UUIDField()
+    merchant = serializers.CharField(max_length=200, required=False, allow_blank=True)
+    payer = serializers.UUIDField(required=False, allow_null=True, default=None)
+    split_method = serializers.ChoiceField(
+        choices=SharedBill._meta.get_field("split_method").choices
+    )
+    participants = ParticipantSerializer(many=True, max_length=100, allow_empty=False)
+
+
+class BillCorrectSerializer(BillWriteSerializer):
+    reason = serializers.CharField(max_length=500)
+
+
+class BillShareSerializer(serializers.ModelSerializer):
+    amount = MoneyField(source="amount_paise", read_only=True)
+
+    class Meta:
+        model = BillShare
+        fields = ("contact", "claim", "amount")
+        read_only_fields = fields
+
+
+class BillSerializer(serializers.ModelSerializer):
+    event = EventSerializer(read_only=True)
+    shares = BillShareSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = SharedBill
+        fields = ("id", "event", "payer", "split_method", "shares", "created_at")
+        read_only_fields = fields
+
+
 class RentPlanCreateSerializer(StrictSerializer):
     title = serializers.CharField(max_length=200)
     payee = serializers.CharField(max_length=200)
@@ -90,7 +152,9 @@ class RentPlanCreateSerializer(StrictSerializer):
     due_day = serializers.IntegerField(min_value=1, max_value=31, allow_null=True, default=None)
     amount = MoneyField(source="amount_paise")
     category = serializers.UUIDField()
-    split_method = serializers.ChoiceField(choices=["equal", "custom"], default="custom")
+    split_method = serializers.ChoiceField(
+        choices=SharedBill._meta.get_field("split_method").choices, default="custom"
+    )
     participants = ParticipantSerializer(many=True, required=False, max_length=100)
 
 

@@ -15,7 +15,8 @@ from apps.ledger.selectors import financial_summary
 from apps.ledger.services import FinancialConflict, create_event
 from apps.users.models import User
 from django.db import IntegrityError, close_old_connections, connection, transaction
-from django.db.models import Count, Sum
+from django.db.models import Sum
+from django.db.models.functions import Coalesce
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient
 
@@ -58,10 +59,23 @@ def summary(ledger: dict[str, Any]) -> dict[str, str]:
 
 def reconcile(user: User) -> None:
     events = Event.objects.filter(user=user).annotate(
-        total=Sum("postings__amount_paise"), legs=Count("postings")
+        total=Coalesce(Sum("postings__amount_paise"), 0)
     )
     assert events.exists()
-    assert not events.exclude(total=0, legs=2).exists()
+    assert not events.exclude(total=0).exists()
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT count(*) FROM ledger_event e WHERE e.user_id=%s AND EXISTS (
+                (SELECT book,account_id,claim_id,amount_paise FROM ledger_posting WHERE event_id=e.id
+                 EXCEPT ALL SELECT * FROM kivo_expected_postings(e.id))
+                UNION ALL
+                (SELECT * FROM kivo_expected_postings(e.id) EXCEPT ALL
+                 SELECT book,account_id,claim_id,amount_paise FROM ledger_posting WHERE event_id=e.id))
+        """,
+            [user.pk],
+        )
+        assert cursor.fetchone()[0] == 0
 
 
 @pytest.mark.unit

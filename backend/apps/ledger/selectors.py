@@ -45,7 +45,7 @@ def events_for(user: User) -> QuerySet[Event]:
             "root_event",
             "reversal",
         )
-        .prefetch_related("postings")
+        .prefetch_related("postings", "source_claims")
     )
 
 

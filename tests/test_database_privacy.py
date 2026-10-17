@@ -20,7 +20,7 @@ def test_django_tables_are_private_from_supabase_client_roles() -> None:
                 AND (c.relname LIKE 'ledger_%%' OR c.relname LIKE 'funds_%%' OR c.relname LIKE 'sharing_%%' OR c.relname IN ('users', 'django_session'))
         """)
         rows = cursor.fetchall()
-    assert len(rows) >= 25
+    assert len(rows) >= 26
     assert all(
         rls and not anon and not authenticated and not service
         for _, rls, anon, authenticated, service in rows
