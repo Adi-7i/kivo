@@ -482,7 +482,7 @@ New targeted PostgreSQL/API run:
 ```
 
 Exit **0**: **12 passed in 857.61 s**, **0 failed / 0 skipped**. This run collected
-the initial 12 database cases; four serializer unit cases and three additional
+the initial 12 database cases; four serializer unit cases and four additional
 integration/HTTP cases were subsequently added and are recorded separately.
 These passes include the exact INR 3000/2000 → 2200/1200 → 1000/0 cash/reserve
 sequence with safe-to-spend INR 1000 throughout and expense fixed at INR 2000;
@@ -494,3 +494,115 @@ foreign-owner denial and raw PostgreSQL corruption rejection. Three separate-
 connection concurrency cases passed: identical-key retry, distinct-key excess
 settlement, and two valid partial settlements. Ledger, claim, reserve and actual
 FIFO replay reconciliation run inside these populated cases.
+
+
+Additional targeted regression command (87 collected cases; final result below):
+
+```bash
+/tmp/kivo-venv313/bin/python -m pytest -v \
+  tests/test_rent.py \
+  tests/test_rent_security.py \
+  tests/test_personal_finance.py \
+  tests/test_funds.py \
+  tests/test_fifo_engine.py \
+  tests/test_fifo_v2.py \
+  tests/test_rent_calendar.py \
+  tests/test_rent_status.py \
+  tests/test_sharing_splits.py \
+  tests/test_database_privacy.py \
+  tests/test_schema.py \
+  tests/test_reporting.py::test_shared_recognition_and_reimbursement_reports_reconcile \
+  tests/test_reporting.py::test_unpaid_rent_reserves_and_actual_payment_dashboard \
+  tests/test_friend_paid_rent.py::test_multiple_friend_installments_and_backdated_settlement_keep_claim_portions_separate \
+  tests/test_friend_paid_rent.py::test_friend_rent_over_real_session_csrf_http \
+  tests/test_friend_paid_rent.py::test_unfunded_settlement_rolls_back_release_and_out_of_order_reversal_restores_exact_portions \
+  --reuse-db \
+  --tb=short \
+  --junitxml=/tmp/kivo-friend-rent-regression.xml \
+  -o \
+  junit_logging=system-out
+```
+
+The runner `/tmp/kivo-run-rent-regression.py` preserves the actual command, child
+PID, start/finish timestamps and exit status in
+`/tmp/kivo-friend-rent-regression-status.json`, with stdout in
+`/tmp/kivo-friend-rent-regression.log` and JUnit in
+`/tmp/kivo-friend-rent-regression.xml`. An in-progress run is NOT VERIFIED until
+its real exit status and final counts are available.
+
+The 87-case regression finished with exit **0**, **87 passed in 1962.78 s**,
+**0 failed / 0 skipped**. Its actual module counts are rent 7, rent security 4,
+personal finance 18, funds 9, database privacy 1, selected reporting 2, additional
+friend-rent integration/HTTP 3, FIFO v1 algorithms 13, FIFO v2 algorithms 7, rent
+calendar 11, rent status 1, split algorithms 8 and schema/docs endpoints 3.
+Of these, **44** cases use the real isolated PostgreSQL database and **43** are
+non-database algorithm/input/schema cases. The pure checks are not represented as
+PostgreSQL evidence.
+
+The additional rent cases passed multiple friend installments, backdated
+settlement correction rollback, exact independent claim protection, insufficient
+cash rollback after attempted reserve consumption, and out-of-order reversal of
+partial/final repayments. Actual session-cookie/CSRF socket HTTP confirms the
+friend payment, partial repayment, identical retry and reversal through the
+running Django server, with the expected INR 1000 safe-to-spend. Existing loan,
+shared-bill and owner-rent concurrency, raw PostgreSQL claim caps, privacy grants,
+FIFO A/B/C, refunds, corrections, immutable v1 history and report reconciliation
+all passed. No mock connection is used as PostgreSQL proof.
+
+The final mixed-order boundary was executed separately:
+
+```bash
+/tmp/kivo-venv313/bin/python -m pytest -v tests/test_friend_paid_rent.py::test_friend_pays_remainder_after_owner_installment_without_duplicate_recognition --reuse-db --tb=short --junitxml=/tmp/kivo-friend-rent-owner-first.xml
+```
+
+Exit **0**, **1 passed in 111.04 s**, **0 failed / 0 skipped**. The owner pays INR
+800 first, the friend pays the remaining INR 1200, and the owner repays INR 400.
+Expense totals INR 2000 exactly, cash/reserve finish INR 1800/800 and safe-to-spend
+remains INR 1000. An attempted correction that changes owner-paid to friend-paid
+is rejected with HTTP 400 and rolls back all attempted records.
+
+Final checks after the last code/test change:
+
+| Actual command | Exit | Observed result |
+| --- | --- | --- |
+| `/tmp/kivo-venv313/bin/python backend/manage.py check` | 0 | No issues |
+| `/tmp/kivo-venv313/bin/python backend/manage.py makemigrations --check --dry-run` | 0 | No changes detected; real remote migration history checked |
+| `/tmp/kivo-venv313/bin/python backend/manage.py migrate --plan` | 0 | No planned operations |
+| `/tmp/kivo-venv313/bin/python backend/manage.py spectacular --validate --fail-on-warn --file /tmp/kivo-friend-rent-final-openapi.yaml` | 0 | Strict schema validation, no warnings |
+| `/tmp/kivo-venv313/bin/ruff check .` | 0 | All checks passed |
+| `/tmp/kivo-venv313/bin/ruff format --check .` | 0 | 124 files formatted |
+| `git diff --check` | 0 | No whitespace errors |
+
+The generated schema documents mutually exclusive owner `account` / friend
+`payer`, the separate obligation `friend_payable`, and public UUID settlement
+references in reserve history. Existing API/security contracts are preserved.
+
+### Targeted completion assessment
+
+**PASS — friend-paid rent reserve fix.** Across the stated runs, **all 20 new
+cases** passed: **16** actual PostgreSQL/API/concurrency/HTTP cases and **4** pure
+serializer cases. The regression includes **84 existing cases**, for **104
+distinct cases passed**, **0 failed / 0 skipped**. The initial 27-case baseline
+overlaps the later regression and is not counted twice. The four-case unit
+selection's deliberate deselections are recorded above; every new case was
+subsequently covered by the listed executions. No assertion was weakened, no
+financial total hardcoded in application code, and no failed test suppressed.
+
+| Targeted gate | Result |
+| --- | --- |
+| Immediate friend-paid expense/payable; no owner cash posting | PASS |
+| Full/partial protected reserves and constant safe-to-spend when fully backed | PASS |
+| Multiple reserves, partial rent, paise rounding and separate friend claims | PASS |
+| Duplicate requests, conflicting reuse, concurrent valid/excess settlements | PASS |
+| Exact partial/full/out-of-order reversal, corrections and atomic failure rollback | PASS |
+| Ownership, foreign references, immutable history and PostgreSQL safeguards | PASS |
+| Existing rent/sharing/ledger/FIFO v1/v2 and selected dashboard regressions | PASS |
+| Python 3.13, migration application/drift, Django, OpenAPI and Ruff | PASS |
+| Entire-project full-suite run after this targeted fix | NOT VERIFIED |
+
+There is no remaining policy blocker for this workflow. Whole Phase 5/6 status
+is still not signed off: the earlier full-suite timeout remains a recorded FAIL,
+and a fresh clean entire-project suite was outside this targeted request and was
+not run. No unrelated Supabase timeout investigation or infrastructure change was
+performed. This targeted PASS does not claim full-phase completion or Phase 7
+readiness. No Phase 6 feature or Phase 7 implementation was started by this fix.

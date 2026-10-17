@@ -196,6 +196,8 @@ both linked to the originating `RentPayment`. Its net reserve/cash effect is zer
    Reverse active settlements before correcting/reversing their originating rent
    payment. Corrections append opposite postings and replacement records through
    the existing endpoints; reserve assignment is recalculated for the replacement.
+   Corrections preserve owner-paid versus friend-paid operation kind; reverse and
+   explicitly post a new payment to change that classification.
 5. Reserves follow audited operation order and current outstanding amounts, not
    a fabricated historic cash movement. A backdated financial write still uses
    the existing complete ledger/claim validation and FIFO replay. Historic

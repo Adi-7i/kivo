@@ -224,7 +224,7 @@ matters remain. Phase 7 readiness is NOT READY; no Phase 7 work was started.
 | Actual HTTP flow | PASS on focused rerun; earlier timeout failure retained |
 | Measured query efficiency | PASS for the stated small representative datasets: 1 aggregate / 6 budgets; 20 dashboard queries / 6 current budgets; 6 CSV queries / 202 events |
 | Clean full regression command | FAIL: recorded exit 1, 224 passed / 1 failed; targeted retry exit 0 does not rewrite it |
-| Phase 5 friend-paid rent/reserve prerequisite | Policy resolved; targeted implementation evidence in the addendum below |
+| Phase 5 friend-paid rent/reserve prerequisite | PASS for the targeted fix; actual PostgreSQL/HTTP/concurrency evidence below |
 | Phase 6 overall | PARTIALLY COMPLETE |
 | Phase 7 readiness | NOT READY |
 
@@ -261,6 +261,30 @@ the authorized development database (exit 0); showmigrations, drift check and
 the empty subsequent migration plan each exited 0. There is no destructive
 application-database test or reset. Populated assertions use the distinct remote
 test database, not mocks or an SQLite substitute.
+
+The targeted regression then exited **0**, **87 passed in 1962.78 s**, **0 failed /
+0 skipped** (44 real PostgreSQL cases; 43 non-database algorithm/schema cases).
+The exact command and artifacts are recorded in Phase 5's targeted addendum.
+This includes the new multi-friend/backdated and insufficient-cash rollback cases,
+actual session/CSRF HTTP friend-rent payment/repayment/reversal, existing rent and
+loan concurrency, FIFO A/B/C and immutable v1 records, private-table checks and
+the existing shared/rent dashboard report cases. All were actual executions on
+Python 3.13.16. This is a targeted regression, not the entire-project suite.
+
+The final owner-first/friend-remainder boundary separately exited **0**, **1
+passed in 111.04 s**, **0 failed / 0 skipped**, including rejection/rollback of a
+correction changing payer kind. All **20 new cases** and **84 existing regression
+cases** passed across the listed runs: **104 distinct cases**, no failures/skips.
+The initial pure baseline overlaps the regression and is not double-counted.
+The targeted friend-paid rent reserve blocker is therefore **PASS**.
+
+Final Django check, remote migration drift/plan, strict OpenAPI validation,
+Ruff lint, Ruff format (124 files) and whitespace checks each exited **0** after
+the last code/test modification. The full actual commands, financial gate table,
+test counts and artifacts are recorded in Phase 5's addendum. Cash, payable,
+active reserves and safe-to-spend reconcile under normal, partial, reversed,
+duplicated and concurrent operations, including rollback when cash is insufficient. No new Phase 6
+functionality or unrelated infrastructure/authentication modification was made.
 
 A clean entire-project regression after this targeted fix is **NOT VERIFIED**.
 The earlier full-suite timeout failure is retained above. This task does not

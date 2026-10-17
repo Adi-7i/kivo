@@ -676,3 +676,43 @@ def test_unfunded_settlement_rolls_back_release_and_out_of_order_reversal_restor
     )
     capacity(ledger, "3000.00", "2000.00", "1000.00")
     audit(ledger)
+
+
+@pytest.mark.django_db
+def test_friend_pays_remainder_after_owner_installment_without_duplicate_recognition(
+    ledger: dict[str, Any],
+) -> None:
+    person, obligation, _ = setup_rent(ledger)
+    own = write(
+        ledger,
+        f"rent/obligations/{obligation}/payments/",
+        {
+            "account": str(ledger["cash"].id),
+            "amount": "800.00",
+            "effective_date": "2025-10-16",
+        },
+    )
+    assert own.status_code == 201, own.data
+    capacity(ledger, "2200.00", "1200.00", "1000.00")
+    friend = friend_payment(ledger, obligation, person, "1200.00")
+    claim = friend["event"]["claims"][0]
+    assert claim_detail(ledger, claim)["principal"] == "1200.00"
+    assert summary(ledger)["personal_expense"] == "2000.00"
+    capacity(ledger, "2200.00", "1200.00", "1000.00")
+    assert settle(ledger, claim, "400.00").status_code == 201
+    capacity(ledger, "1800.00", "800.00", "1000.00")
+    before = (Event.objects.count(), ReserveChange.objects.count())
+    wrong_mode = write(
+        ledger,
+        f"rent/payments/{own.json()['id']}/correct/",
+        {
+            "payer": person,
+            "amount": "800.00",
+            "effective_date": "2025-10-16",
+            "reason": "Cannot change operation kind",
+        },
+    )
+    assert wrong_mode.status_code == 400
+    assert before == (Event.objects.count(), ReserveChange.objects.count())
+    capacity(ledger, "1800.00", "800.00", "1000.00")
+    audit(ledger)
