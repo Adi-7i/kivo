@@ -1,0 +1,206 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: phase3.spec.ts >> Frontend Phase 3 — Financial Dashboard, Money Accounts & Transactions E2E >> Money Accounts (/money) >> opens Add Account modal and validates inputs with invariant explanation
+- Location: e2e/phase3.spec.ts:73:9
+
+# Error details
+
+```
+Test timeout of 30000ms exceeded.
+```
+
+# Page snapshot
+
+```yaml
+- generic:
+  - generic [aria-hidden]:
+    - banner:
+      - generic:
+        - generic:
+          - generic:
+            - link:
+              - /url: /
+              - generic: K
+              - generic:
+                - generic: Kivo
+                - generic: Personal Finance
+            - generic: Phase 1 Foundation
+          - generic: API Transport Ready
+    - generic:
+      - navigation:
+        - generic:
+          - link:
+            - /url: /dashboard
+            - generic: Dashboard
+            - generic: Phase 3
+          - link:
+            - /url: /money
+            - generic: Money Accounts
+            - generic: Phase 3
+          - link:
+            - /url: /transactions
+            - generic: Transactions
+            - generic: Phase 3
+          - link:
+            - /url: /
+            - generic: Design System
+            - generic: Phase 1
+          - link:
+            - /url: /login
+            - generic: Sign In
+            - generic: Phase 2
+          - link:
+            - /url: /register
+            - generic: Register
+            - generic: Phase 2
+          - link:
+            - /url: /onboarding
+            - generic: Onboarding
+            - generic: Phase 2
+          - link:
+            - /url: /settings/profile
+            - generic: Profile
+            - generic: Phase 2
+          - generic:
+            - generic: Funds & Attribution
+            - generic: Phase 4
+          - generic:
+            - generic: Sharing & Rent
+            - generic: Phase 5
+          - generic:
+            - generic: Budgets & Analytics
+            - generic: Phase 6
+      - main:
+        - alert:
+          - generic: Money Accounts UI Architecture
+          - generic: This screen displays the account presentation layout, balance cards, and interactive modal dialog. Real financial transactions and backend ledger state will sync with Django in Phase 4.
+        - generic:
+          - generic:
+            - generic:
+              - heading [level=2]: Money Accounts
+            - paragraph: Manage your bank checking, physical cash, and digital wallets. Each account tracks exact ledger postings.
+          - generic:
+            - generic:
+              - button:
+                - generic: Add Account
+        - generic:
+          - button: All (3)
+          - button:
+            - generic: Banks
+          - button:
+            - generic: Cash
+          - button:
+            - generic: Wallets
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading [level=3]: HDFC Salary Account
+                    - paragraph: Opened 10 Jan 2026
+                - generic: bank
+              - generic:
+                - generic: Current Balance
+                - generic: ₹48,500.00
+              - generic:
+                - link:
+                  - /url: /transactions?accountId=acc-bank-1
+                  - generic: View activity
+                - button:
+                  - generic: Edit
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading [level=3]: Physical Cash Stash
+                    - paragraph: Opened 10 Jan 2026
+                - generic: cash
+              - generic:
+                - generic: Current Balance
+                - generic: ₹3,500.00
+              - generic:
+                - link:
+                  - /url: /transactions?accountId=acc-cash-1
+                  - generic: View activity
+                - button:
+                  - generic: Edit
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading [level=3]: Amazon Pay Wallet
+                    - paragraph: Opened 01 Feb 2026
+                - generic: wallet
+              - generic:
+                - generic: Current Balance
+                - generic: ₹1,250.00
+              - generic:
+                - link:
+                  - /url: /transactions?accountId=acc-wallet-1
+                  - generic: View activity
+                - button:
+                  - generic: Edit
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e6] [cursor=pointer]
+  - alert
+  - dialog [ref=e11]:
+    - generic [ref=e12]:
+      - heading "Add Money Account" [level=2] [ref=e13]
+      - paragraph [ref=e14]: Configure your physical cash, bank repository, or stored-value wallet.
+    - generic [ref=e15]:
+      - generic [ref=e19]:
+        - paragraph [ref=e20]: Opening Balance is Not Income
+        - paragraph [ref=e21]: Initial funds anchor your starting balance in the ledger. They do not count toward your earned salary or personal revenue.
+      - generic [ref=e22]:
+        - generic [ref=e24]:
+          - text: Account Name
+          - generic [ref=e25]: "*"
+        - textbox "Account Name *" [ref=e26]:
+          - /placeholder: e.g. HDFC Salary Account or Daily Cash Wallet
+          - text: Axis Emergency Reserve
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - text: Account Type
+          - generic [ref=e29]: "*"
+        - generic [ref=e30]:
+          - button "Bank Account Savings, checking, salary accounts" [ref=e31] [cursor=pointer]:
+            - generic [ref=e32]: Bank Account
+            - paragraph [ref=e39]: Savings, checking, salary accounts
+          - button "Physical Cash Cash in wallet, physical safe, home cash" [ref=e40] [cursor=pointer]:
+            - generic [ref=e41]: Physical Cash
+            - paragraph [ref=e47]: Cash in wallet, physical safe, home cash
+          - button "Digital Wallet Prepaid wallet balances (Paytm, Amazon Pay, etc.)" [ref=e48] [cursor=pointer]:
+            - generic [ref=e49]: Digital Wallet
+            - paragraph [ref=e55]: Prepaid wallet balances (Paytm, Amazon Pay, etc.)
+      - paragraph [ref=e56]:
+        - strong [ref=e57]: "Note on UPI:"
+        - text: A UPI-linked bank account is still a bank account; UPI is a payment method, not a separate account.
+      - generic [ref=e58]:
+        - generic [ref=e59]:
+          - generic [ref=e61]:
+            - text: Opening Balance (₹)
+            - generic [ref=e62]: "*"
+          - textbox "Opening Balance (₹) *" [active] [ref=e63]:
+            - /placeholder: "0.00"
+            - text: "10000"
+          - paragraph [ref=e64]: Exact integer paise arithmetic.
+        - generic [ref=e65]:
+          - generic [ref=e67]:
+            - text: Opening Date
+            - generic [ref=e68]: "*"
+          - textbox "Opening Date *" [ref=e69]: 2026-10-17
+          - paragraph [ref=e70]: Date balance is established.
+      - generic [ref=e71]:
+        - button "Cancel" [ref=e72]
+        - button "Create Account" [ref=e73]
+    - button "Close" [ref=e75]
+```

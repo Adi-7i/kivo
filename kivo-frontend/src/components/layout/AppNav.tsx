@@ -10,12 +10,14 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard", phase: "Phase 3", isAvailable: true },
+  { label: "Money Accounts", href: "/money", phase: "Phase 3", isAvailable: true },
+  { label: "Transactions", href: "/transactions", phase: "Phase 3", isAvailable: true },
   { label: "Design System", href: "/", phase: "Phase 1", isAvailable: true },
   { label: "Sign In", href: "/login", phase: "Phase 2", isAvailable: true },
   { label: "Register", href: "/register", phase: "Phase 2", isAvailable: true },
   { label: "Onboarding", href: "/onboarding", phase: "Phase 2", isAvailable: true },
   { label: "Profile", href: "/settings/profile", phase: "Phase 2", isAvailable: true },
-  { label: "Accounts & Ledger", href: "#", phase: "Phase 3", isAvailable: false },
   { label: "Funds & Attribution", href: "#", phase: "Phase 4", isAvailable: false },
   { label: "Sharing & Rent", href: "#", phase: "Phase 5", isAvailable: false },
   { label: "Budgets & Analytics", href: "#", phase: "Phase 6", isAvailable: false },
