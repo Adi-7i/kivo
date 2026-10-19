@@ -4,6 +4,349 @@ Execution dates: 2026-10-18–19. Current status: **NOT READY**.
 This report records executed evidence, including failed attempts. It does not
 inherit passing release gates from earlier phase reports.
 
+## Final blocker remediation — 2026-10-19
+
+**NOT READY: complete post-change regression FAIL — 305 passed, 1 failed,
+0 errors/skipped, exit 1.** This follow-up began
+at commit `e562cbf` with clean Git status: the earlier 42-file audit had already
+been committed outside this agent's work. The historical sections below describe
+that earlier audit. This follow-up preserves that baseline and records its own
+incremental changes/evidence separately.
+
+`pwd -P`, `ls -ld`, Git root/status, AGENTS.md, relevant ADRs, this report and the
+release/operations documents were checked again. Canonical root is exactly
+`/home/lucifer/Desktop/kivo`; the unique backend write/read/removal probe passed
+under the current sandbox. Existing `backend/.venv/bin/python` is **3.14.4**.
+No dependency/runtime change, separate source tree, worktree or environment was
+created. This execution provides no Python 3.13 verification.
+
+### Timeout investigation and actual changes
+
+The original failed request had no query/backend/wait correlation, so the prior
+30-second HTTP timeout cannot be retrospectively attributed from its traceback
+alone. Added bounded request SQL execution count, total/max duration and backend
+PIDs, plus a correlated slow-query event after one second. The timer retains no
+SQL, parameters, request bodies or arbitrary exception text. Counts/timings cover
+instrumented execution during preparation; connection establishment, raw driver
+health checks, commit/rollback and later stream iteration are separate. The
+read-only `diagnose_database` command measures DNS, connection initialization,
+SELECT round trips, effective timeouts, session counts and optional backend waits.
+
+Actual read-only findings (existing direct Supabase endpoint, PostgreSQL 17.11):
+
+- DNS 47.23/44.834 ms, AF_INET6 only; two connection-initialization observations
+  3149.77/1356.845 ms. Persistent SELECT round trips 205.078/204.455/168.100 ms.
+- TLS true; no configured psycopg pool; CONN_MAX_AGE 600, health checks true,
+  connect timeout 10 s. Installed Django source confirms its threaded test server
+  closes connections at request-thread termination. This differs from the
+  prepared persistent sync-worker server; installed psycopg-pool alone does not
+  activate pooling. No endpoint or pool setting was changed.
+- Session statement timeout 2 min, lock timeout 0, idle-transaction timeout 0;
+  max connections 60. Snapshot showed seven application-database sessions and no
+  active lock wait. This does not establish historical connection availability.
+- Retained `pg_stat_statements` statistics (reset 2026-10-16, no deallocations)
+  include 1602 owner-row-lock calls with maximum execution **42036.584 ms**.
+  Reserve INSERT and reserve-change INSERT maxima were 18.262/21.034 ms. These
+  aggregates combine different tests/requests; the long owner-lock statement is
+  a contention candidate, not proof of the failed request's root cause.
+- A finer aggregate classification identifies the 58.137-second maximum as
+  **TRUNCATE fixture cleanup**, not reserve creation. Another retained SET command
+  reached 9.386 seconds. IDs/classes/timings are in `slow-statement-classes.json`;
+  no statement text or values are exported, and there is no request attribution.
+- A small read-only comparison using the already installed native driver/pool
+  observed fresh connect-plus-SELECT 2485.576/1375.533 ms; one pool initialized
+  in 1599.008 ms and three initialized checkouts/SELECTs took
+  204.645/204.781/184.150 ms. Its single connection was closed afterward.
+  `pool-profile.json` records the actual statistics. This isolates handshake
+  overhead in tiny samples, not the original timeout or production capacity;
+  no Django pool/connection configuration changed.
+
+Artifacts in the original repository's ignored `.pytest_cache/phase07-remediation/`:
+`baseline-db.json`, `diagnostic-checks.json`, `historical-query-profile.json`.
+During the completed run one read-only observer sampled every two seconds,
+recording only PID/state/wait/blocker/age metadata for slow or blocked test-database
+backends. `activity-monitor.jsonl` can correlate recurrence with the safe request
+metrics. It never logs SQL text, cancels a backend, changes a timeout or retries
+a financial write. Its own connection is read-only.
+
+The new actual PostgreSQL reserve regression holds the owner row, observes
+`pg_blocking_pids`, applies **1500 ms only to the writer's test session**, and
+verifies sanitized 503, no partial reserve and no consumed key. Same-key retry
+then creates exactly one reserve; replay returns it, and changed-body reuse is
+409. This proves rollback/retry behavior under an observed lock timeout. It is
+not a forced ambiguous mid-flight network commit, and does not change application
+timeouts or accounting policy. The prior client deadline remains 30 seconds.
+
+### Migration preflight and approval boundary
+
+`users.0003_case_insensitive_email` depends on `users.0002_user_name` and
+`auth.0012_alter_user_first_name_max_length`. It remains unapplied because prior
+explicit application-target authorization was never received, not because Django
+reported a broken migration. Actual read-only preflight found zero users, zero
+duplicate lower(email) groups, no index, and no applied users.0003 record.
+`sqlmigrate users 0003` exited 0 and emits only:
+
+```sql
+CREATE UNIQUE INDEX "users_email_ci_unique" ON "users" ((LOWER("email")));
+```
+
+Approval requested for the exact command:
+
+```bash
+backend/.venv/bin/python backend/manage.py migrate users 0003 --noinput
+```
+
+Target: configured development database **postgres**, host
+**db.zybhyenkqzszpjcoajxx.supabase.co**, port **5432**. Creates one unique expression
+index and records the migration; may briefly lock users, rewrites/deletes no
+identities and changes no financial rows. It must remain pending until explicit
+approval. Tests separately use the already migrated `test_kivo_phase07` database;
+the complete run has passed the raw case-variant constraint regression.
+
+### Actual privilege findings and proposed isolated remediation
+
+Configured current role is postgres: not superuser, but CREATEDB/CREATEROLE/
+BYPASSRLS true and owner of 36 Django tables. Table/sequence client access is
+revoked; RLS is enabled with no policies. Schema CREATE is not PUBLIC/anon.
+Using this administration identity for runtime is the separation defect; moving
+36 table owners is unnecessary. Preserve it for migration/administration and
+provision a separately approved non-owner runtime identity.
+
+The prior audit omitted function privilege checks. It now inspects effective
+client EXECUTE on directly callable Kivo helpers. Actual command exits **1**:
+TLS true, 36 tables/20 sequences private, two accessible admin roles, 36 owned
+tables, and `kivo_expected_postings(bigint)` client-callable through PUBLIC.
+The helper uses invoker security and private table ACLs still deny client data
+access; no data disclosure is claimed. Its unnecessary EXECUTE exposure belongs
+in the approved privilege remediation.
+
+Prepared [rollback-only SQL](../release/runtime-role-rehearsal.sql), read-only
+plan generator and explicitly gated `rehearse_database_runtime` command. The
+fresh NOLOGIN role has operation-specific private RLS, append-only financial
+grants, required metadata updates, password/last-login updates for Django hashing,
+session deletion, sequence USAGE and private helper EXECUTE. It receives no
+ownership, migration writes, schema CREATE, journal UPDATE/DELETE or admin access.
+Unknown new tables require review. The rehearsal uses synthetic real API/SQL
+workflows, negative permissions, security audit and deferred constraints before
+rollback, then verifies the probe role is absent. Isolated sequences can advance.
+
+Approval requested for:
+
+```bash
+backend/.venv/bin/python backend/manage.py rehearse_database_runtime --test-database test_kivo_phase07 --role kivo_runtime_probe --execute-rollback-only
+```
+
+**BLOCKED pending explicit approval**. Pytest has released the isolated test
+database; approval is still required. No role, grant, RLS policy, ownership, application
+credential or live permission was changed. The proposal is not a verified live
+cutover recommendation until isolated checks pass. Even a successful rehearsal
+tests SET LOCAL ROLE in one rollback-only connection; actual runtime LOGIN,
+concurrent connections and production credential deployment remain separate gates.
+
+### Executed follow-up verification
+
+- New secrecy/permission-plan and existing safe-error units: **22 passed,
+  2 database cases deselected, 0 skipped, exit 0, 0.11 s**, `unit.xml`.
+- Targeted actual lock-timeout, stale-connection recovery, stream-lock cleanup,
+  unchanged real HTTP financial lifecycle and initial units: **11 passed,
+  0 failed/skipped, exit 0, 301.99 s**, `targeted.xml`.
+- After final role-plan review corrections, current units: **10 passed,
+  1 database case deselected, exit 0, 0.05 s**. No assertions were weakened.
+- Django check, strict OpenAPI validation and Ruff lint exit 0. Ruff format first
+  found a pre-existing Python code block in this report requiring formatting;
+  fixed documentation formatting, then **167 files formatted, exit 0**.
+- First full follow-up: **47 passed, 1 failed, 0 errors/skipped, exit 2** after
+  controlled SIGINT to investigate the failure; 305 were collected, not all ran.
+  Terminal duration 2076.47 s, wrapper 2076.955 s, XML 2075.722 s. All 151 source
+  fingerprints matched. Preserved full log/XML/exit/source hashes and observer
+  evidence with the `suspend-interrupted-` filename prefix; no failed result is
+  overwritten. A fresh 306-case full suite follows the new transport gate.
+
+### Confirmed workstation suspend and established-connection defect
+
+The new failure was a dashboard read returning safe 503, not a financial
+reconciliation mismatch. Just before it, reserve creation succeeded in 2769 ms
+(13 SQL executions, max 296 ms); rent/settlement assertions passed. The failing
+dashboard took 963276 ms, including one 959340 ms SQL execution ending with
+OperationalError. The independent read-only observer also lost its connection
+(358 samples, zero observed slow/blocked server backends, one error, reconnect).
+
+The kernel journal confirms suspend entry at **2026-10-19 11:43:33 Asia/Kolkata**
+and resume at **12:53:31**; last successful request was 11:43:27, failure surfaced
+13:09:28. Monotonic durations exclude the approximately 70 suspended minutes.
+The postmaster start time remained 2026-10-16 11:32:22 UTC. This check alone
+does not exclude backend crash recovery or identify a transport failure's source.
+Artifacts: `suspend-kernel-evidence.json`, `socket-before.json` (actual commands
+exit 0). This establishes a workstation suspend/stale-connection incident for
+this new failure. The older reserve case's inferred window is 2026-10-18
+21:47:03–21:51:43 excluding sleep; retained kernel queries returned no entries
+(exit 1), so that original request's exact cause remains **NOT VERIFIED**.
+
+Actual socket defaults were keepalive on, idle 7200 s, interval 75 s, count 9,
+TCP_USER_TIMEOUT 0. A 10-second connection-start timeout did not bound subsequent
+loss. Added client keepalive idle/interval 5 s, count 3 and TCP unacknowledged-data
+timeout 10000 ms. This bounds transport liveness on supported kernels; it is not
+a SQL/lock/request deadline or universal completion guarantee. No server/client
+deadline is raised or write automatically retried. See
+[libpq controls](https://www.postgresql.org/docs/17/libpq-connect.html#LIBPQ-PARAMKEYWORDS).
+
+The failed connection also returned PID 0 after execution. A new negative unit
+reproduced losing correlation (one failed, exit 1, 0.09 s). The timer now captures
+the positive PID before execution. Post-fix units: **31 passed, 2 database cases
+deselected, exit 0, 0.15 s**, `transport-unit.xml`.
+
+A real PostgreSQL regression checks the Linux socket options and a healthy
+12-second query longer than TCP_USER_TIMEOUT. The 16-case target and subsequent
+306-case full suite use an actual temporary idle/sleep inhibitor, verified in
+`awake-inhibitor.json`. No persistent power setting, route, firewall, DNS or
+database permission is changed. Exit metadata records monotonic/wall duration
+and the BOOTTIME-minus-MONOTONIC suspend delta. Completed results are recorded
+below; no assertion or original HTTP timeout was weakened.
+
+The post-transport target has now actually completed: **16 passed, 0 failed/
+skipped, exit 0**, terminal 402.60 s, wrapper/wall duration 403.588 s. Recorded
+suspend delta was 0.000006 s (measurement noise, no suspension observed).
+`transport-targeted.xml` and `transport-targeted-exit.json` preserve results.
+Actual socket-option and healthy long-query checks, prior failed friend-paid
+rent case, lock-timeout rollback/replay, connection recovery, stream cleanup and
+unchanged real HTTP financial lifecycle all passed. The subsequent fresh full
+process actually collected **306 cases**; its completed result follows.
+
+### Completed full regression and remaining awake-host availability failure
+
+**FAIL — 305 passed, 1 failed, 0 errors/skipped; all 306 cases executed, exit 1.**
+Terminal duration 4173.14 s; XML testsuite 4173.126 s; parent monotonic/wall duration
+4174.460 s. Recorded full-run suspend delta **0.0 s**. All **151** source/config
+fingerprints match; no source changed during or after this complete run.
+
+Actual command, using the existing interpreter under the verified temporary
+sleep inhibitor:
+
+```bash
+env KIVO_TEST_DATABASE_NAME=test_kivo_phase07 backend/.venv/bin/python -m pytest -v --reuse-db --tb=short --durations=15 -o junit_logging=all -o log_level=INFO --junitxml=.pytest_cache/phase07-remediation/full.xml
+```
+
+Artifacts `full.log`, `full.xml`, `full-exit.json`, `full-process.json` and
+`full-source-sha256.json` preserve actual stdout, per-case results, raw exit,
+interpreter, process identity and tested source. The parent writes exit metadata
+even when its interactive tool handle is lost. The temporary inhibitor released
+at process exit; no persistent power setting changed.
+
+The sole failure is
+`test_personal_finance.py::test_owner_isolation_all_financial_endpoints_and_foreign_keys`:
+its initial receipt expected 201 but received 503, **before its ownership assertions
+ran**. Request ID `e7832b65-0a1d-4dfb-b49e-d819c8af0fbb`, backend PID 307381,
+EventViewSet, 24788 ms preparation, maximum SQL execution 19196 ms, OperationalError.
+The independent read-only observer lost a connection in the same window:
+08:37:09.422 UTC, failed query 11465.557 ms; reconnected at 08:37:18.381 in
+6959.045 ms. This is a second availability failure **without workstation suspend**.
+It is not evidence of a financial mismatch or authorization leak. Transport bounds
+produce a finite safe failure; they do not repair the underlying connection path.
+
+Read-only follow-up confirmed unchanged PostgreSQL start time (2026-10-16), TLS
+true and actual socket values 5/5/3/10000. No NetworkManager events were retained
+for the requested window (journal query exit 0, zero rows). Exact host/network/
+provider attribution remains **NOT VERIFIED**; do not guess an endpoint, alter
+live infrastructure, raise timeouts, weaken assertions or replay uncertain writes.
+`awake-outage-followup.json` and `network-event-classes.json` preserve this evidence.
+An additional read-only capability inspection found no effective
+`pg_read_server_files` privilege; server logging uses a collector and CSV output
+(`provider-log-access.json`). No server files were read or privileges changed.
+Provider-side logs for this incident require separately authorized access; the
+current evidence cannot localize the remaining connection failure further.
+
+Observer summary: 1739 samples, 45 slow/blocked observations, one connection error.
+Observations comprise 32 owner transaction-lock samples from concurrency cases,
+five intentional PgSleep samples, four background VacuumTruncate and four other
+active samples. These are observations, not 45 failing requests. Summary and
+heartbeat evidence are in `activity-monitor-summary.json` and its JSONL log.
+
+The original real HTTP financial lifecycle **passed in this complete run**.
+Authentication/user modules: 50 passed; reporting-prefixed modules: 50 passed;
+friend-paid rent module: 20 passed; reliability module: 3 passed. These overlap the
+305 total passes and must not be added to it. Ledger/FIFO/rent, concurrency,
+rollback, duplicate requests and CSV reconciliation otherwise passed.
+
+The unchanged failed ownership case was rerun once in a fresh isolated fixture
+under a temporary inhibitor: **1 passed, exit 0**, terminal 45.87 s, parent
+46.883 s, suspend delta 0.000009 s. All ownership assertions then ran. This was
+not a replay of the earlier ambiguous receipt. Evidence:
+`ownership-followup.log/.xml` and `ownership-followup-exit.json`.
+**That targeted PASS does not replace the failed complete run.** No source change
+or full-suite retry was made merely to seek a green result.
+
+### Final checks and blocked operations
+
+Final original-interpreter commands actually exited 0: Django `check`,
+`makemigrations --check --dry-run`, `showmigrations`, `migrate --plan`, strict
+OpenAPI generation/validation, Ruff lint/format (167 files), and production-profile
+deployment checks with a generated key/synthetic HTTPS origin. `pip check` exited
+0; its external cache was disabled with a warning. All 25 locked distributions
+match and their Requires-Python metadata accepts 3.14.4. No 3.13 run is claimed.
+
+Final remote `audit_database_security` exits **1**: two administrative roles
+accessible, runtime owns 36 tables, helper public EXECUTE; TLS/table/sequence
+privacy otherwise pass. `reconcile_ledger`, `rebuild_funds --all --check` and
+`reconcile_rent` exit 0 on zero application financial events/owners. These empty
+checks do not replace populated isolated test coverage. Actual command output
+and exits are in `final-commands.json`.
+
+Application users.0003 is still pending and is the only migration plan node; all
+dependencies are applied and history is consistent (`migration-graph.json`). The
+exact application-target migration and isolated rollback-only role rehearsal
+requests remain **BLOCKED awaiting explicit user approval**. Pytest has now
+released the rehearsal database, but elapsed time is not authorization. Neither
+operation was executed. Current credentials/roles/grants/ownership and application
+financial records are unchanged. A runtime LOGIN/cutover needs separate approval
+after isolated permission verification; no production permission change is
+recommended for execution based on the unexecuted proposal alone.
+
+**NOT READY / PARTIALLY COMPLETE.** Remaining mandatory blockers are a clean full
+regression on a stable connection path, approved application email migration,
+restricted-role verification/cutover, actual production server/HTTPS/shared limits,
+and verified backup retention/isolated restoration. Source changes remain in the
+original repository; all post-run edits are documentation only. Current seven
+release gates are in the release-readiness document.
+
+Final Git/filesystem evidence: baseline/head e562cbf retained, **8 modified tracked
+files and 7 new files**, all 15 under `/home/lucifer/Desktop/kivo`. The exact
+incremental manifest matches Git, all 151 tested source/config hashes still match,
+changed files pass whitespace/conflict checks, and updated documentation links
+resolve. Ignored `.env` remains mode 600. No source copy, dependency change,
+commit or history rewrite was made. `git status --short`, `git diff --check`
+and `git diff --stat` exited 0. New untracked files were separately inspected.
+`final-workspace-evidence.json` records paths/hashes. The ordinary sandbox denied
+the final system-bus read; its authorized read-only repeat exited 0 and confirmed
+no remaining Kivo inhibitors (`inhibitor-final.json`). No permanent power setting
+was changed. No verification worker remains running.
+
+### Incremental follow-up file manifest
+
+Baseline was clean at e562cbf. All 15 incremental changed/new paths below remain
+under the canonical original repository; no earlier committed work was reverted:
+
+- `backend/common/db.py`
+- `backend/common/database_timing.py`
+- `backend/common/observability.py`
+- `backend/common/runtime_role.py`
+- `backend/common/management/commands/audit_database_security.py`
+- `backend/common/management/commands/diagnose_database.py`
+- `backend/common/management/commands/plan_database_runtime.py`
+- `backend/common/management/commands/rehearse_database_runtime.py`
+- `tests/test_database_diagnostics.py`
+- `tests/test_reliability.py`
+- `docs/decisions/ADR-007-authentication-and-operations.md`
+- `docs/phases/phase-07-verification.md`
+- `docs/release/kivo-v1-release-readiness.md`
+- `docs/release/runtime-role-rehearsal.sql`
+- `docs/security-and-operations.md`
+
+## Earlier audit evidence — before baseline e562cbf
+
+The sections below preserve the initial audit, including its failed/interrupted
+runs and then-uncommitted 42-file manifest. They are historical, not this
+follow-up's final Git status or current complete-suite result.
+
 ## Workspace and runtime
 
 - `pwd -P` and `git rev-parse --show-toplevel` both returned
@@ -405,9 +748,15 @@ A fresh isolated execution of the unchanged failing test **passed: 1 passed,
 An in-memory Python diagnostic wrapper invoked `pytest.main` with:
 
 ```python
-['-v', '-s', 'tests/test_finance_http.py::test_real_http_financial_lifecycle',
- '--reuse-db', '--tb=short', '--durations=5',
- '--junitxml=.pytest_cache/phase07/http-failure-investigation.xml']
+[
+    "-v",
+    "-s",
+    "tests/test_finance_http.py::test_real_http_financial_lifecycle",
+    "--reuse-db",
+    "--tb=short",
+    "--durations=5",
+    "--junitxml=.pytest_cache/phase07/http-failure-investigation.xml",
+]
 ```
 
 The wrapper used the same `backend/.venv/bin/python` and

@@ -58,10 +58,60 @@ backend/.venv/bin/python backend/manage.py audit_database_security
 ```
 
 A nonzero exit blocks release. It checks actual TLS, accessible administrative
-roles, table ownership and privacy of all Django tables and their sequences.
+roles, table ownership, privacy of all Django tables/sequences and effective
+client EXECUTE on directly callable Kivo helper functions.
 It does not provision policies/grants or prove every effective DML privilege.
 Successful authentication, financial, concurrency and negative permission tests
 with the runtime role are also required.
+
+### Reviewable restricted-role rehearsal
+
+The [prepared SQL](release/runtime-role-rehearsal.sql) is **review only** until
+explicit approval. It starts with a database-identity guard and ends with
+ROLLBACK. The configured application target remains `postgres` on the existing
+Supabase host; the rehearsal target is the separate `test_kivo_phase07` database.
+Do not paste this into an application-database SQL editor or change ROLLBACK to
+COMMIT. To regenerate its read-only plan:
+
+```bash
+backend/.venv/bin/python backend/manage.py plan_database_runtime --role kivo_runtime_probe --test-database test_kivo_phase07
+```
+
+After explicit approval, and **after pytest releases that same test database**,
+the executable rollback-only probe is:
+
+```bash
+backend/.venv/bin/python backend/manage.py rehearse_database_runtime --test-database test_kivo_phase07 --role kivo_runtime_probe --execute-rollback-only
+```
+
+It refuses an existing probe role, application target, nonremote/non-PostgreSQL
+connection or target missing users.0003. Role creation/membership are cluster-wide
+DDL but stay uncommitted. All policies, grants and helper EXECUTE revocations are
+restricted to test-database objects. Synthetic session/CSRF and financial API
+workflows, cross-user isolation, forbidden privilege checks, the security audit
+and deferred constraints run before rollback. The role must then be absent.
+Sequence advances are not transactional: isolated test sequences may have gaps;
+they are never reset. No application record, grant, role or credential is changed.
+
+The proposal leaves existing table ownership with the migration administrator.
+Read-only auth reference/migration tables receive no runtime inserts. Journals,
+retry receipts, snapshots and audit rows receive SELECT/INSERT only. Metadata
+tables have their required updates; users permit password/last_login updates,
+rent plans only active-state updates, and only sessions permit DELETE. User
+creation cannot set staff/superuser flags. Backend-only RLS is operation scoped;
+Supabase client-role table/sequence access stays revoked. The two financial
+helpers receive private runtime EXECUTE and no PUBLIC/client EXECUTE. No global
+default grants or unrelated Supabase functions are changed.
+
+This is a proposed design until the isolated probe actually passes. Even a pass
+uses SET LOCAL ROLE through an existing encrypted admin connection; it does not
+prove a fresh runtime LOGIN/credential, concurrent connections, deployment or
+restoration. Only after approved isolated verification should an operator prepare
+separate migration and runtime secret-store entries, provision the live runtime
+LOGIN and reviewed grants/policies, and verify actual runtime credentials before
+cutover. Keep the admin owner for migrations; do not transfer 36 tables merely
+to replace the application connection identity. Live changes still require
+explicit target-specific approval.
 
 ## HTTPS, proxies, cookies and rate limiting
 
@@ -144,6 +194,49 @@ Use request IDs, error classes, status and `duration_ms` to correlate incidents.
 Logs intentionally omit bodies, cookies, passwords, tokens and arbitrary error
 text. Duration measures response preparation; streaming completion is separate.
 Investigate DNS/connectivity and DB waits before changing accounting behavior.
+SQL metrics `db_query_count`, `db_duration_ms`, `db_max_query_ms` and
+`db_backend_pids` describe instrumented executions during response preparation.
+They do not include connection setup, direct-driver health probes, transaction
+commit/rollback, or later stream iteration. Queries over one second log a safe
+`database_query_slow` event with backend PID. No SQL or parameters are logged.
+
+Run the read-only diagnostic in a separate process, using the affected environment:
+
+```bash
+backend/.venv/bin/python backend/manage.py diagnose_database --samples 3
+backend/.venv/bin/python backend/manage.py diagnose_database --samples 3 --backend-pid <PID_FROM_REQUEST_LOG>
+```
+
+The second form observes only that PID in the same database, including wait
+class/event and `pg_blocking_pids`; a completed backend may already be absent.
+Do not terminate a blocker or change timeouts based on a PID alone. Correlate
+request IDs/time windows, transaction age and application ownership first.
+The command takes no financial locks, prints no SQL/row data, and does not modify
+connection endpoints, pooling, server settings or retry behavior. Its own
+transaction is read-only. Django's installed threaded test server closes DB
+connections after each request thread; its handshake overhead differs from
+persistent synchronous production workers. Pooling is currently disabled;
+installing psycopg-pool does not enable it automatically. Do not enable pooling
+with nonzero CONN_MAX_AGE or change to a guessed Supabase endpoint.
+
+The follow-up audit correlated a kernel-confirmed workstation suspend with
+stale established connections and a 959-second failed read. Client socket
+defaults had keepalive idle 7200 s and TCP_USER_TIMEOUT 0. The backend now sets
+libpq keepalives on, idle/interval 5 s, count 3, and tcp_user_timeout 10000 ms.
+These act on dead-peer/unacknowledged TCP traffic on supported platforms;
+they do not cancel healthy long-running SQL, impose a query/lock deadline or
+guarantee a request completes in 10 seconds. Linux socket values and a healthy
+12-second PostgreSQL query are actually tested. No firewall fault injection or
+production network outage was forced. Financial retry/commit ambiguity remains
+the same original-key protocol.
+
+Use an always-on host for production. Long remote verification on this workstation
+uses the existing `systemd-inhibit` to block idle/sleep only for the test process,
+without changing permanent power settings. Record the active inhibitor and
+BOOTTIME-minus-MONOTONIC suspend delta with the test results. Do not treat a
+workstation-suspended run as evidence of an accounting defect or conceal its
+failures. Explicit operator-forced sleep can still invalidate the run; inspect
+the actual recorded delta. See [libpq connection controls](https://www.postgresql.org/docs/17/libpq-connect.html#LIBPQ-PARAMKEYWORDS).
 
 A timeout, lost connection or 500/503 can have an ambiguous commit outcome.
 Resend the identical financial request with its original Idempotency-Key. Never

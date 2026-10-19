@@ -46,3 +46,51 @@ RLS/grants. The configured role currently fails that production gate. Server
 configuration and backup/restore procedures are prepared, but actual server boot,
 ingress enforcement, least-privilege credential cutover and isolated restore are
 external release gates. See [operations](../security-and-operations.md).
+
+## Final blocker remediation (2026-10-19)
+
+Request preparation logs now include bounded SQL execution count, total/max
+duration and backend PIDs. Executions over one second produce a correlated
+`database_query_slow` event. Statements, parameters, bodies and arbitrary exception
+text are never retained. These timings exclude connection establishment, direct
+driver health checks, commit/rollback and later streaming iteration; a gap between
+SQL time and request time is not automatically CPU time. `diagnose_database`
+separately measures DNS, connection initialization and SELECT round trips, and
+reads actual wait events/blocker PIDs without query text or financial rows.
+
+The existing owner-row locking and SQL/HTTP timeout settings are preserved. Historical
+statement aggregates include a 42-second owner-lock execution, but cannot identify
+the earlier failed HTTP request. This is a contention candidate, not proof of its
+root cause. A real isolated PostgreSQL regression observes the lock, applies a
+short timeout to that test session alone, verifies complete rollback/503 and then
+durable same-key reserve creation/replay. No client deadline is raised and no
+financial write is automatically retried.
+
+A later full attempt correlated kernel-confirmed workstation suspend with stale
+connections and a 959-second failed execution, independently observed on a
+read-only connection. Actual client defaults used two-hour keepalive idle and no
+TCP user timeout. Client keepalives now use idle/interval 5 seconds, count 3, and
+10000 ms unacknowledged-data timeout. These are transport liveness controls, not
+SQL deadlines; a real 12-second healthy query verifies that distinction. Actual
+Linux socket values are checked. No server timeout or accounting rule changes.
+Tests run under a temporary sleep inhibitor with recorded suspend-clock deltas;
+production requires an always-on host. No permanent power configuration changes.
+The earlier reserve timeout still lacks enough evidence for exact attribution.
+Backend PIDs are captured before execution so libpq failure cannot replace their
+diagnostic identity with zero.
+
+The database release audit also checks effective client EXECUTE on directly
+callable financial helpers. Trigger-only functions are not normal callable RPCs.
+The existing invoker helper's public EXECUTE is an unnecessary exposed capability;
+table ACL/RLS denial is still intact, so this is not evidence of data disclosure.
+
+The prepared role rehearsal uses a fresh NOLOGIN, non-owner, non-administrative
+role, operation-specific RLS policies, append-only journal grants, sequence USAGE,
+users' password/last-login column updates (including Django password rehash), and
+session deletion for logout. It grants no migration writes or schema/trigger
+control, and does not transfer ownership of the 36 existing tables. New table
+permissions require explicit review. Runtime and migration credentials remain
+separate. The approval-gated probe targets only an isolated test database and
+rolls back role/policy/grant/data changes; sequence gaps are possible. It does not
+certify a new LOGIN principal, concurrent multi-connection operation, or live
+credential cutover. Those remain separate authorized deployment gates.

@@ -54,6 +54,21 @@ class Command(BaseCommand):
                 [CLIENT_ROLES, [row[0] for row in tables]],
             )
             sequences = cursor.fetchall()
+            # Trigger functions cannot be called as ordinary SQL functions.
+            # Inspect directly callable helpers separately from table grants.
+            cursor.execute(
+                """
+                SELECT p.oid::regprocedure::text FROM pg_proc p
+                JOIN pg_namespace n ON n.oid=p.pronamespace
+                WHERE n.nspname='public' AND p.proname LIKE 'kivo_%%'
+                  AND p.prorettype <> 'pg_catalog.trigger'::regtype
+                  AND EXISTS (SELECT 1 FROM pg_roles r WHERE r.rolname=ANY(%s)
+                      AND has_function_privilege(r.oid,p.oid,'EXECUTE'))
+                ORDER BY p.proname
+                """,
+                [CLIENT_ROLES],
+            )
+            exposed_helpers = [row[0] for row in cursor.fetchall()]
         missing = sorted(set(names) - {row[1] for row in tables})
         exposed = [row[1] for row in tables if not row[2] or row[4]]
         owned = [row[1] for row in tables if row[3]]
@@ -67,6 +82,7 @@ class Command(BaseCommand):
             "privacy_failures": exposed,
             "sequences_checked": len(sequences),
             "sequence_privacy_failures": exposed_sequences,
+            "function_privacy_failures": exposed_helpers,
         }
         self.stdout.write(json.dumps(result, sort_keys=True))
         if (
@@ -76,6 +92,7 @@ class Command(BaseCommand):
             or missing
             or exposed
             or exposed_sequences
+            or exposed_helpers
         ):
             raise CommandError(
                 "FAIL: production database security gate; review the reported findings. No changes performed."

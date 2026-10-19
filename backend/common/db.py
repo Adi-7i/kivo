@@ -76,6 +76,14 @@ def parse_supabase_db_url(url_str: str | None = None) -> dict[str, Any]:
         "OPTIONS": {
             "sslmode": sslmode,
             "connect_timeout": 10,
+            # Bound detection of dead established TCP peers. connect_timeout
+            # covers startup only; OS defaults can otherwise stall for minutes.
+            # Healthy long queries/lock waits keep receiving TCP acknowledgments.
+            "keepalives": 1,
+            "keepalives_idle": 5,
+            "keepalives_interval": 5,
+            "keepalives_count": 3,
+            "tcp_user_timeout": 10000,
         },
         "CONN_MAX_AGE": 600,
         "CONN_HEALTH_CHECKS": True,

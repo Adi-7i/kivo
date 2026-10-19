@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import socket
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
@@ -15,6 +16,28 @@ from apps.users.models import User
 from django.db import close_old_connections, connection, connections
 
 from tests.test_ledger import ledger as ledger
+
+
+@pytest.mark.django_db(transaction=True)
+def test_real_postgresql_socket_bounds_dead_peers_without_timing_out_healthy_queries() -> None:
+    """Actual Linux transport options, not a raised HTTP/SQL timeout or mock DB."""
+    connection.ensure_connection()
+    raw = connection.connection
+    with socket.fromfd(raw.pgconn.socket, socket.AF_INET6, socket.SOCK_STREAM) as transport:
+        assert transport.getsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE) == 1
+        for name, expected in (
+            ("TCP_KEEPIDLE", 5),
+            ("TCP_KEEPINTVL", 5),
+            ("TCP_KEEPCNT", 3),
+            ("TCP_USER_TIMEOUT", 10000),
+        ):
+            assert transport.getsockopt(socket.IPPROTO_TCP, getattr(socket, name)) == expected
+    started = time.monotonic()
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT pg_sleep(12), 1")
+        assert cursor.fetchone()[1] == 1
+    assert time.monotonic() - started >= 12
+    assert not raw.closed
 
 
 @pytest.mark.django_db(transaction=True)
