@@ -300,7 +300,10 @@ def test_account_and_category_archival_and_default_customization(ledger: dict[st
     client = ledger["client"]
     assert client.post("/api/v1/categories/defaults/").status_code == 200
     assert client.post("/api/v1/categories/defaults/").status_code == 200
-    assert Category.objects.filter(user=ledger["user"]).count() == 7
+    assert Category.objects.filter(user=ledger["user"]).count() == 10
+    assert {"Groceries", "Friends & Social", "Utilities & Recharge"} <= set(
+        Category.objects.filter(user=ledger["user"]).values_list("name", flat=True)
+    )
     child = client.post(
         "/api/v1/categories/",
         {"name": "Breakfast", "parent": str(ledger["category"].id)},

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from urllib.parse import urlsplit
 
 from common.db import parse_supabase_db_url
 from config.settings.base import *  # noqa: F403
@@ -20,7 +21,12 @@ if not SECRET_KEY:
     raise ImproperlyConfigured(
         "CRITICAL: DJANGO_SECRET_KEY environment variable is required in production."
     )
-if "insecure" in SECRET_KEY.lower() or len(SECRET_KEY) < 32:
+if (
+    "insecure" in SECRET_KEY.lower()
+    or SECRET_KEY.lower().startswith(("replace-with-", "your-", "changeme"))
+    or len(SECRET_KEY) < 50
+    or len(set(SECRET_KEY)) < 5
+):
     raise ImproperlyConfigured(
         "CRITICAL: DJANGO_SECRET_KEY is insecure or too short for production use."
     )
@@ -33,7 +39,9 @@ if not allowed_hosts_raw:
     )
 
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_raw.split(",") if host.strip()]
-if "*" in ALLOWED_HOSTS:
+if not ALLOWED_HOSTS:
+    raise ImproperlyConfigured("CRITICAL: ALLOWED_HOSTS must contain at least one explicit host.")
+if any("*" in host for host in ALLOWED_HOSTS):
     raise ImproperlyConfigured(
         "CRITICAL: Wildcard '*' in ALLOWED_HOSTS is strictly prohibited in production."
     )
@@ -49,8 +57,21 @@ DATABASES = {
     "default": parse_supabase_db_url(supabase_url),
 }
 
+# One loopback ingress may supply a replaced X-Forwarded-For header. Default
+# to peer-only identities until that network boundary is explicitly configured.
+trusted_proxy_hops = os.environ.get("AUTH_TRUSTED_PROXY_HOPS", "0").strip()
+if trusted_proxy_hops not in {"0", "1"}:
+    raise ImproperlyConfigured("CRITICAL: AUTH_TRUSTED_PROXY_HOPS must be 0 or 1.")
+REST_FRAMEWORK = {**REST_FRAMEWORK, "NUM_PROXIES": int(trusted_proxy_hops)}  # noqa: F405
+SPECTACULAR_SETTINGS = {  # noqa: F405
+    **SPECTACULAR_SETTINGS,  # noqa: F405
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAuthenticated"],
+}
+
 # Production HTTPS & Security Middleware Settings
-SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "True").lower() in ("true", "1")
+if os.environ.get("SECURE_SSL_REDIRECT", "True").strip().lower() not in ("true", "1", "yes"):
+    raise ImproperlyConfigured("CRITICAL: SECURE_SSL_REDIRECT cannot be disabled in production.")
+SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
@@ -66,3 +87,23 @@ CSRF_TRUSTED_ORIGINS = [
     for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
     if origin.strip()
 ]
+for origin in CSRF_TRUSTED_ORIGINS:
+    try:
+        parsed_origin = urlsplit(origin)
+        valid_origin = (
+            parsed_origin.scheme == "https"
+            and bool(parsed_origin.hostname)
+            and "*" not in origin
+            and not parsed_origin.path
+            and not parsed_origin.query
+            and not parsed_origin.fragment
+            and parsed_origin.username is None
+            and parsed_origin.password is None
+        )
+        valid_origin = valid_origin and (parsed_origin.port is None or parsed_origin.port > 0)
+    except ValueError:
+        valid_origin = False
+    if not valid_origin:
+        raise ImproperlyConfigured(
+            "CRITICAL: CSRF_TRUSTED_ORIGINS requires explicit HTTPS origins without paths or wildcards."
+        )

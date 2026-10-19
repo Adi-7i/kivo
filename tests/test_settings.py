@@ -61,7 +61,9 @@ class TestProductionSettingsGuards:
     ) -> None:
         """Production configuration must fail if DEBUG=True is requested."""
         monkeypatch.setenv("DEBUG", "True")
-        monkeypatch.setenv("DJANGO_SECRET_KEY", "a" * 50)
+        monkeypatch.setenv(
+            "DJANGO_SECRET_KEY", "production-settings-test-key-8a0d6e315b942c7f94026e"
+        )
         monkeypatch.setenv("ALLOWED_HOSTS", "api.kivo.app")
         monkeypatch.setenv("SUPABASE_DB_URL", "postgresql://u:p@db.supabase.co:5432/postgres")
 
@@ -105,7 +107,9 @@ class TestProductionSettingsGuards:
     ) -> None:
         """Production configuration must fail if ALLOWED_HOSTS is empty."""
         monkeypatch.setenv("DEBUG", "False")
-        monkeypatch.setenv("DJANGO_SECRET_KEY", "a" * 50)
+        monkeypatch.setenv(
+            "DJANGO_SECRET_KEY", "production-settings-test-key-8a0d6e315b942c7f94026e"
+        )
         monkeypatch.delenv("ALLOWED_HOSTS", raising=False)
         monkeypatch.setenv("SUPABASE_DB_URL", "postgresql://u:p@db.supabase.co:5432/postgres")
 
@@ -122,7 +126,9 @@ class TestProductionSettingsGuards:
     ) -> None:
         """Production configuration must strictly reject wildcard '*' host."""
         monkeypatch.setenv("DEBUG", "False")
-        monkeypatch.setenv("DJANGO_SECRET_KEY", "a" * 50)
+        monkeypatch.setenv(
+            "DJANGO_SECRET_KEY", "production-settings-test-key-8a0d6e315b942c7f94026e"
+        )
         monkeypatch.setenv("ALLOWED_HOSTS", "api.kivo.app,*")
         monkeypatch.setenv("SUPABASE_DB_URL", "postgresql://u:p@db.supabase.co:5432/postgres")
 
@@ -138,7 +144,9 @@ class TestProductionSettingsGuards:
     ) -> None:
         """Production configuration must fail if SUPABASE_DB_URL is missing."""
         monkeypatch.setenv("DEBUG", "False")
-        monkeypatch.setenv("DJANGO_SECRET_KEY", "a" * 50)
+        monkeypatch.setenv(
+            "DJANGO_SECRET_KEY", "production-settings-test-key-8a0d6e315b942c7f94026e"
+        )
         monkeypatch.setenv("ALLOWED_HOSTS", "api.kivo.app")
         monkeypatch.delenv("SUPABASE_DB_URL", raising=False)
 

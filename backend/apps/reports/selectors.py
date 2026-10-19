@@ -218,6 +218,7 @@ def breakdown_for(user: User, data: dict[str, Any]) -> dict[str, Any]:
         Value(""),
     )
     columns = {
+        "kind": (F("event__kind"), F("event__kind")),
         "category": (
             Coalesce("event__category_id", "event__original_expense__category_id"),
             Coalesce("event__category__name", "event__original_expense__category__name"),

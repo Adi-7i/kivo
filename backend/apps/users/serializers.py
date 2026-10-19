@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
@@ -36,6 +35,7 @@ class UserRegistrationSerializer(serializers.Serializer[User]):
         write_only=True,
         required=True,
         min_length=10,
+        trim_whitespace=False,
         style={"input_type": "password"},
         help_text="Must be at least 10 characters and cannot be entirely numeric or common.",
     )
@@ -47,14 +47,6 @@ class UserRegistrationSerializer(serializers.Serializer[User]):
         if User.objects.filter(email__iexact=clean_email).exists():
             raise serializers.ValidationError("A user with this email address already exists.")
         return clean_email
-
-    def validate_password(self, value: str) -> str:
-        """Validate password against Django configured security validators."""
-        try:
-            validate_password(value)
-        except DjangoValidationError as exc:
-            raise serializers.ValidationError(list(exc.messages)) from exc
-        return value
 
     def create(self, validated_data: dict[str, Any]) -> User:
         """Create new user instance via the domain service."""
@@ -77,6 +69,7 @@ class UserLoginSerializer(serializers.Serializer[dict[str, Any]]):
     password = serializers.CharField(
         required=True,
         write_only=True,
+        trim_whitespace=False,
         style={"input_type": "password"},
     )
 

@@ -7,9 +7,13 @@ import logging
 from collections.abc import Callable
 from contextvars import ContextVar
 from datetime import UTC, datetime
+from time import perf_counter_ns
 from uuid import UUID, uuid4
 
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.utils.cache import patch_cache_control
+
+from common.exceptions import server_error_data
 
 request_id_context: ContextVar[str] = ContextVar("request_id", default="-")
 logger = logging.getLogger("kivo.http")
@@ -24,7 +28,17 @@ class JsonFormatter(logging.Formatter):
             "message": record.getMessage(),
             "request_id": request_id_context.get(),
         }
-        for field in ("user_id", "resource_id", "operation", "method", "path", "status_code"):
+        for field in (
+            "user_id",
+            "resource_id",
+            "operation",
+            "method",
+            "path",
+            "status_code",
+            "exception_class",
+            "view",
+            "duration_ms",
+        ):
             if hasattr(record, field):
                 payload[field] = getattr(record, field)
         if record.exc_info and record.exc_info[0] is not None:
@@ -37,6 +51,7 @@ class RequestCorrelationMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
+        started = perf_counter_ns()
         try:
             request_id = str(UUID(request.headers.get("X-Request-ID", "")))
         except (ValueError, AttributeError):
@@ -44,6 +59,46 @@ class RequestCorrelationMiddleware:
         token = request_id_context.set(request_id)
         try:
             response = self.get_response(request)
+            if request.path.startswith("/api/"):
+                # Middleware failures (e.g. session persistence) are outside DRF.
+                if response.status_code >= 400 and not response.get("Content-Type", "").startswith(
+                    "application/json"
+                ):
+                    code = response.status_code
+                    data = (
+                        server_error_data(code)
+                        if code >= 500
+                        else {
+                            "error": {
+                                "status_code": code,
+                                "type": {
+                                    400: "invalid_request",
+                                    401: "authentication_required",
+                                    403: "permission_denied",
+                                    404: "not_found",
+                                }.get(code, "api_error"),
+                                "details": {"detail": "The API request could not be completed."},
+                            }
+                        }
+                    )
+                    # Preserve cookies/security/protocol headers while replacing
+                    # body-specific metadata from Django's HTML error response.
+                    cookies = response.cookies
+                    headers = {
+                        name: value
+                        for name, value in response.items()
+                        if name.lower()
+                        not in {
+                            "content-type",
+                            "content-length",
+                            "content-encoding",
+                            "etag",
+                            "last-modified",
+                        }
+                    }
+                    response = JsonResponse(data, status=code, headers=headers)
+                    response.cookies = cookies
+                patch_cache_control(response, private=True, no_store=True)
             response["X-Request-ID"] = request_id
             logger.info(
                 "http_request",
@@ -51,7 +106,10 @@ class RequestCorrelationMiddleware:
                     "method": request.method,
                     "path": request.path,
                     "status_code": response.status_code,
-                    "user_id": getattr(getattr(request, "user", None), "pk", None),
+                    # AuthenticationMiddleware populates this only after an
+                    # actual auth lookup. Logging must never load a lazy session.
+                    "user_id": getattr(getattr(request, "_cached_user", None), "pk", None),
+                    "duration_ms": (perf_counter_ns() - started) // 1_000_000,
                 },
             )
             return response

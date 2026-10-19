@@ -15,6 +15,11 @@ def django_db_modify_db_settings(django_db_modify_db_settings_parallel_suffix: N
     """Fail closed before test setup could create, flush or reuse a development database."""
     for connection in connections.all():
         config = connection.settings_dict
+        # Separate audit/CI sessions from another process using Django's default
+        # test_postgres database. Validation below still fails closed before DDL.
+        requested_name = os.environ.get("KIVO_TEST_DATABASE_NAME")
+        if requested_name:
+            config["TEST"]["NAME"] = requested_name
         test_name = connection.creation._get_test_db_name()
         if (
             config["ENGINE"] != "django.db.backends.postgresql"

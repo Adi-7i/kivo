@@ -15,10 +15,14 @@ def mask_db_url(url_str: str) -> str:
         return ""
     try:
         parsed = urlparse(url_str)
-        if parsed.password:
-            masked_netloc = parsed.netloc.replace(f":{parsed.password}@", ":****@")
-            return parsed._replace(netloc=masked_netloc).geturl()
-        return url_str
+        if not parsed.hostname:
+            return "<invalid-url-format>"
+        netloc = parsed.netloc
+        if parsed.password is not None:
+            _, _, host_port = netloc.rpartition("@")
+            netloc = f"{parsed.username}:****@{host_port}"
+        # Connection query parameters and fragments can contain additional secrets.
+        return parsed._replace(netloc=netloc, query="", fragment="").geturl()
     except Exception:
         return "<invalid-url-format>"
 
@@ -41,6 +45,10 @@ def parse_supabase_db_url(url_str: str | None = None) -> dict[str, Any]:
     if parsed.scheme not in ("postgresql", "postgres"):
         raise ImproperlyConfigured(
             f"Invalid database scheme '{parsed.scheme}'. Kivo requires 'postgresql' or 'postgres'."
+        )
+    if not parsed.hostname:
+        raise ImproperlyConfigured(
+            "A remote PostgreSQL host is required; local socket fallback is prohibited."
         )
 
     qs = parse_qs(parsed.query)
@@ -70,4 +78,5 @@ def parse_supabase_db_url(url_str: str | None = None) -> dict[str, Any]:
             "connect_timeout": 10,
         },
         "CONN_MAX_AGE": 600,
+        "CONN_HEALTH_CHECKS": True,
     }
