@@ -98,7 +98,10 @@ export function ProfileInfoSection() {
             <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-foreground">Currency</span>
-                <Badge variant="outline" className="text-[10px] font-bold border-kivo-sage text-kivo-brand-dark dark:text-kivo-sage">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-bold border-kivo-sage text-kivo-brand-dark dark:text-kivo-sage"
+                >
                   INR (₹) &bull; Paise Integer
                 </Badge>
               </div>
@@ -110,7 +113,10 @@ export function ProfileInfoSection() {
             <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-foreground">Timezone</span>
-                <Badge variant="outline" className="text-[10px] font-medium border-border text-foreground">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-medium border-border text-foreground"
+                >
                   Asia/Kolkata (IST)
                 </Badge>
               </div>

@@ -70,12 +70,7 @@ export function LoginForm() {
       />
 
       <div className="pt-2">
-        <Button
-          type="submit"
-          className="w-full font-medium"
-          size="lg"
-          disabled={isSubmitting}
-        >
+        <Button type="submit" className="w-full font-medium" size="lg" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <LoadingSpinner size="sm" label="Validating..." className="mr-2" />

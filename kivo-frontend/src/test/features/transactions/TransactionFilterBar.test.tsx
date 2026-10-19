@@ -20,7 +20,18 @@ describe("TransactionFilterBar component", () => {
         filters={mockFilters}
         onFilterChange={vi.fn()}
         onReset={vi.fn()}
-        accounts={[{ id: "acc-1", name: "HDFC", kind: "bank", balancePaise: 1000, openingBalancePaise: 0, openedOn: "2026-01-01", archived: false, createdAt: "" }]}
+        accounts={[
+          {
+            id: "acc-1",
+            name: "HDFC",
+            kind: "bank",
+            balancePaise: 1000,
+            openingBalancePaise: 0,
+            openedOn: "2026-01-01",
+            archived: false,
+            createdAt: "",
+          },
+        ]}
         categories={["Food", "Utilities"]}
       />
     );

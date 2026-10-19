@@ -45,7 +45,9 @@ describe("RegisterForm component", () => {
     await waitFor(
       () => {
         expect(
-          screen.getByText(/Backend integration pending: Account registration API will be connected in Phase 3/i)
+          screen.getByText(
+            /Backend integration pending: Account registration API will be connected in Phase 3/i
+          )
         ).toBeInTheDocument();
       },
       { timeout: 2000 }

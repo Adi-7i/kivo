@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  registerSchema,
-  checkPasswordCriteria,
-} from "@/features/auth/schemas/register.schema";
+import { registerSchema, checkPasswordCriteria } from "@/features/auth/schemas/register.schema";
 
 describe("registerSchema", () => {
   it("passes validation with matching valid data", () => {
@@ -26,7 +23,9 @@ describe("registerSchema", () => {
     const result = registerSchema.safeParse(invalidData);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.some((i) => i.message.includes("at least 2 characters"))).toBe(true);
+      expect(result.error.issues.some((i) => i.message.includes("at least 2 characters"))).toBe(
+        true
+      );
     }
   });
 

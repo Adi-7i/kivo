@@ -21,6 +21,7 @@ const PRESETS: { id: DatePreset; label: string }[] = [
   { id: "this_month", label: "This Month" },
   { id: "previous_month", label: "Previous Month" },
   { id: "this_year", label: "This Year" },
+  { id: "all", label: "All Time" },
   { id: "custom", label: "Custom Range" },
 ];
 

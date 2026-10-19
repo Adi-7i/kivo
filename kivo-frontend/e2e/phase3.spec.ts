@@ -14,13 +14,13 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
 
       // Verify 8 Financial Summary cards
       await expect(page.getByText("Total Liquid Balance")).toBeVisible();
-      await expect(page.getByText("Safe-to-Spend")).toBeVisible();
+      await expect(page.getByText("Safe-to-Spend", { exact: true })).toBeVisible();
       await expect(page.getByText("Today's Expenses")).toBeVisible();
       await expect(page.getByText("Monthly Expenses")).toBeVisible();
-      await expect(page.getByText("Money Received")).toBeVisible();
+      await expect(page.getByText("Money Received", { exact: true }).first()).toBeVisible();
       await expect(page.getByText("Owed to You (Asset)")).toBeVisible();
       await expect(page.getByText("Owed by You (Liability)")).toBeVisible();
-      await expect(page.getByText("Reserved Obligations")).toBeVisible();
+      await expect(page.getByText("Reserved Obligations", { exact: true })).toBeVisible();
 
       // Verify analytics and activity components
       await expect(page.getByText("Daily Spending Trend")).toBeVisible();
@@ -36,7 +36,7 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
       const quickAddBtn = page.getByRole("button", { name: /Quick Add/i }).first();
       await quickAddBtn.click();
 
-      await expect(page.getByText("Quick Add Transaction")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Quick Add Transaction" })).toBeVisible();
       await expect(page.getByRole("tab", { name: /Expense/i })).toBeVisible();
       await expect(page.getByRole("tab", { name: /Received/i })).toBeVisible();
       await expect(page.getByRole("tab", { name: /Transfer/i })).toBeVisible();
@@ -47,7 +47,7 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
 
       // Close modal
       await page.getByRole("button", { name: /Close/i }).click();
-      await expect(page.getByText("Quick Add Transaction")).not.toBeVisible();
+      await expect(page.getByRole("heading", { name: "Quick Add Transaction" })).not.toBeVisible();
     });
   });
 
@@ -70,7 +70,9 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
       await expect(page.getByText("Physical Cash Stash")).toBeVisible();
     });
 
-    test("opens Add Account modal and validates inputs with invariant explanation", async ({ page }) => {
+    test("opens Add Account modal and validates inputs with invariant explanation", async ({
+      page,
+    }) => {
       await page.goto("/money");
 
       await page.getByRole("button", { name: /Add Account/i }).click();
@@ -91,21 +93,31 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
   });
 
   test.describe("Transaction History (/transactions)", () => {
-    test("loads transactions page, filters by search, and navigates to detail", async ({ page }) => {
+    test("loads transactions page, filters by search, and navigates to detail", async ({
+      page,
+    }) => {
       await page.goto("/transactions");
 
       await expect(page.getByRole("heading", { name: "Transaction Activity" })).toBeVisible();
       await expect(page.getByPlaceholder(/Search title, merchant, notes/i)).toBeVisible();
-      await expect(page.getByText("Zepto Quick Groceries")).toBeVisible();
+      await expect(
+        page.getByText("Zepto Quick Groceries").filter({ visible: true }).first()
+      ).toBeVisible();
 
       // Filter by search
       await page.getByPlaceholder(/Search title, merchant, notes/i).fill("Zepto");
-      await expect(page.getByText("Zepto Quick Groceries")).toBeVisible();
-      await expect(page.getByText("ATM Cash Withdrawal")).not.toBeVisible();
+      await expect(
+        page.getByText("Zepto Quick Groceries").filter({ visible: true }).first()
+      ).toBeVisible();
+      await expect(
+        page.getByText("ATM Cash Withdrawal").filter({ visible: true })
+      ).not.toBeVisible();
 
       // Reset search
       await page.getByRole("button", { name: /Reset Filters/i }).click();
-      await expect(page.getByText("ATM Cash Withdrawal")).toBeVisible();
+      await expect(
+        page.getByText("ATM Cash Withdrawal").filter({ visible: true }).first()
+      ).toBeVisible();
     });
 
     test("filters transactions by type pills", async ({ page }) => {
@@ -113,8 +125,12 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
 
       // Click Transfer filter pill
       await page.getByRole("button", { name: "transfer" }).click();
-      await expect(page.getByText("ATM Cash Withdrawal")).toBeVisible();
-      await expect(page.getByText("Zepto Quick Groceries")).not.toBeVisible();
+      await expect(
+        page.getByText("ATM Cash Withdrawal").filter({ visible: true }).first()
+      ).toBeVisible();
+      await expect(
+        page.getByText("Zepto Quick Groceries").filter({ visible: true })
+      ).not.toBeVisible();
     });
   });
 
@@ -122,9 +138,9 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
     test("renders full ledger event attributes and double-entry postings", async ({ page }) => {
       await page.goto("/transactions/tx-1");
 
-      await expect(page.getByText("Zepto Quick Groceries")).toBeVisible();
+      await expect(page.getByText("Zepto Quick Groceries").first()).toBeVisible();
       await expect(page.getByText("Effective Date")).toBeVisible();
-      await expect(page.getByText("HDFC Salary Account")).toBeVisible();
+      await expect(page.getByText("HDFC Salary Account").first()).toBeVisible();
       await expect(page.getByText("Ledger Postings Breakdown")).toBeVisible();
       await expect(page.getByText("Leg 1: Asset Balance Adjustment")).toBeVisible();
       await expect(page.getByText("Immutable Ledger Entry")).toBeVisible();
@@ -148,7 +164,9 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
 
     for (const vp of viewports) {
       for (const route of routes) {
-        test(`renders ${route} cleanly on ${vp.name} without horizontal overflow`, async ({ page }) => {
+        test(`renders ${route} cleanly on ${vp.name} without horizontal overflow`, async ({
+          page,
+        }) => {
           await page.setViewportSize({ width: vp.width, height: vp.height });
           await page.goto(route);
 

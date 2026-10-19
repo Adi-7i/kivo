@@ -14,19 +14,7 @@ interface FormFieldProps extends Omit<React.ComponentProps<"input">, "id"> {
 }
 
 export const FormField = React.forwardRef<HTMLInputElement, FormFieldProps>(
-  (
-    {
-      id,
-      label,
-      error,
-      helperText,
-      required,
-      className,
-      containerClassName,
-      ...props
-    },
-    ref
-  ) => {
+  ({ id, label, error, helperText, required, className, containerClassName, ...props }, ref) => {
     const errorId = error ? `${id}-error` : undefined;
     const helperId = helperText ? `${id}-helper` : undefined;
     const describedBy = [errorId, helperId].filter(Boolean).join(" ") || undefined;
@@ -45,10 +33,7 @@ export const FormField = React.forwardRef<HTMLInputElement, FormFieldProps>(
           ref={ref}
           aria-invalid={!!error}
           aria-describedby={describedBy}
-          className={cn(
-            error && "border-destructive focus-visible:ring-destructive/20",
-            className
-          )}
+          className={cn(error && "border-destructive focus-visible:ring-destructive/20", className)}
           {...props}
         />
 

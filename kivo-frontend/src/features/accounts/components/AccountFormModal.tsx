@@ -16,10 +16,7 @@ import { IntegrationPendingBadge } from "@/components/shared/IntegrationPendingB
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@/lib/utils/zodResolver";
-import {
-  accountManageSchema,
-  type AccountManageFormData,
-} from "../schemas/account-manage.schema";
+import { accountManageSchema, type AccountManageFormData } from "../schemas/account-manage.schema";
 import type { AccountEntity, AccountKind } from "../types";
 import { Building2, Banknote, Wallet, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -51,11 +48,7 @@ const KIND_OPTIONS: { kind: AccountKind; label: string; icon: React.ReactNode; d
   },
 ];
 
-export function AccountFormModal({
-  open,
-  onOpenChange,
-  initialAccount,
-}: AccountFormModalProps) {
+export function AccountFormModal({ open, onOpenChange, initialAccount }: AccountFormModalProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [pendingNotice, setPendingNotice] = React.useState<string | null>(null);
 
@@ -122,11 +115,7 @@ export function AccountFormModal({
         </DialogHeader>
 
         {pendingNotice && (
-          <IntegrationPendingBadge
-            variant="banner"
-            message={pendingNotice}
-            className="mb-2"
-          />
+          <IntegrationPendingBadge variant="banner" message={pendingNotice} className="mb-2" />
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left" noValidate>
@@ -138,7 +127,8 @@ export function AccountFormModal({
                 Opening Balance is Not Income
               </p>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Initial funds anchor your starting balance in the ledger. They do not count toward your earned salary or personal revenue.
+                Initial funds anchor your starting balance in the ledger. They do not count toward
+                your earned salary or personal revenue.
               </p>
             </div>
           </div>
@@ -181,13 +171,9 @@ export function AccountFormModal({
                       >
                         {opt.icon}
                       </div>
-                      <span className="text-xs font-bold text-foreground">
-                        {opt.label}
-                      </span>
+                      <span className="text-xs font-bold text-foreground">{opt.label}</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground leading-tight">
-                      {opt.desc}
-                    </p>
+                    <p className="text-[10px] text-muted-foreground leading-tight">{opt.desc}</p>
                   </button>
                 );
               })}
@@ -197,7 +183,8 @@ export function AccountFormModal({
 
           {/* UPI clarification note */}
           <p className="text-[11px] text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/60">
-            <strong>Note on UPI:</strong> A UPI-linked bank account is still a bank account; UPI is a payment method, not a separate account.
+            <strong>Note on UPI:</strong> A UPI-linked bank account is still a bank account; UPI is
+            a payment method, not a separate account.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -225,20 +212,10 @@ export function AccountFormModal({
           </div>
 
           <div className="pt-2 flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={isSubmitting}
-              className="min-w-[120px]"
-            >
+            <Button type="submit" size="sm" disabled={isSubmitting} className="min-w-[120px]">
               {isSubmitting ? (
                 <>
                   <LoadingSpinner size="sm" className="mr-1.5" />

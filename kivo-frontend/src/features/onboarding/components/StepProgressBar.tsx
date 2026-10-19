@@ -12,11 +12,7 @@ interface StepProgressBarProps {
   onStepClick?: (stepNumber: number) => void;
 }
 
-export function StepProgressBar({
-  currentStep,
-  steps,
-  onStepClick,
-}: StepProgressBarProps) {
+export function StepProgressBar({ currentStep, steps, onStepClick }: StepProgressBarProps) {
   return (
     <nav aria-label="Onboarding Progress" className="w-full">
       <ol className="flex items-center justify-between w-full">
@@ -63,8 +59,8 @@ export function StepProgressBar({
                     isCurrent
                       ? "text-kivo-primary font-bold"
                       : isCompleted
-                      ? "text-foreground"
-                      : "text-muted-foreground/80"
+                        ? "text-foreground"
+                        : "text-muted-foreground/80"
                   )}
                 >
                   {step.title}

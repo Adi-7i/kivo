@@ -7,8 +7,7 @@ import { FieldError } from "./FieldError";
 import { cn } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
 
-interface PasswordFieldProps
-  extends Omit<React.ComponentProps<"input">, "id" | "type"> {
+interface PasswordFieldProps extends Omit<React.ComponentProps<"input">, "id" | "type"> {
   id: string;
   label: string;
   error?: string;
@@ -18,19 +17,7 @@ interface PasswordFieldProps
 }
 
 export const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
-  (
-    {
-      id,
-      label,
-      error,
-      helperText,
-      required,
-      className,
-      containerClassName,
-      ...props
-    },
-    ref
-  ) => {
+  ({ id, label, error, helperText, required, className, containerClassName, ...props }, ref) => {
     const [isVisible, setIsVisible] = React.useState(false);
     const errorId = error ? `${id}-error` : undefined;
     const helperId = helperText ? `${id}-helper` : undefined;

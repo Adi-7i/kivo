@@ -30,8 +30,8 @@ export function TransactionListMobile({ transactions }: TransactionListMobilePro
                   {tx.title}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  {tx.accountName} {tx.categoryName ? `• ${tx.categoryName}` : ""}{" "}
-                  • {formatDateDisplay(tx.effectiveDate)}
+                  {tx.accountName} {tx.categoryName ? `• ${tx.categoryName}` : ""} •{" "}
+                  {formatDateDisplay(tx.effectiveDate)}
                 </p>
               </div>
             </div>

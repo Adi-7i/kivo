@@ -21,7 +21,10 @@ const variantCardStyles = {
   liability: "border-orange-600/20 bg-orange-500/5 dark:bg-orange-500/10",
 };
 
-const variantMoneyStyles: Record<string, "default" | "income" | "expense" | "transfer" | "neutral" | "reserved"> = {
+const variantMoneyStyles: Record<
+  string,
+  "default" | "income" | "expense" | "transfer" | "neutral" | "reserved"
+> = {
   default: "default",
   "safe-to-spend": "income",
   expense: "expense",
@@ -57,15 +60,9 @@ export function FinancialSummaryCard({
         </div>
 
         <div className="space-y-0.5">
-          <MoneyAmount
-            paise={amountPaise}
-            size="2xl"
-            variant={variantMoneyStyles[variant]}
-          />
+          <MoneyAmount paise={amountPaise} size="2xl" variant={variantMoneyStyles[variant]} />
           {subtitle && (
-            <p className="text-[11px] text-muted-foreground leading-tight">
-              {subtitle}
-            </p>
+            <p className="text-[11px] text-muted-foreground leading-tight">{subtitle}</p>
           )}
         </div>
       </CardContent>

@@ -6,21 +6,12 @@ export const transferSchema = z
       .string()
       .trim()
       .min(1, "Amount is required")
-      .regex(
-        /^\d+(\.\d{1,2})?$/,
-        "Enter a valid amount (e.g. 2000 or 2000.50)"
-      )
+      .regex(/^\d+(\.\d{1,2})?$/, "Enter a valid amount (e.g. 2000 or 2000.50)")
       .refine((val) => parseFloat(val) > 0, {
         message: "Transfer amount must be greater than zero",
       }),
-    fromAccountId: z
-      .string()
-      .trim()
-      .min(1, "Please select the source account"),
-    toAccountId: z
-      .string()
-      .trim()
-      .min(1, "Please select the destination account"),
+    fromAccountId: z.string().trim().min(1, "Please select the source account"),
+    toAccountId: z.string().trim().min(1, "Please select the destination account"),
     effectiveDate: z
       .string()
       .trim()

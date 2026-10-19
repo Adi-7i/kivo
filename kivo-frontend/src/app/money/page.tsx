@@ -81,7 +81,9 @@ export default function MoneyAccountsPage() {
               Money Accounts UI Architecture
             </AlertTitle>
             <AlertDescription className="text-muted-foreground mt-1 text-xs">
-              This screen displays the account presentation layout, balance cards, and interactive modal dialog. Real financial transactions and backend ledger state will sync with Django in Phase 4.
+              This screen displays the account presentation layout, balance cards, and interactive
+              modal dialog. Real financial transactions and backend ledger state will sync with
+              Django in Phase 4.
             </AlertDescription>
           </Alert>
 
@@ -91,7 +93,7 @@ export default function MoneyAccountsPage() {
             description="Manage your bank checking, physical cash, and digital wallets. Each account tracks exact ledger postings."
             actions={
               <div className="flex items-center gap-3">
-                <div className="hidden sm:flex flex-col items-end text-right">
+                <div className="flex flex-col items-end text-right">
                   <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
                     Total Liquid Funds
                   </span>

@@ -13,10 +13,7 @@ export const accountManageSchema = z.object({
     .string()
     .trim()
     .min(1, "Opening balance is required")
-    .regex(
-      /^\d+(\.\d{1,2})?$/,
-      "Please enter a valid non-negative amount (e.g. 5000 or 5000.50)"
-    )
+    .regex(/^\d+(\.\d{1,2})?$/, "Please enter a valid non-negative amount (e.g. 5000 or 5000.50)")
     .refine(
       (val) => {
         const num = parseFloat(val);

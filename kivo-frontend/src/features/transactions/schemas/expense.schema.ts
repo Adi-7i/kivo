@@ -5,10 +5,7 @@ export const expenseSchema = z.object({
     .string()
     .trim()
     .min(1, "Amount is required")
-    .regex(
-      /^\d+(\.\d{1,2})?$/,
-      "Enter a valid amount (e.g. 250 or 250.50)"
-    )
+    .regex(/^\d+(\.\d{1,2})?$/, "Enter a valid amount (e.g. 250 or 250.50)")
     .refine((val) => parseFloat(val) > 0, {
       message: "Expense amount must be greater than zero",
     }),
@@ -17,14 +14,8 @@ export const expenseSchema = z.object({
     .trim()
     .min(2, "Title must be at least 2 characters")
     .max(200, "Title cannot exceed 200 characters"),
-  categoryName: z
-    .string()
-    .trim()
-    .min(1, "Please select or enter a category"),
-  accountId: z
-    .string()
-    .trim()
-    .min(1, "Please select the payment account"),
+  categoryName: z.string().trim().min(1, "Please select or enter a category"),
+  accountId: z.string().trim().min(1, "Please select the payment account"),
   effectiveDate: z
     .string()
     .trim()

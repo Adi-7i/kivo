@@ -83,15 +83,11 @@ export function SetupSummaryStep({
           </div>
           <div>
             <span className="text-muted-foreground block text-[11px]">Base Currency</span>
-            <span className="font-semibold text-foreground">
-              {personal.currency} (₹)
-            </span>
+            <span className="font-semibold text-foreground">{personal.currency} (₹)</span>
           </div>
           <div>
             <span className="text-muted-foreground block text-[11px]">Timezone</span>
-            <span className="font-semibold text-foreground">
-              {personal.timezone}
-            </span>
+            <span className="font-semibold text-foreground">{personal.timezone}</span>
           </div>
         </div>
       </div>
@@ -149,7 +145,8 @@ export function SetupSummaryStep({
       <div className="flex items-start gap-2.5 rounded-lg border border-border/80 bg-muted/40 p-3 text-xs text-muted-foreground">
         <ShieldAlert className="size-4 shrink-0 text-muted-foreground mt-0.5" />
         <p className="text-[11px] leading-relaxed">
-          Kivo requires explicit confirmation for ledger creations. All initial account entries are immutable balance anchors.
+          Kivo requires explicit confirmation for ledger creations. All initial account entries are
+          immutable balance anchors.
         </p>
       </div>
 

@@ -17,7 +17,8 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
           Welcome to Kivo
         </h2>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Private, disciplined personal money and expense management built with mathematical integrity.
+          Private, disciplined personal money and expense management built with mathematical
+          integrity.
         </p>
       </div>
 
@@ -59,7 +60,8 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
           First-Time Setup Guide
         </p>
         <p className="mt-0.5 text-[11px] text-muted-foreground">
-          Over the next 3 brief steps, you&apos;ll configure your display profile, confirm your currency and timezone, and register your first money account.
+          Over the next 3 brief steps, you&apos;ll configure your display profile, confirm your
+          currency and timezone, and register your first money account.
         </p>
       </div>
 

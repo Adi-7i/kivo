@@ -14,11 +14,7 @@ interface PersonalSetupStepProps {
   onNext: (data: OnboardingPersonalData) => void;
 }
 
-export function PersonalSetupStep({
-  initialData,
-  onBack,
-  onNext,
-}: PersonalSetupStepProps) {
+export function PersonalSetupStep({ initialData, onBack, onNext }: PersonalSetupStepProps) {
   const [displayName, setDisplayName] = React.useState(initialData.displayName || "");
   const [error, setError] = React.useState<string | undefined>();
 
@@ -70,16 +66,18 @@ export function PersonalSetupStep({
               <div className="flex size-7 items-center justify-center rounded-md bg-kivo-primary/10 text-kivo-primary">
                 <IndianRupee className="size-4" />
               </div>
-              <Label className="text-xs font-semibold text-foreground">
-                Base Currency
-              </Label>
+              <Label className="text-xs font-semibold text-foreground">Base Currency</Label>
             </div>
-            <Badge variant="outline" className="text-xs font-bold border-kivo-sage text-kivo-brand-dark dark:text-kivo-sage">
+            <Badge
+              variant="outline"
+              className="text-xs font-bold border-kivo-sage text-kivo-brand-dark dark:text-kivo-sage"
+            >
               INR (₹) &bull; Fixed
             </Badge>
           </div>
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            All monetary values are calculated in integer paise (1 INR = 100 paise) to eliminate floating-point drift.
+            All monetary values are calculated in integer paise (1 INR = 100 paise) to eliminate
+            floating-point drift.
           </p>
         </div>
 
@@ -90,9 +88,7 @@ export function PersonalSetupStep({
               <div className="flex size-7 items-center justify-center rounded-md bg-kivo-primary/10 text-kivo-primary">
                 <Clock className="size-4" />
               </div>
-              <Label className="text-xs font-semibold text-foreground">
-                Workspace Timezone
-              </Label>
+              <Label className="text-xs font-semibold text-foreground">Workspace Timezone</Label>
             </div>
             <Badge variant="outline" className="text-xs font-medium border-border text-foreground">
               <Globe className="size-3 mr-1 text-kivo-secondary" />
@@ -100,16 +96,13 @@ export function PersonalSetupStep({
             </Badge>
           </div>
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Calendar-faithful transactions align to Indian Standard Time dates for precise daily spending summaries.
+            Calendar-faithful transactions align to Indian Standard Time dates for precise daily
+            spending summaries.
           </p>
         </div>
       </div>
 
-      <StepNavigation
-        type="submit"
-        onBack={onBack}
-        nextLabel="Continue to Account"
-      />
+      <StepNavigation type="submit" onBack={onBack} nextLabel="Continue to Account" />
     </form>
   );
 }

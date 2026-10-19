@@ -1,12 +1,7 @@
 import type { AccountKind } from "../accounts/types";
 
 export type TransactionKind =
-  | "expense"
-  | "receipt"
-  | "transfer"
-  | "opening"
-  | "refund"
-  | "reversal";
+  "expense" | "receipt" | "transfer" | "opening" | "refund" | "reversal";
 
 export type TransactionStatus = "posted" | "reversed" | "voided" | "reversal";
 
@@ -23,7 +18,7 @@ export interface TransactionEntity {
   title: string;
   amountPaise: number;
   effectiveDate: string; // YYYY-MM-DD
-  createdAt: string;     // ISO Datetime
+  createdAt: string; // ISO Datetime
   status: TransactionStatus;
   accountId: string;
   accountName: string;
@@ -44,6 +39,7 @@ export type DatePreset =
   | "this_month"
   | "previous_month"
   | "this_year"
+  | "all"
   | "custom";
 
 export interface TransactionFilterState {

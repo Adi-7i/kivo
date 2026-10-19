@@ -121,19 +121,7 @@ async function TransactionDetailContent({
   paramsPromise: Promise<{ id: string }>;
 }) {
   const { id } = await paramsPromise;
-  const transaction = SAMPLE_DATABASE[id] || {
-    id,
-    kind: "expense",
-    title: `Transaction #${id}`,
-    amountPaise: 100000,
-    effectiveDate: "2026-10-17",
-    createdAt: "2026-10-17T12:00:00Z",
-    status: "posted",
-    accountId: "acc-bank-1",
-    accountName: "Primary Bank Account",
-    categoryName: "General Expense",
-    notes: "Dynamic preview instance for UI verification.",
-  };
+  const transaction = SAMPLE_DATABASE[id];
 
   if (!transaction) {
     return (
@@ -153,11 +141,7 @@ async function TransactionDetailContent({
   return <TransactionDetailCard transaction={transaction} />;
 }
 
-export default function TransactionDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function TransactionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <AppHeader />

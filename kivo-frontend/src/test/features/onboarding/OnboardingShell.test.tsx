@@ -56,7 +56,9 @@ describe("OnboardingShell multi-step flow", () => {
     await waitFor(
       () => {
         expect(
-          screen.getByText(/Backend integration pending: Submitting setup will post opening account entries/i)
+          screen.getByText(
+            /Backend integration pending: Submitting setup will post opening account entries/i
+          )
         ).toBeInTheDocument();
       },
       { timeout: 2000 }

@@ -43,9 +43,7 @@ export function FinancialEmptyState({
       {action && <div className="pt-2">{action}</div>}
 
       {secondaryNotice && (
-        <p className="text-[10px] text-muted-foreground/80 pt-1">
-          {secondaryNotice}
-        </p>
+        <p className="text-[10px] text-muted-foreground/80 pt-1">{secondaryNotice}</p>
       )}
     </div>
   );

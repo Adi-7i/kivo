@@ -121,21 +121,27 @@ export function QuickAddModal({
     setIsSubmitting(true);
     await new Promise((r) => setTimeout(r, 400));
     setIsSubmitting(false);
-    setPendingNotice("Backend integration pending: Expense posting will execute in Phase 4. No ledger mutation occurred.");
+    setPendingNotice(
+      "Backend integration pending: Expense posting will execute in Phase 4. No ledger mutation occurred."
+    );
   };
 
   const onReceiptSubmit = async () => {
     setIsSubmitting(true);
     await new Promise((r) => setTimeout(r, 400));
     setIsSubmitting(false);
-    setPendingNotice("Backend integration pending: Receipt posting will execute in Phase 4. No ledger mutation occurred.");
+    setPendingNotice(
+      "Backend integration pending: Receipt posting will execute in Phase 4. No ledger mutation occurred."
+    );
   };
 
   const onTransferSubmit = async () => {
     setIsSubmitting(true);
     await new Promise((r) => setTimeout(r, 400));
     setIsSubmitting(false);
-    setPendingNotice("Backend integration pending: Internal transfer will execute in Phase 4. Total liquid funds remain unchanged.");
+    setPendingNotice(
+      "Backend integration pending: Internal transfer will execute in Phase 4. Total liquid funds remain unchanged."
+    );
   };
 
   return (
@@ -152,11 +158,7 @@ export function QuickAddModal({
         </DialogHeader>
 
         {pendingNotice && (
-          <IntegrationPendingBadge
-            variant="banner"
-            message={pendingNotice}
-            className="mb-2"
-          />
+          <IntegrationPendingBadge variant="banner" message={pendingNotice} className="mb-2" />
         )}
 
         <Tabs
@@ -230,7 +232,10 @@ export function QuickAddModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="expense-category" className="text-xs font-semibold text-foreground">
+                  <Label
+                    htmlFor="expense-category"
+                    className="text-xs font-semibold text-foreground"
+                  >
                     Category <span className="text-destructive">*</span>
                   </Label>
                   <select
@@ -248,7 +253,10 @@ export function QuickAddModal({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="expense-account" className="text-xs font-semibold text-foreground">
+                  <Label
+                    htmlFor="expense-account"
+                    className="text-xs font-semibold text-foreground"
+                  >
                     Payment Account <span className="text-destructive">*</span>
                   </Label>
                   <select
@@ -283,7 +291,18 @@ export function QuickAddModal({
                 />
               </div>
 
+              <FormField
+                id="expense-notes"
+                label="Optional Notes"
+                placeholder="Add memo or transaction remarks..."
+                error={expenseForm.formState.errors.notes?.message}
+                {...expenseForm.register("notes")}
+              />
+
               <div className="pt-2 flex justify-end gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => expenseForm.reset()}>
+                  Reset
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
@@ -366,7 +385,18 @@ export function QuickAddModal({
                 <FieldError error={receiptForm.formState.errors.accountId?.message} />
               </div>
 
+              <FormField
+                id="receipt-notes"
+                label="Optional Notes"
+                placeholder="Add memo or source details..."
+                error={receiptForm.formState.errors.notes?.message}
+                {...receiptForm.register("notes")}
+              />
+
               <div className="pt-2 flex justify-end gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => receiptForm.reset()}>
+                  Reset
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
@@ -405,7 +435,9 @@ export function QuickAddModal({
               <div className="flex items-start gap-2.5 rounded-lg border border-finance-transfer/30 bg-finance-transfer/10 p-2.5 text-xs text-foreground">
                 <Info className="size-4 shrink-0 text-finance-transfer mt-0.5" />
                 <p className="text-[11px] leading-relaxed text-muted-foreground">
-                  <strong className="text-foreground">Movement ≠ Expense:</strong> Transfers between your owned accounts shift balances, but your total liquid wealth remains identical.
+                  <strong className="text-foreground">Movement ≠ Expense:</strong> Transfers between
+                  your owned accounts shift balances, but your total liquid wealth remains
+                  identical.
                 </p>
               </div>
 
@@ -468,7 +500,23 @@ export function QuickAddModal({
                 </div>
               </div>
 
+              <FormField
+                id="transfer-notes"
+                label="Optional Notes"
+                placeholder="Transfer reason or memo..."
+                error={transferForm.formState.errors.notes?.message}
+                {...transferForm.register("notes")}
+              />
+
               <div className="pt-2 flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => transferForm.reset()}
+                >
+                  Reset
+                </Button>
                 <Button
                   type="button"
                   variant="outline"

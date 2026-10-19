@@ -29,7 +29,9 @@ test.describe("Frontend Phase 2 — Authentication, Onboarding & Profile E2E", (
       await expect(pwInput).toHaveAttribute("type", "text");
     });
 
-    test("submitting valid inputs shows integration pending without fake auth", async ({ page }) => {
+    test("submitting valid inputs shows integration pending without fake auth", async ({
+      page,
+    }) => {
       await page.goto("/login");
 
       await page.getByLabel(/Email address/i).fill("test@kivo.finance");
@@ -37,7 +39,9 @@ test.describe("Frontend Phase 2 — Authentication, Onboarding & Profile E2E", (
       await page.getByRole("button", { name: /Sign In/i }).click();
 
       await expect(
-        page.getByText(/Backend integration pending: Authentication API will be connected in Phase 3/i)
+        page.getByText(
+          /Backend integration pending: Authentication API will be connected in Phase 3/i
+        )
       ).toBeVisible();
     });
   });
@@ -75,7 +79,9 @@ test.describe("Frontend Phase 2 — Authentication, Onboarding & Profile E2E", (
 
       await page.getByRole("button", { name: /Create Account/i }).click();
       await expect(
-        page.getByText(/Backend integration pending: Account registration API will be connected in Phase 3/i)
+        page.getByText(
+          /Backend integration pending: Account registration API will be connected in Phase 3/i
+        )
       ).toBeVisible();
     });
   });
@@ -110,7 +116,9 @@ test.describe("Frontend Phase 2 — Authentication, Onboarding & Profile E2E", (
       // Complete setup
       await page.getByRole("button", { name: /Complete Setup/i }).click();
       await expect(
-        page.getByText(/Backend integration pending: Submitting setup will post opening account entries/i)
+        page.getByText(
+          /Backend integration pending: Submitting setup will post opening account entries/i
+        )
       ).toBeVisible();
     });
   });
@@ -131,7 +139,9 @@ test.describe("Frontend Phase 2 — Authentication, Onboarding & Profile E2E", (
 
       await page.getByRole("button", { name: /Update Profile Details/i }).click();
       await expect(
-        page.getByText(/Backend integration pending: Profile mutations and preference updates will connect/i)
+        page.getByText(
+          /Backend integration pending: Profile mutations and preference updates will connect/i
+        )
       ).toBeVisible();
     });
   });
@@ -147,7 +157,9 @@ test.describe("Frontend Phase 2 — Authentication, Onboarding & Profile E2E", (
 
     for (const vp of viewports) {
       for (const route of routes) {
-        test(`renders ${route} cleanly on ${vp.name} without horizontal overflow`, async ({ page }) => {
+        test(`renders ${route} cleanly on ${vp.name} without horizontal overflow`, async ({
+          page,
+        }) => {
           await page.setViewportSize({ width: vp.width, height: vp.height });
           await page.goto(route);
 

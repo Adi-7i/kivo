@@ -43,9 +43,7 @@ export function AccountCard({ account, onEdit, className }: AccountCardProps) {
               {KIND_ICONS[account.kind]}
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground leading-tight">
-                {account.name}
-              </h3>
+              <h3 className="text-sm font-bold text-foreground leading-tight">{account.name}</h3>
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 Opened {account.openedOn ? formatDateDisplay(account.openedOn) : "Recently"}
               </p>
@@ -61,11 +59,7 @@ export function AccountCard({ account, onEdit, className }: AccountCardProps) {
           <span className="text-[10px] text-muted-foreground block font-medium uppercase tracking-wider">
             Current Balance
           </span>
-          <MoneyAmount
-            paise={account.balancePaise}
-            size="2xl"
-            className="mt-0.5"
-          />
+          <MoneyAmount paise={account.balancePaise} size="2xl" className="mt-0.5" />
         </div>
 
         <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">

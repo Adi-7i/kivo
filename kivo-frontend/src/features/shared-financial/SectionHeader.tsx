@@ -31,9 +31,7 @@ export function SectionHeader({
           </h2>
           {badge}
         </div>
-        {description && (
-          <p className="text-xs text-muted-foreground">{description}</p>
-        )}
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
       </div>
 
       {actions && <div className="flex items-center gap-2">{actions}</div>}

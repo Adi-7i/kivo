@@ -49,10 +49,7 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
             const isReceipt = tx.kind === "receipt";
 
             return (
-              <tr
-                key={tx.id}
-                className="hover:bg-muted/30 transition-colors group cursor-pointer"
-              >
+              <tr key={tx.id} className="hover:bg-muted/30 transition-colors group cursor-pointer">
                 <td className="px-4 py-3 whitespace-nowrap text-muted-foreground font-medium">
                   {formatDateDisplay(tx.effectiveDate)}
                 </td>
@@ -63,9 +60,7 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
                   <div className="space-y-0.5">
                     <p className="font-semibold text-foreground">{tx.title}</p>
                     {tx.merchant && (
-                      <p className="text-[10px] text-muted-foreground">
-                        {tx.merchant}
-                      </p>
+                      <p className="text-[10px] text-muted-foreground">{tx.merchant}</p>
                     )}
                   </div>
                 </td>
@@ -73,9 +68,7 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
                   {tx.categoryName || "—"}
                 </td>
                 <td className="px-3 py-3 whitespace-nowrap">
-                  <span className="font-medium text-foreground">
-                    {tx.accountName}
-                  </span>
+                  <span className="font-medium text-foreground">{tx.accountName}</span>
                   {tx.destinationName && (
                     <span className="text-muted-foreground block text-[10px]">
                       &rarr; {tx.destinationName}

@@ -5,10 +5,7 @@ export const receiptSchema = z.object({
     .string()
     .trim()
     .min(1, "Amount is required")
-    .regex(
-      /^\d+(\.\d{1,2})?$/,
-      "Enter a valid amount (e.g. 15000 or 15000.50)"
-    )
+    .regex(/^\d+(\.\d{1,2})?$/, "Enter a valid amount (e.g. 15000 or 15000.50)")
     .refine((val) => parseFloat(val) > 0, {
       message: "Received amount must be greater than zero",
     }),
@@ -17,10 +14,7 @@ export const receiptSchema = z.object({
     .trim()
     .min(2, "Source or description must be at least 2 characters")
     .max(200, "Source cannot exceed 200 characters"),
-  accountId: z
-    .string()
-    .trim()
-    .min(1, "Please select the receiving account"),
+  accountId: z.string().trim().min(1, "Please select the receiving account"),
   effectiveDate: z
     .string()
     .trim()

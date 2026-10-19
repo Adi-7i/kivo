@@ -1,9 +1,6 @@
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
-import {
-  type TransactionKind,
-  TRANSACTION_KIND_LABELS,
-} from "../transactions/types";
+import { type TransactionKind, TRANSACTION_KIND_LABELS } from "../transactions/types";
 import {
   ArrowUpRight,
   ArrowDownLeft,

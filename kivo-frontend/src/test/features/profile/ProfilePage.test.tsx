@@ -31,7 +31,9 @@ describe("ProfilePage component", () => {
     await user.click(updateBtn);
 
     expect(
-      screen.getByText(/Backend integration pending: Profile mutations and preference updates will connect/i)
+      screen.getByText(
+        /Backend integration pending: Profile mutations and preference updates will connect/i
+      )
     ).toBeInTheDocument();
   });
 });

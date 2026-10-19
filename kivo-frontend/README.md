@@ -8,23 +8,23 @@ Built with **Next.js 16.4.2** (App Router), **React 19**, **TypeScript (Strict)*
 
 ## 1. Confirmed Technology Stack
 
-| Layer | Component | Version / Specification |
-|---|---|---|
-| **Framework** | Next.js | 16.4.2 (App Router) |
-| **UI Library** | React | 19.3.0 |
-| **Language** | TypeScript | 5.9.3 (Strict mode, noUncheckedIndexedAccess) |
-| **Styling** | Tailwind CSS | 4.3.3 |
-| **Component System** | shadcn/ui | 4.22.0 (Radix UI primitives) |
-| **Typography** | Plus Jakarta Sans | `next/font/google` (Weights: 400, 500, 600, 700) |
-| **State Management** | TanStack Query | 5.104.3 |
-| **Forms & Validation** | React Hook Form & Zod | RHF 7.90.0, Zod 4.6.7 |
-| **Date Utility** | date-fns | 4.4.0 (UTC-shift resilient parsers) |
-| **Notifications** | Sonner | 2.0.8 |
-| **Icons** | Lucide React | 1.58.0 |
-| **Unit Testing** | Vitest & React Testing Library | Vitest 5.0.5, RTL 16.3.3 |
-| **E2E Testing** | Playwright | 1.64.1 (Chromium Desktop & Mobile) |
-| **Linting & Formatting** | ESLint & Prettier | ESLint 9.39.5, Prettier 3.9.10 |
-| **Package Manager** | pnpm | 12.10.1 |
+| Layer                    | Component                      | Version / Specification                          |
+| ------------------------ | ------------------------------ | ------------------------------------------------ |
+| **Framework**            | Next.js                        | 16.4.2 (App Router)                              |
+| **UI Library**           | React                          | 19.3.0                                           |
+| **Language**             | TypeScript                     | 5.9.3 (Strict mode, noUncheckedIndexedAccess)    |
+| **Styling**              | Tailwind CSS                   | 4.3.3                                            |
+| **Component System**     | shadcn/ui                      | 4.22.0 (Radix UI primitives)                     |
+| **Typography**           | Plus Jakarta Sans              | `next/font/google` (Weights: 400, 500, 600, 700) |
+| **State Management**     | TanStack Query                 | 5.104.3                                          |
+| **Forms & Validation**   | React Hook Form & Zod          | RHF 7.90.0, Zod 4.6.7                            |
+| **Date Utility**         | date-fns                       | 4.4.0 (UTC-shift resilient parsers)              |
+| **Notifications**        | Sonner                         | 2.0.8                                            |
+| **Icons**                | Lucide React                   | 1.58.0                                           |
+| **Unit Testing**         | Vitest & React Testing Library | Vitest 5.0.5, RTL 16.3.3                         |
+| **E2E Testing**          | Playwright                     | 1.64.1 (Chromium Desktop & Mobile)               |
+| **Linting & Formatting** | ESLint & Prettier              | ESLint 9.39.5, Prettier 3.9.10                   |
+| **Package Manager**      | pnpm                           | 12.10.1                                          |
 
 ---
 
@@ -53,6 +53,7 @@ cp .env.example .env.local
 ```
 
 Contents of `.env.local`:
+
 ```ini
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
@@ -107,6 +108,7 @@ Detailed architectural documentation: [docs/architecture/frontend-architecture.m
 ## 5. Phase 1 Scope & Boundaries
 
 Phase 1 establishes the verified foundation:
+
 - Next.js 16.4.2 App Router scaffold.
 - Complete Kivo design tokens and typography.
 - Foundational layout and accessible primitives.

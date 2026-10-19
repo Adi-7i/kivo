@@ -8,11 +8,7 @@ import { FormField } from "@/features/auth/components/FormField";
 import { FieldError } from "@/features/auth/components/FieldError";
 import { StepNavigation } from "./StepNavigation";
 import { Label } from "@/components/ui/label";
-import {
-  ACCOUNT_TYPE_OPTIONS,
-  type AccountType,
-  type OnboardingAccountData,
-} from "../types";
+import { ACCOUNT_TYPE_OPTIONS, type AccountType, type OnboardingAccountData } from "../types";
 import { cn } from "@/lib/utils";
 import { Building2, Banknote, Wallet, Info } from "lucide-react";
 
@@ -28,11 +24,7 @@ const TYPE_ICONS: Record<AccountType, React.ReactNode> = {
   wallet: <Wallet className="size-4 shrink-0" />,
 };
 
-export function FirstAccountStep({
-  initialData,
-  onBack,
-  onNext,
-}: FirstAccountStepProps) {
+export function FirstAccountStep({ initialData, onBack, onNext }: FirstAccountStepProps) {
   const {
     register,
     handleSubmit,
@@ -80,7 +72,8 @@ export function FirstAccountStep({
             Opening Balance is Not Income
           </p>
           <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-            Starting funds establish your initial asset baseline. They are neither salary nor revenue, and will not distort your actual income analytics.
+            Starting funds establish your initial asset baseline. They are neither salary nor
+            revenue, and will not distort your actual income analytics.
           </p>
         </div>
       </div>
@@ -120,16 +113,12 @@ export function FirstAccountStep({
                     <div
                       className={cn(
                         "flex size-6 items-center justify-center rounded-md",
-                        isSelected
-                          ? "bg-kivo-primary text-white"
-                          : "bg-muted text-muted-foreground"
+                        isSelected ? "bg-kivo-primary text-white" : "bg-muted text-muted-foreground"
                       )}
                     >
                       {TYPE_ICONS[opt.type]}
                     </div>
-                    <span className="text-xs font-bold text-foreground">
-                      {opt.label}
-                    </span>
+                    <span className="text-xs font-bold text-foreground">{opt.label}</span>
                   </div>
                   <p className="text-[10px] text-muted-foreground leading-tight">
                     {opt.description}
@@ -167,11 +156,7 @@ export function FirstAccountStep({
         </div>
       </div>
 
-      <StepNavigation
-        type="submit"
-        onBack={onBack}
-        nextLabel="Review Setup"
-      />
+      <StepNavigation type="submit" onBack={onBack} nextLabel="Review Setup" />
     </form>
   );
 }

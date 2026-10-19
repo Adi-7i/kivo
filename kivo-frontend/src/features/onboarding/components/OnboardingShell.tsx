@@ -8,11 +8,7 @@ import { PersonalSetupStep } from "./PersonalSetupStep";
 import { FirstAccountStep } from "./FirstAccountStep";
 import { SetupSummaryStep } from "./SetupSummaryStep";
 import { Card, CardContent } from "@/components/ui/card";
-import type {
-  OnboardingState,
-  OnboardingPersonalData,
-  OnboardingAccountData,
-} from "../types";
+import type { OnboardingState, OnboardingPersonalData, OnboardingAccountData } from "../types";
 
 const STEPS = [
   { number: 1, title: "Welcome" },
@@ -123,11 +119,7 @@ export function OnboardingShell() {
 
         {/* Stepper progress bar */}
         <div className="rounded-xl border border-border bg-card p-4 shadow-2xs">
-          <StepProgressBar
-            currentStep={state.step}
-            steps={STEPS}
-            onStepClick={handleEditStep}
-          />
+          <StepProgressBar currentStep={state.step} steps={STEPS} onStepClick={handleEditStep} />
         </div>
 
         {/* Dynamic step body card */}

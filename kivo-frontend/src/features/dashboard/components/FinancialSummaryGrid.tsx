@@ -1,5 +1,6 @@
 import * as React from "react";
 import { FinancialSummaryCard } from "@/features/shared-financial/FinancialSummaryCard";
+import { FinancialSummaryCardSkeleton } from "@/features/shared-financial/FinancialSkeleton";
 import type { FinancialSummaryMetrics } from "../types";
 import {
   Wallet,
@@ -14,18 +15,37 @@ import {
 
 interface FinancialSummaryGridProps {
   metrics: FinancialSummaryMetrics;
+  isLoading?: boolean;
 }
 
-export function FinancialSummaryGrid({ metrics }: FinancialSummaryGridProps) {
+export function FinancialSummaryGrid({ metrics, isLoading = false }: FinancialSummaryGridProps) {
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Financial Position Summary
+          </h2>
+          <span className="text-[11px] text-muted-foreground">
+            Total Balance &ne; Safe-to-Spend
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <FinancialSummaryCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Financial Position Summary
         </h2>
-        <span className="text-[11px] text-muted-foreground">
-          Total Balance &ne; Safe-to-Spend
-        </span>
+        <span className="text-[11px] text-muted-foreground">Total Balance &ne; Safe-to-Spend</span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

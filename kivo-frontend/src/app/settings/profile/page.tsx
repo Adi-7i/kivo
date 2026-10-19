@@ -6,7 +6,8 @@ import { ProfilePage } from "@/features/profile/components/ProfilePage";
 
 export const metadata: Metadata = {
   title: "User Profile & Settings — Kivo",
-  description: "View and manage your personal user profile, regional defaults, and security preferences.",
+  description:
+    "View and manage your personal user profile, regional defaults, and security preferences.",
 };
 
 export default function SettingsProfileRoute() {

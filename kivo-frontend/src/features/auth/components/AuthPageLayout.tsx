@@ -35,9 +35,7 @@ export function AuthPageLayout({ children, title, subtitle }: AuthPageLayoutProp
             <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
               {title}
             </h1>
-            <p className="text-sm text-kivo-stone/90 max-w-md leading-relaxed">
-              {subtitle}
-            </p>
+            <p className="text-sm text-kivo-stone/90 max-w-md leading-relaxed">{subtitle}</p>
           </div>
         </div>
 
@@ -62,7 +60,8 @@ export function AuthPageLayout({ children, title, subtitle }: AuthPageLayoutProp
             <div>
               <h3 className="text-xs font-semibold text-white">Movement vs Expense Invariant</h3>
               <p className="text-[11px] text-kivo-stone/80 mt-0.5">
-                Transfers, loans, and allowances are classified accurately—never treated as random spending.
+                Transfers, loans, and allowances are classified accurately—never treated as random
+                spending.
               </p>
             </div>
           </div>
@@ -94,13 +93,9 @@ export function AuthPageLayout({ children, title, subtitle }: AuthPageLayoutProp
             <div className="flex size-8 items-center justify-center rounded-lg bg-kivo-primary text-white font-bold text-base shadow-xs">
               K
             </div>
-            <span className="font-bold text-lg tracking-tight text-foreground">
-              Kivo
-            </span>
+            <span className="font-bold text-lg tracking-tight text-foreground">Kivo</span>
           </Link>
-          <span className="text-xs font-medium text-muted-foreground">
-            Phase 2 UI
-          </span>
+          <span className="text-xs font-medium text-muted-foreground">Phase 2 UI</span>
         </div>
 
         <div className="w-full max-w-md">{children}</div>

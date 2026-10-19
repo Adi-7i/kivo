@@ -16,7 +16,9 @@ export function ProfilePage() {
           User Profile UI Preview
         </AlertTitle>
         <AlertDescription className="text-muted-foreground mt-1 text-xs">
-          This screen demonstrates the profile layout and configuration options. Because backend integration is deferred until later phases, fields are displayed in unconnected preview mode without synthetic user identities.
+          This screen demonstrates the profile layout and configuration options. Because backend
+          integration is deferred until later phases, fields are displayed in unconnected preview
+          mode without synthetic user identities.
         </AlertDescription>
       </Alert>
 

@@ -20,6 +20,18 @@ import type {
   DatePreset,
 } from "@/features/transactions/types";
 import type { AccountEntity } from "@/features/accounts/types";
+import {
+  isSameDay,
+  isSameMonth,
+  isSameYear,
+  subDays,
+  subMonths,
+  startOfWeek,
+  endOfWeek,
+  isWithinInterval,
+  endOfDay,
+} from "date-fns";
+import { parseDateOnly } from "@/lib/formatters/date";
 
 const INITIAL_ACCOUNTS: AccountEntity[] = [
   {
@@ -155,6 +167,10 @@ const PREVIEW_TRANSACTIONS: TransactionEntity[] = [
   },
 ];
 
+const emptySubscribe = () => () => {};
+const getClientToday = () => new Date().toISOString().slice(0, 10);
+const getServerToday = () => "2026-10-18";
+
 export default function TransactionsPage() {
   const [filters, setFilters] = React.useState<TransactionFilterState>({
     search: "",
@@ -168,6 +184,8 @@ export default function TransactionsPage() {
   const [currentPage, setCurrentPage] = React.useState(1);
   const pageSize = 10;
   const [isQuickAddOpen, setIsQuickAddOpen] = React.useState(false);
+  const todayStr = React.useSyncExternalStore(emptySubscribe, getClientToday, getServerToday);
+  const today = React.useMemo(() => parseDateOnly(todayStr), [todayStr]);
 
   const handleFilterChange = (updates: Partial<TransactionFilterState>) => {
     setFilters((prev) => ({ ...prev, ...updates }));
@@ -215,6 +233,53 @@ export default function TransactionsPage() {
         return false;
       }
 
+      // 5. Date filter (calendar weeks vs rolling 7-days faithfully separated)
+      if (filters.datePreset !== "all") {
+        try {
+          const txDate = parseDateOnly(tx.effectiveDate);
+
+          switch (filters.datePreset) {
+            case "today":
+              if (!isSameDay(txDate, today)) return false;
+              break;
+            case "yesterday":
+              if (!isSameDay(txDate, subDays(today, 1))) return false;
+              break;
+            case "this_week": {
+              // Calendar week Monday to Sunday
+              const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+              const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+              if (!isWithinInterval(txDate, { start: weekStart, end: weekEnd })) return false;
+              break;
+            }
+            case "last_7_days": {
+              // Rolling 7-day period ending today
+              const sevenDaysAgo = subDays(today, 6);
+              if (!isWithinInterval(txDate, { start: sevenDaysAgo, end: endOfDay(today) }))
+                return false;
+              break;
+            }
+            case "this_month":
+              if (!isSameMonth(txDate, today) || !isSameYear(txDate, today)) return false;
+              break;
+            case "previous_month": {
+              const prevMonth = subMonths(today, 1);
+              if (!isSameMonth(txDate, prevMonth) || !isSameYear(txDate, prevMonth)) return false;
+              break;
+            }
+            case "this_year":
+              if (!isSameYear(txDate, today)) return false;
+              break;
+            case "custom":
+              if (filters.startDate && tx.effectiveDate < filters.startDate) return false;
+              if (filters.endDate && tx.effectiveDate > filters.endDate) return false;
+              break;
+          }
+        } catch {
+          return false;
+        }
+      }
+
       return true;
     }).sort((a, b) => {
       if (filters.sortBy === "date_desc") {
@@ -231,7 +296,7 @@ export default function TransactionsPage() {
       }
       return 0;
     });
-  }, [filters]);
+  }, [filters, today]);
 
   const totalPages = Math.ceil(filteredTransactions.length / pageSize);
   const paginatedTransactions = filteredTransactions.slice(

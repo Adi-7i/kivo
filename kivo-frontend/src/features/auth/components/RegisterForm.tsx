@@ -104,9 +104,7 @@ export function RegisterForm() {
                 key={item.id}
                 className={cn(
                   "flex items-center gap-1.5 text-xs transition-colors",
-                  item.met
-                    ? "text-finance-income font-medium"
-                    : "text-muted-foreground"
+                  item.met ? "text-finance-income font-medium" : "text-muted-foreground"
                 )}
               >
                 {item.met ? (
@@ -133,12 +131,7 @@ export function RegisterForm() {
       />
 
       <div className="pt-2">
-        <Button
-          type="submit"
-          className="w-full font-medium"
-          size="lg"
-          disabled={isSubmitting}
-        >
+        <Button type="submit" className="w-full font-medium" size="lg" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <LoadingSpinner size="sm" label="Creating account..." className="mr-2" />

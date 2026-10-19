@@ -12,9 +12,7 @@ export function CategoryBreakdownCard({ categories, className }: CategoryBreakdo
   return (
     <Card className={className}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base font-bold font-heading">
-          Expense by Category
-        </CardTitle>
+        <CardTitle className="text-base font-bold font-heading">Expense by Category</CardTitle>
         <CardDescription className="text-xs text-muted-foreground">
           Monthly expenditure distribution by classification.
         </CardDescription>
@@ -29,13 +27,9 @@ export function CategoryBreakdownCard({ categories, className }: CategoryBreakdo
           categories.map((cat) => (
             <div key={cat.categoryName} className="space-y-1.5 text-xs">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-foreground">
-                  {cat.categoryName}
-                </span>
+                <span className="font-semibold text-foreground">{cat.categoryName}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-muted-foreground">
-                    {cat.percentage}%
-                  </span>
+                  <span className="text-[11px] text-muted-foreground">{cat.percentage}%</span>
                   <MoneyAmount paise={cat.amountPaise} size="xs" tabular />
                 </div>
               </div>

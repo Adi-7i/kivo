@@ -67,9 +67,7 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <TransactionTypeBadge kind={transaction.kind} />
-                <span className="text-xs text-muted-foreground">
-                  Ref #{transaction.id}
-                </span>
+                <span className="text-xs text-muted-foreground">Ref #{transaction.id}</span>
               </div>
               <CardTitle className="text-xl sm:text-2xl font-bold font-heading text-foreground">
                 {transaction.title}
@@ -135,9 +133,7 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
                   <Store className="size-3 text-kivo-primary" />
                   Merchant / Payee
                 </span>
-                <p className="font-semibold text-foreground text-sm">
-                  {transaction.merchant}
-                </p>
+                <p className="font-semibold text-foreground text-sm">{transaction.merchant}</p>
               </div>
             )}
 
@@ -147,9 +143,7 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
                   <CreditCard className="size-3 text-kivo-primary" />
                   Payment Method
                 </span>
-                <p className="font-semibold text-foreground text-sm">
-                  {transaction.paymentMethod}
-                </p>
+                <p className="font-semibold text-foreground text-sm">{transaction.paymentMethod}</p>
               </div>
             )}
           </div>
@@ -161,9 +155,7 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
                 <FileText className="size-3" />
                 Notes & Memorandum
               </span>
-              <p className="text-foreground leading-relaxed">
-                {transaction.notes}
-              </p>
+              <p className="text-foreground leading-relaxed">{transaction.notes}</p>
             </div>
           )}
 
@@ -176,15 +168,14 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
               </h3>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Every financial event produces balanced double-entry ledger legs in the immutable database:
+              Every financial event produces balanced double-entry ledger legs in the immutable
+              database:
             </p>
 
             <div className="divide-y divide-border/60">
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <span className="font-semibold text-foreground">
-                    {transaction.accountName}
-                  </span>
+                  <span className="font-semibold text-foreground">{transaction.accountName}</span>
                   <span className="text-muted-foreground block text-[10px]">
                     Leg 1: Asset Balance Adjustment
                   </span>
@@ -204,7 +195,9 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
               <div className="flex items-center justify-between py-2">
                 <div>
                   <span className="font-semibold text-foreground">
-                    {transaction.destinationName || transaction.categoryName || "Equity Counterparty"}
+                    {transaction.destinationName ||
+                      transaction.categoryName ||
+                      "Equity Counterparty"}
                   </span>
                   <span className="text-muted-foreground block text-[10px]">
                     Leg 2: Balancing Ledger Leg

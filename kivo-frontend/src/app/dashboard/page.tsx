@@ -12,7 +12,6 @@ import { CategoryBreakdownCard } from "@/features/dashboard/components/CategoryB
 import { AccountsOverviewCard } from "@/features/dashboard/components/AccountsOverviewCard";
 import { RecentActivityCard } from "@/features/dashboard/components/RecentActivityCard";
 import { QuickAddModal } from "@/features/transactions/components/QuickAddModal";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import type {
   FinancialSummaryMetrics,
@@ -23,14 +22,14 @@ import type { AccountEntity } from "@/features/accounts/types";
 import type { TransactionEntity } from "@/features/transactions/types";
 
 const PREVIEW_METRICS: FinancialSummaryMetrics = {
-  liquidBalancePaise: 5325000,   // ₹53,250.00
-  safeToSpendPaise: 3825000,     // ₹38,250.00
-  todayExpensePaise: 45000,      // ₹450.00
-  monthExpensePaise: 1450000,    // ₹14,500.00
-  monthReceivedPaise: 7500000,   // ₹75,000.00
-  moneyOwedToUserPaise: 500000,  // ₹5,000.00
-  moneyOwedByUserPaise: 200000,  // ₹2,000.00
-  reservedFundsPaise: 1500000,   // ₹15,000.00
+  liquidBalancePaise: 5325000, // ₹53,250.00
+  safeToSpendPaise: 3825000, // ₹38,250.00
+  todayExpensePaise: 45000, // ₹450.00
+  monthExpensePaise: 1450000, // ₹14,500.00
+  monthReceivedPaise: 7500000, // ₹75,000.00
+  moneyOwedToUserPaise: 500000, // ₹5,000.00
+  moneyOwedByUserPaise: 200000, // ₹2,000.00
+  reservedFundsPaise: 1500000, // ₹15,000.00
 };
 
 const PREVIEW_CHART_DATA: SpendingChartDataPoint[] = [
@@ -140,12 +139,32 @@ const PREVIEW_TRANSACTIONS: TransactionEntity[] = [
 
 export default function DashboardPage() {
   const [isQuickAddOpen, setIsQuickAddOpen] = React.useState(false);
-  const [quickAddType, setQuickAddType] = React.useState<"expense" | "receipt" | "transfer">("expense");
+  const [quickAddType, setQuickAddType] = React.useState<"expense" | "receipt" | "transfer">(
+    "expense"
+  );
+  const [viewMode, setViewMode] = React.useState<"fixtures" | "empty" | "loading">("fixtures");
 
   const openQuickAdd = (type: "expense" | "receipt" | "transfer" = "expense") => {
     setQuickAddType(type);
     setIsQuickAddOpen(true);
   };
+
+  const zeroMetrics: FinancialSummaryMetrics = {
+    liquidBalancePaise: 0,
+    safeToSpendPaise: 0,
+    todayExpensePaise: 0,
+    monthExpensePaise: 0,
+    monthReceivedPaise: 0,
+    moneyOwedToUserPaise: 0,
+    moneyOwedByUserPaise: 0,
+    reservedFundsPaise: 0,
+  };
+
+  const activeMetrics = viewMode === "empty" ? zeroMetrics : PREVIEW_METRICS;
+  const activeChartData = viewMode === "empty" ? [] : PREVIEW_CHART_DATA;
+  const activeCategories = viewMode === "empty" ? [] : PREVIEW_CATEGORIES;
+  const activeAccounts = viewMode === "empty" ? [] : PREVIEW_ACCOUNTS;
+  const activeTransactions = viewMode === "empty" ? [] : PREVIEW_TRANSACTIONS;
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -154,16 +173,58 @@ export default function DashboardPage() {
         <AppNav />
 
         <main className="py-8 space-y-6">
-          {/* Foundation Status Alert */}
-          <Alert className="border-kivo-sage/60 bg-kivo-sage/10 text-foreground">
-            <Info className="size-4 text-kivo-primary" />
-            <AlertTitle className="font-semibold text-kivo-brand-dark dark:text-kivo-sage">
-              Financial Dashboard Architecture (Phase 3)
-            </AlertTitle>
-            <AlertDescription className="text-muted-foreground mt-1 text-xs">
-              Demonstrating 8 distinct summary metrics, Recharts daily spending analytics, category distributions, and the accessible Quick Add transaction modal. All values operate under integer paise invariants.
-            </AlertDescription>
-          </Alert>
+          {/* Foundation Status Alert with View Switcher */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-kivo-sage/60 bg-kivo-sage/10 text-foreground">
+            <div className="flex items-start gap-3">
+              <Info className="size-5 shrink-0 text-kivo-primary mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-kivo-brand-dark dark:text-kivo-sage">
+                  Financial Dashboard Architecture (Phase 3 UI)
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Demonstrating 8 distinct summary metrics, spending analytics, and accessible
+                  transaction entry. All values operate under integer paise invariants.
+                </p>
+              </div>
+            </div>
+
+            {/* Interactive View State Switcher for Verification */}
+            <div className="flex items-center gap-1 bg-card/80 p-1 rounded-lg border border-border text-xs shrink-0 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setViewMode("fixtures")}
+                className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
+                  viewMode === "fixtures"
+                    ? "bg-kivo-primary text-white shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Populated
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("empty")}
+                className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
+                  viewMode === "empty"
+                    ? "bg-kivo-primary text-white shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Empty States
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("loading")}
+                className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
+                  viewMode === "loading"
+                    ? "bg-kivo-primary text-white shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Skeletons
+              </button>
+            </div>
+          </div>
 
           {/* Overview Header */}
           <DashboardHeader onQuickAdd={() => openQuickAdd("expense")} />
@@ -176,24 +237,18 @@ export default function DashboardPage() {
           />
 
           {/* Financial Summary Grid (8 Cards) */}
-          <FinancialSummaryGrid metrics={PREVIEW_METRICS} />
+          <FinancialSummaryGrid metrics={activeMetrics} isLoading={viewMode === "loading"} />
 
           {/* Analytics Grid: Spending Chart & Category Breakdown */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <SpendingChartCard
-              data={PREVIEW_CHART_DATA}
-              className="lg:col-span-2"
-            />
-            <CategoryBreakdownCard categories={PREVIEW_CATEGORIES} />
+            <SpendingChartCard data={activeChartData} className="lg:col-span-2" />
+            <CategoryBreakdownCard categories={activeCategories} />
           </div>
 
           {/* Bottom Grid: Money Repositories & Recent Activity */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <AccountsOverviewCard accounts={PREVIEW_ACCOUNTS} />
-            <RecentActivityCard
-              transactions={PREVIEW_TRANSACTIONS}
-              className="lg:col-span-2"
-            />
+            <AccountsOverviewCard accounts={activeAccounts} />
+            <RecentActivityCard transactions={activeTransactions} className="lg:col-span-2" />
           </div>
         </main>
       </PageContainer>
