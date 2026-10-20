@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppNav } from "@/components/layout/AppNav";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -10,7 +11,7 @@ import { AccountFormModal } from "@/features/accounts/components/AccountFormModa
 import { MoneyAmount } from "@/features/shared-financial/MoneyAmount";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plus, Info, Building2, Banknote, Wallet } from "lucide-react";
+import { Plus, Info, Building2, Banknote, Wallet, Layers, Landmark } from "lucide-react";
 import type { AccountEntity, AccountKind } from "@/features/accounts/types";
 
 // Default proposal accounts for design presentation prior to Django integration
@@ -86,6 +87,24 @@ export default function MoneyAccountsPage() {
               Django in Phase 4.
             </AlertDescription>
           </Alert>
+
+          {/* Sub-Navigation between Money Accounts and Money Sources */}
+          <div className="flex items-center gap-2 border-b border-border pb-3">
+            <Link
+              href="/money"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-kivo-primary px-3 py-1.5 text-xs font-semibold text-white shadow-xs"
+            >
+              <Landmark className="size-3.5" />
+              <span>Money Accounts</span>
+            </Link>
+            <Link
+              href="/money/sources"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <Layers className="size-3.5" />
+              <span>Money Sources & Journeys</span>
+            </Link>
+          </div>
 
           {/* Section Header with Total Liquid Balance & CTA */}
           <SectionHeader

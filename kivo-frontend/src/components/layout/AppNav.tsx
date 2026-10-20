@@ -18,7 +18,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Register", href: "/register", phase: "Phase 2", isAvailable: true },
   { label: "Onboarding", href: "/onboarding", phase: "Phase 2", isAvailable: true },
   { label: "Profile", href: "/settings/profile", phase: "Phase 2", isAvailable: true },
-  { label: "Funds & Attribution", href: "#", phase: "Phase 4", isAvailable: false },
+  { label: "Funds & Attribution", href: "/money/sources", phase: "Phase 4", isAvailable: true },
   { label: "Sharing & Rent", href: "#", phase: "Phase 5", isAvailable: false },
   { label: "Budgets & Analytics", href: "#", phase: "Phase 6", isAvailable: false },
 ];
