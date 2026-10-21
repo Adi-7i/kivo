@@ -22,7 +22,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: "People & Friends", href: "/people", phase: "Phase 5", isAvailable: true },
   { label: "Shared Expenses", href: "/shared-expenses", phase: "Phase 5", isAvailable: true },
   { label: "Rent & Reserves", href: "/rent", phase: "Phase 5", isAvailable: true },
-  { label: "Budgets & Analytics", href: "#", phase: "Phase 6", isAvailable: false },
+  { label: "Budgets", href: "/budgets", phase: "Phase 6", isAvailable: true },
+  { label: "Reports & Analytics", href: "/reports", phase: "Phase 6", isAvailable: true },
 ];
 
 export function AppNav() {
