@@ -95,7 +95,7 @@ test.describe("Frontend Phase 4 — Money Sources & Fund Journey Tracking E2E", 
         page.getByRole("heading", { name: "October Allowance from Parents" })
       ).toBeVisible();
       await expect(page.getByText("Original Inflow Amount")).toBeVisible();
-      await expect(page.getByText("Personal Expenses")).toBeVisible();
+      await expect(page.getByText("Personal Expenses", { exact: true }).first()).toBeVisible();
       await expect(page.getByText("Lent to Friends (Asset)")).toBeVisible();
       await expect(page.getByText("Remaining Liquid Allocation")).toBeVisible();
 
@@ -128,7 +128,7 @@ test.describe("Frontend Phase 4 — Money Sources & Fund Journey Tracking E2E", 
       await expect(
         page.getByRole("heading", { name: "September Freelance Design Retainer" })
       ).toBeVisible();
-      await expect(page.getByText("Funding Batch Fully Exhausted")).toBeVisible();
+      await expect(page.getByText("Funding Batch Fully Exhausted").first()).toBeVisible();
       await expect(page.getByText(/Lasted 24 calendar days/i)).toBeVisible();
     });
 

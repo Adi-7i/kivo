@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import { MoneyAmount } from "@/features/shared-financial/MoneyAmount";
 import { formatDateDisplay } from "@/lib/formatters/date";
 import { FundingStatusBadge } from "./FundingStatusBadge";
@@ -34,9 +34,9 @@ export function FundOverviewCard({ source, className }: FundOverviewCardProps) {
             </span>
             <FundingStatusBadge status={source.status} />
           </div>
-          <CardTitle className="text-xl sm:text-2xl font-bold font-heading text-foreground">
+          <h1 className="text-xl sm:text-2xl font-bold font-heading text-foreground">
             {source.name}
-          </CardTitle>
+          </h1>
           <CardDescription className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-3">
             {source.sourcePerson && (
               <span className="inline-flex items-center gap-1 font-medium text-foreground">

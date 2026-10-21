@@ -19,7 +19,9 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Onboarding", href: "/onboarding", phase: "Phase 2", isAvailable: true },
   { label: "Profile", href: "/settings/profile", phase: "Phase 2", isAvailable: true },
   { label: "Funds & Attribution", href: "/money/sources", phase: "Phase 4", isAvailable: true },
-  { label: "Sharing & Rent", href: "#", phase: "Phase 5", isAvailable: false },
+  { label: "People & Friends", href: "/people", phase: "Phase 5", isAvailable: true },
+  { label: "Shared Expenses", href: "/shared-expenses", phase: "Phase 5", isAvailable: true },
+  { label: "Rent & Reserves", href: "/rent", phase: "Phase 5", isAvailable: true },
   { label: "Budgets & Analytics", href: "#", phase: "Phase 6", isAvailable: false },
 ];
 

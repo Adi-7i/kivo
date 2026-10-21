@@ -4,10 +4,12 @@ import { AlertCircle } from "lucide-react";
 
 interface FieldErrorProps extends React.HTMLAttributes<HTMLParagraphElement> {
   error?: string;
+  message?: string;
 }
 
-export function FieldError({ error, className, id, ...props }: FieldErrorProps) {
-  if (!error) return null;
+export function FieldError({ error, message, className, id, ...props }: FieldErrorProps) {
+  const text = message || error;
+  if (!text) return null;
 
   return (
     <p
