@@ -133,7 +133,7 @@ test.describe("Frontend Phase 5 — Friends, Lending/Borrowing, Shared Expenses,
       const settleBtn = page.getByRole("button", { name: "Record Repayment" }).first();
       await settleBtn.click();
       await expect(page.getByRole("heading", { name: "Record Loan Repayment" })).toBeVisible();
-      await expect(page.getByText(/Repayment Recovers Asset, Not Fresh Income/i)).toBeVisible();
+      await expect(page.getByText(/Repayment received is NOT fresh income/i)).toBeVisible();
     });
   });
 
@@ -249,7 +249,9 @@ test.describe("Frontend Phase 5 — Friends, Lending/Borrowing, Shared Expenses,
       await expect(page.getByText(/Brigade Residency Management & Landlord/i)).toBeVisible();
 
       // Active Reserves List
-      await expect(page.getByRole("heading", { name: "Active Rent Reserve Earmarks" })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Active Rent Reserve Earmarks" })
+      ).toBeVisible();
       await expect(page.getByText("November Rent Earmark")).toBeVisible();
 
       // Monthly Obligations History
@@ -302,8 +304,12 @@ test.describe("Frontend Phase 5 — Friends, Lending/Borrowing, Shared Expenses,
       await page.goto("/rent");
 
       await page.getByRole("button", { name: "Configure Plan" }).first().click();
-      await expect(page.getByRole("heading", { name: "Configure Rent Plan" })).toBeVisible();
-      await expect(page.getByLabel(/Plan Title/i)).toHaveValue("Indiranagar 3BHK Flat Rent");
+      await expect(
+        page.getByRole("heading", { name: "Configure Monthly Rent Plan" })
+      ).toBeVisible();
+      await expect(page.getByLabel(/Plan Name \/ Label/i)).toHaveValue(
+        "Indiranagar 3BHK Flat Rent"
+      );
       await expect(page.getByLabel(/Landlord \/ Payee Name/i)).toHaveValue(
         "Brigade Residency Management & Landlord"
       );
