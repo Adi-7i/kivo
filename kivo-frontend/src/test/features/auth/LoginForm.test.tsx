@@ -1,7 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { screen, waitFor } from "@testing-library/react";
+import { renderWithProviders as render } from "@/test/utils/render";
 import userEvent from "@testing-library/user-event";
 import { LoginForm } from "@/features/auth/components/LoginForm";
+import * as navigation from "@/features/auth/navigation";
 
 describe("LoginForm component", () => {
   it("renders email and password inputs with accessible labels", () => {
@@ -43,7 +45,20 @@ describe("LoginForm component", () => {
     });
   });
 
-  it("displays integration pending message when valid inputs are submitted without fake auth", async () => {
+  it("maps a mocked Django invalid-credentials response without navigating", async () => {
+    const navigate = vi.spyOn(navigation, "navigate").mockImplementation(() => {});
+    vi.mocked(fetch).mockResolvedValue(
+      Response.json(
+        {
+          error: {
+            status_code: 400,
+            type: "validation_error",
+            details: { detail: ["Unable to log in with provided credentials."] },
+          },
+        },
+        { status: 400 }
+      )
+    );
     const user = userEvent.setup();
     render(<LoginForm />);
 
@@ -54,13 +69,34 @@ describe("LoginForm component", () => {
 
     await waitFor(
       () => {
-        expect(
-          screen.getByText(
-            /Backend integration pending: Authentication API will be connected in Phase 3/i
-          )
-        ).toBeInTheDocument();
+        expect(screen.getByText(/Unable to log in with provided credentials/i)).toBeInTheDocument();
       },
       { timeout: 2000 }
     );
+    expect(navigate).not.toHaveBeenCalled();
+    navigate.mockRestore();
+  });
+
+  it("navigates a confirmed first-time login to onboarding and clears private cached data", async () => {
+    const navigate = vi.spyOn(navigation, "navigate").mockImplementation(() => {});
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        Response.json({
+          id: 1,
+          name: "Test",
+          email: "user@example.com",
+          date_joined: "2026-10-22T00:00:00Z",
+        })
+      )
+      .mockResolvedValueOnce(Response.json({ count: 0, next: null, previous: null, results: [] }));
+    const { queryClient } = render(<LoginForm />);
+    queryClient.setQueryData(["private", 99], { secret: "old-user-data" });
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/Email address/i), "user@example.com");
+    await user.type(screen.getByLabelText(/^Password/i), "CorrectPassword123");
+    await user.click(screen.getByRole("button", { name: /Sign In/i }));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/onboarding"));
+    expect(queryClient.getQueryData(["private", 99])).toBeUndefined();
+    navigate.mockRestore();
   });
 });

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { ACCOUNT_TYPE_OPTIONS, type AccountType, type OnboardingAccountData } from "../types";
 import { cn } from "@/lib/utils";
 import { Building2, Banknote, Wallet, Info } from "lucide-react";
+import { todayInKolkata } from "../money";
 
 interface FirstAccountStepProps {
   initialData: Partial<OnboardingAccountData>;
@@ -49,7 +50,7 @@ export function FirstAccountStep({ initialData, onBack, onNext }: FirstAccountSt
   });
 
   const onSubmit = (data: AccountFormData) => {
-    const openingDate = data.openingDate || new Date().toISOString().split("T")[0];
+    const openingDate = data.openingDate || todayInKolkata();
     onNext({ ...data, openingDate });
   };
 

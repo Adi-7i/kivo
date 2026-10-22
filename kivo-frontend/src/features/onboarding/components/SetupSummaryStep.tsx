@@ -2,9 +2,8 @@
 
 import * as React from "react";
 import { StepNavigation } from "./StepNavigation";
-import { IntegrationPendingBadge } from "@/components/shared/IntegrationPendingBadge";
 import { Button } from "@/components/ui/button";
-import { formatInr } from "@/lib/formatters/currency";
+import { formatInr, parseDecimalStringToPaise } from "@/lib/formatters/currency";
 import { formatDateDisplay } from "@/lib/formatters/date";
 import { User, CreditCard, Edit2, ShieldAlert } from "lucide-react";
 import type { OnboardingPersonalData, OnboardingAccountData } from "../types";
@@ -16,7 +15,8 @@ interface SetupSummaryStepProps {
   onEditStep: (stepNumber: number) => void;
   onComplete: () => void;
   isSubmitting?: boolean;
-  isCompleteAttempted?: boolean;
+  recoveryPending?: boolean;
+  canRetry?: boolean;
 }
 
 export function SetupSummaryStep({
@@ -26,13 +26,13 @@ export function SetupSummaryStep({
   onEditStep,
   onComplete,
   isSubmitting = false,
-  isCompleteAttempted = false,
+  recoveryPending = false,
+  canRetry = false,
 }: SetupSummaryStepProps) {
   // Safe balance display
   const balancePaise = React.useMemo(() => {
     if (!account.openingBalance) return 0;
-    const num = parseFloat(account.openingBalance);
-    return isNaN(num) ? 0 : Math.round(num * 100);
+    return parseDecimalStringToPaise(account.openingBalance);
   }, [account.openingBalance]);
 
   return (
@@ -45,13 +45,6 @@ export function SetupSummaryStep({
           Review your configured details before initializing your Kivo workspace.
         </p>
       </div>
-
-      {isCompleteAttempted && (
-        <IntegrationPendingBadge
-          variant="banner"
-          message="Backend integration pending: Submitting setup will post opening account entries to the Django REST API in Phase 3. No records were permanently written."
-        />
-      )}
 
       {/* Profile summary card */}
       <div className="rounded-xl border border-border bg-card p-4 space-y-3">
@@ -67,6 +60,7 @@ export function SetupSummaryStep({
             variant="ghost"
             size="xs"
             onClick={() => onEditStep(2)}
+            disabled={isSubmitting || recoveryPending}
             className="text-xs text-kivo-primary hover:text-kivo-secondary gap-1"
           >
             <Edit2 className="size-3" />
@@ -106,6 +100,7 @@ export function SetupSummaryStep({
             variant="ghost"
             size="xs"
             onClick={() => onEditStep(3)}
+            disabled={isSubmitting || recoveryPending}
             className="text-xs text-kivo-primary hover:text-kivo-secondary gap-1"
           >
             <Edit2 className="size-3" />
@@ -153,7 +148,9 @@ export function SetupSummaryStep({
       <StepNavigation
         onBack={onBack}
         onNext={onComplete}
-        nextLabel="Complete Setup"
+        nextLabel={recoveryPending ? "Retry original request" : "Complete Setup"}
+        isNextDisabled={recoveryPending && !canRetry}
+        isBackDisabled={recoveryPending}
         isFinalStep
         isLoading={isSubmitting}
       />

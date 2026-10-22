@@ -1,8 +1,10 @@
 # Integration Readiness Checklist & Roadmap
 
+Current recovery: the owner-approved existing development database is in use; Part 0 is **GO**. Part 1 authentication, read-only profile and initial-account onboarding are **IMPLEMENTED**, with a passing real Django lifecycle, production build, and 236 mocked-HTTP/unit/component tests. The [Part 1 report](part-01-auth-onboarding-verification.md) records final browser-regression results and limitations. Part 2 remains unauthorized.
+
 **Document Reference:** `docs/integration/integration-readiness.md`  
 **Phase:** Kivo Frontend Phase 7 (Final Verification, UI Completion & Backend Coverage Review)  
-**Status:** READY FOR FUTURE INTEGRATION (FRONTEND UI VERIFIED)  
+**Status:** PART 1 VERIFIED — OWNER-APPROVED DEVELOPMENT TARGET
 **Author:** Principal Next.js Architect & Quality Engineering Lead  
 **Date:** October 2026
 
@@ -12,16 +14,18 @@
 
 This document establishes the official readiness criteria, architectural prerequisites, data conventions, and sequential execution order for connecting the Kivo Next.js frontend to the remote Django REST Framework backend.
 
-All frontend user interfaces (Phases 1 through 7) are **100% complete, fully audited, responsive, accessible, and verified by 200 Vitest tests and 190 Playwright E2E tests**.
+Phase 7 historically reported 200 Vitest passes, 190 Playwright passes and a successful build. The 2026-10-22 baseline reproduced 200 Vitest passes and a successful typecheck; lint passed with three existing warnings. Build and Playwright execution failed in this runner. Historical UI results do not establish integration readiness.
+
+The [Part 0 safety audit](part-00-safety-audit.md) preserves the original NO-GO and appends the superseding owner decision: existing `postgres` is dedicated to development and approved for identifiable integration records. Its read-only connectivity check passed; a separate staging database is not required. Scoped Node build/browser execution now works.
 
 > [!IMPORTANT]
-> **Definitive Boundary**: No backend connections or live API requests exist in the current frontend code. This document outlines the roadmap for the **subsequent separately authorized integration stage**.
+> **Current boundary**: Authentication, current-user profile and initial-account onboarding use live Django APIs. Other financial modules retain preview/pending states. No dashboard metrics or Part 2 workflow was integrated.
 
 ---
 
 ## 2. Readiness by Frontend Module
 
-| Module | Route(s) | UI Components & Forms | Client Validation Schema | Backend Endpoints Target | Integration Status |
+| Module | Route(s) | UI Components & Forms | Client Validation Schema | Backend Endpoints Target | Historical UI Status |
 |---|---|---|---|---|---|
 | **Auth & Onboarding** | `/login`, `/register`, `/onboarding` | `LoginForm`, `RegisterForm`, `OnboardingShell` | `loginSchema`, `registerSchema`, `accountSchema` | `/api/v1/auth/*` | READY |
 | **Profile & Settings** | `/settings/profile`, `/settings/categories` | `ProfilePage`, `CategoryList`, `CategoryModal` | `categorySchema` | `/api/v1/auth/me/`, `/api/v1/categories/*` | READY |
@@ -40,7 +44,7 @@ All frontend user interfaces (Phases 1 through 7) are **100% complete, fully aud
 ## 3. Core Architectural Decisions for Integration
 
 ### A. Session Authentication & CSRF Bootstrap
-1. **Cookie-Based Sessions**: The Django backend relies on secure `sessionid` and `csrftoken` cookies.
+1. **Cookie-Based Sessions**: Django is the sole authentication authority, using `sessionid` (HttpOnly) and readable `csrftoken` cookies. Secure flags are enabled by production settings; active development flags are false. Current backend has no CORS middleware: use verified same-origin ingress/proxy routing, not an assumed direct cross-origin connection.
 2. **Bootstrap Flow**:
    - Web client makes initial call to `GET /api/v1/auth/csrf/` on app initialization.
    - Django responds with `200 OK` and sets the `csrftoken` cookie.
@@ -48,26 +52,30 @@ All frontend user interfaces (Phases 1 through 7) are **100% complete, fully aud
 3. **Session Lifecycle**:
    - `POST /api/v1/auth/login/` rotates session keys internally to prevent session fixation.
    - `POST /api/v1/auth/logout/` invalidates the active session and flushes cookies.
+   - Registration returns a profile with 201 and does not log in. Login requires a subsequent explicit request. Registration/login need CSRF even anonymously; login rotates CSRF state too.
+   - `GET /api/v1/auth/me/` returns only `id`, `email`, `name`, `date_joined`. Profile/preference updates and an onboarding-completion flag are unsupported.
+   - Errors are nested under `error.details` (or `error.message` for server errors); Part 1 now normalizes those envelopes and maps supported fields.
 
 ### B. Durable Idempotency Keys (`Idempotency-Key`)
-1. **Financial Write Invariant**: Every financial mutation endpoint requires an `Idempotency-Key` header (1–128 characters, UUIDv4 recommended).
+1. **Account Creation**: `POST /api/v1/accounts/` requires an owner-scoped `Idempotency-Key` (1–128 characters). Determine requirements per operation; not all metadata updates accept/require this header.
 2. **Network Retry Semantics**:
-   - If a request times out or receives a `500` / `503` status, client **must retry with the identical key and payload**.
-   - If a request is received with an existing key and matching payload, Django returns the cached response with `status: 200` (`replayed: true`).
+   - After a timeout or `500` / `503`, reconcile the account state before a deliberate retry. Preserve the original key and identical payload. Never automatically retry an ambiguous account-creation POST.
+   - An existing key with matching payload returns the account again with HTTP 200. There is no `replayed: true` response field.
    - If a request is received with an existing key but differing payload, Django returns `409 Conflict`.
 
 ### C. Exact Integer Arithmetic (Paise)
-1. **Zero Floating Point Rule**: Monetary amounts in the API are represented in integer paise ($1\text{ INR} = 100\text{ paise}$).
+1. **Zero Floating Point Rule**: The database/services use integer paise; the HTTP API accepts and returns exact decimal INR **strings with two decimal places**, e.g. `"1450.75"`. It rejects monetary JSON numbers.
 2. **Frontend Responsibility**:
    - The UI accepts standard decimal inputs from users (e.g. `1450.75`).
-   - Before dispatching the JSON payload, the frontend converts the input to integer paise using `decimalStringToPaise("1450.75") -> 145075`.
-   - Incoming amounts from backend responses are formatted using `formatPaise(145075) -> "₹1,450.75"`.
+   - Normalize validated decimal text without floating-point arithmetic before dispatch. Account input uses `name`, `kind`, `opened_on`, `opening_balance: "1450.75"`.
+   - Preserve exactness when formatting responses. Part 1 removes onboarding `parseFloat` conversion, validates real dates and normalizes exact decimal strings.
+   - Opening balance is opening equity, never an artificial income transaction.
 
 ---
 
 ## 4. Recommended Sequential Integration Order
 
-To minimize integration risk and preserve data integrity, the integration stage should follow these 6 sequential steps:
+The diagram below is a historical roadmap, not authorization to begin further integration. The current request authorizes Part 1 only after Part 0 GO: authentication, read-only profile and initial-account onboarding together. All other financial workflows remain deferred; Part 2 requires explicit authorization.
 
 ```mermaid
 graph TD
@@ -120,7 +128,7 @@ graph TD
 ## 5. Critical End-to-End User Journeys for Integration Testing
 
 1. **User Onboarding & First Account**:
-   - Register -> Obtain CSRF -> Login -> Create first Bank Account with Opening Balance -> Arrive at Dashboard.
+   - Obtain CSRF -> Register -> Login -> Use rotated CSRF -> Create first account with exact opening-balance string -> Arrive at the existing dashboard.
 2. **Daily Expense & Inflow Journey**:
    - Quick Add Expense -> Validate integer paise debit -> Check updated Account Balance -> Verify FIFO Funding Source Attribution.
 3. **Friend Lending & Settlement Journey**:
@@ -136,15 +144,19 @@ graph TD
 
 ## 6. Readiness Verification Checklist
 
-- [x] All 52 backend endpoints cataloged and mapped to UI screens.
+UI/layout/accessibility entries retain the historical Phase 7 assessment. Only the current command results and contract inventory were reverified in Part 0.
+
+- [x] Actual resolver and regenerated OpenAPI cross-check: 68 paths, 84 operations. The previous 52-endpoint claim was incorrect; category-detail GET was omitted from the original table.
 - [x] Zod v4 validation schemas written for all user-input forms.
-- [x] React Hook Form controllers configured with decimal-to-paise sanitization.
+- [x] Part 1 aligns form validation, exact decimal-string transport and nested error handling with the actual backend.
 - [x] Empty, loading skeleton, and error boundary states implemented on all routes.
 - [x] Responsive layout verified at 375px, 768px, and 1440px.
 - [x] WCAG 2.2 AA accessibility (colors, labels, focus rings, ARIA roles) verified.
-- [x] 200 Vitest component tests passing.
-- [x] 190 Playwright E2E tests passing.
-- [x] Production bundle successfully builds with Turbopack (43 static routes).
+- [x] Current unit/component/mocked-HTTP gate: 236 tests in 48 files passed.
+- [x] Current real-session Playwright regression: 175/175 passed, no failures/skips, 7.9m, one worker against the bounded development runner. Obsolete preview-only auth cases were replaced with actual integration behavior.
+- [x] Production build succeeds using the installed Node CLI with scoped runner permission.
+- [x] Existing dedicated development database approved by the owner and verified by a read-only connection; no separate staging database is required.
+- [x] Focused real development-database lifecycle verifies cookies, CSRF, sessions, ownership, logout and user switching; final browser regression is recorded in Part 1.
 - [x] Zero mock persistence or fake database engines present in source code.
 
-**Conclusion:** Kivo frontend UI is **100% verified** and ready for authorized backend integration.
+**Current decision:** **GO for the authorized development integration**. Part 1 is implemented and verified; its report records all final gates and earlier failures. Historical UI checklist entries are not integration claims for other modules or production certification. Part 2 needs separate authorization.

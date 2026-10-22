@@ -8,13 +8,19 @@ import { zodResolver } from "@/lib/utils/zodResolver";
 import { FormField } from "./FormField";
 import { PasswordField } from "./PasswordField";
 import { Button } from "@/components/ui/button";
-import { IntegrationPendingBadge } from "@/components/shared/IntegrationPendingBadge";
+import { useQueryClient } from "@tanstack/react-query";
+import { authApi } from "../api";
+import { notifySessionChange, SESSION_KEY } from "../session";
+import { navigate, safeReturnPath } from "../navigation";
+import { listAccounts } from "@/features/onboarding/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { LogIn } from "lucide-react";
 
 export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [submitAttempted, setSubmitAttempted] = React.useState(false);
+  const [message, setMessage] = React.useState("");
+  const submitLock = React.useRef(false);
+  const queryClient = useQueryClient();
 
   const {
     register,
@@ -29,21 +35,41 @@ export function LoginForm() {
     mode: "onBlur",
   });
 
-  const onSubmit = async () => {
+  const onSubmit = async (data: LoginFormData) => {
+    if (submitLock.current) return;
+    submitLock.current = true;
     setIsSubmitting(true);
-    // Showcase loading-ready state transition briefly without fake API or storage
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    setIsSubmitting(false);
-    setSubmitAttempted(true);
+    setMessage("");
+    try {
+      const user = await authApi.login(data);
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      queryClient.setQueryData(SESSION_KEY, user);
+      notifySessionChange();
+      const next = safeReturnPath(new URLSearchParams(window.location.search).get("next"));
+      let accounts;
+      try {
+        accounts = await listAccounts();
+      } catch {
+        navigate(`/onboarding?next=${encodeURIComponent(next)}`);
+        return;
+      }
+      navigate(accounts.count === 0 ? "/onboarding" : next === "/onboarding" ? "/dashboard" : next);
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Sign in could not be confirmed. Please try again."
+      );
+      submitLock.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-      {submitAttempted && (
-        <IntegrationPendingBadge
-          variant="banner"
-          message="Backend integration pending: Authentication API will be connected in Phase 3. No credentials were sent or stored."
-        />
+    <form onSubmit={(event) => void handleSubmit(onSubmit)(event)} className="space-y-4" noValidate>
+      {message && (
+        <p role="alert" className="text-sm text-destructive">
+          {message}
+        </p>
       )}
 
       <FormField

@@ -71,17 +71,37 @@ export class NetworkError extends KivoApiError {
 }
 
 export function normalizeHttpError(status: number, payload?: unknown): KivoApiError {
-  const errPayload = payload as
-    { detail?: string; message?: string; code?: string; [key: string]: unknown } | undefined;
-  const detail = errPayload?.detail || errPayload?.message;
+  const record = (value: unknown): Record<string, unknown> =>
+    value !== null && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  const outer = record(payload);
+  const envelope = outer.error ? record(outer.error) : outer;
+  const errPayload = envelope.details ? record(envelope.details) : envelope;
+  const firstMessage = (value: unknown): string | undefined =>
+    typeof value === "string"
+      ? value
+      : Array.isArray(value) && typeof value[0] === "string"
+        ? value[0]
+        : undefined;
+  const detail =
+    firstMessage(errPayload.detail) ||
+    firstMessage(envelope.message) ||
+    firstMessage(errPayload.non_field_errors);
+  const code =
+    typeof envelope.type === "string"
+      ? envelope.type
+      : typeof errPayload.code === "string"
+        ? errPayload.code
+        : undefined;
 
   switch (status) {
     case 401:
-      return new UnauthorizedError(detail || "Authentication required", errPayload?.code, payload);
+      return new UnauthorizedError(detail || "Authentication required", code, payload);
     case 403:
-      return new ForbiddenError(detail || "Access forbidden", errPayload?.code, payload);
+      return new ForbiddenError(detail || "Access forbidden", code, payload);
     case 404:
-      return new NotFoundError(detail || "Resource not found", errPayload?.code, payload);
+      return new NotFoundError(detail || "Resource not found", code, payload);
     case 400: {
       const fieldErrors: Record<string, string[]> = {};
       if (errPayload && typeof errPayload === "object") {
@@ -94,20 +114,32 @@ export function normalizeHttpError(status: number, payload?: unknown): KivoApiEr
           }
         }
       }
-      return new ValidationError(
-        fieldErrors,
-        detail || "Validation failed",
-        errPayload?.code,
-        payload
-      );
+      return new ValidationError(fieldErrors, detail || "Validation failed", code, payload);
     }
     case 500:
-      return new ServerError(detail || "Internal server error", errPayload?.code, payload);
+      return new ServerError(detail || "Internal server error", code, payload);
+    case 409:
+      return new KivoApiError(
+        status,
+        detail || "This request conflicts with an existing operation.",
+        code,
+        payload
+      );
+    case 429:
+      return new KivoApiError(
+        status,
+        detail || "Too many attempts. Please wait before trying again.",
+        code,
+        payload
+      );
     default:
       return new KivoApiError(
         status,
-        detail || `Request failed with status ${status}`,
-        errPayload?.code,
+        detail ||
+          (status >= 500
+            ? "The service is temporarily unavailable. Please try again later."
+            : `Request failed with status ${status}`),
+        code,
         payload
       );
   }

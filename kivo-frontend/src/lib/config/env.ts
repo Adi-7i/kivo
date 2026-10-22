@@ -1,1 +1,2 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Browser requests stay on the Next.js origin. Django's address is server-only.
+export const API_BASE_URL = "";

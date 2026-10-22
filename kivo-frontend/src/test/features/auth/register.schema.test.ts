@@ -29,7 +29,7 @@ describe("registerSchema", () => {
     }
   });
 
-  it("fails when password lacks letters or numbers", () => {
+  it("accepts non-numeric passwords without an invented digit rule and rejects numeric passwords", () => {
     const noNumber = {
       fullName: "Adarsh Sharma",
       email: "adarsh@example.com",
@@ -37,7 +37,7 @@ describe("registerSchema", () => {
       confirmPassword: "onlylettershere",
     };
     const resultNoNum = registerSchema.safeParse(noNumber);
-    expect(resultNoNum.success).toBe(false);
+    expect(resultNoNum.success).toBe(true);
 
     const noLetter = {
       fullName: "Adarsh Sharma",
@@ -78,11 +78,9 @@ describe("checkPasswordCriteria", () => {
   it("accurately detects partial criteria", () => {
     const criteria = checkPasswordCriteria("short1");
     const len = criteria.find((c) => c.id === "min-length");
-    const num = criteria.find((c) => c.id === "has-number");
-    const lettr = criteria.find((c) => c.id === "has-letter");
+    const numeric = criteria.find((c) => c.id === "not-numeric");
 
     expect(len?.met).toBe(false);
-    expect(num?.met).toBe(true);
-    expect(lettr?.met).toBe(true);
+    expect(numeric?.met).toBe(true);
   });
 });

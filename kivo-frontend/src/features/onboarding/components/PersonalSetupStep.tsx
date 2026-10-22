@@ -15,19 +15,12 @@ interface PersonalSetupStepProps {
 }
 
 export function PersonalSetupStep({ initialData, onBack, onNext }: PersonalSetupStepProps) {
-  const [displayName, setDisplayName] = React.useState(initialData.displayName || "");
-  const [error, setError] = React.useState<string | undefined>();
+  const displayName = initialData.displayName;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = displayName.trim();
-    if (trimmed.length < 2) {
-      setError("Display name must be at least 2 characters");
-      return;
-    }
-    setError(undefined);
     onNext({
-      displayName: trimmed,
+      displayName,
       currency: "INR",
       timezone: "Asia/Kolkata",
     });
@@ -49,14 +42,9 @@ export function PersonalSetupStep({ initialData, onBack, onNext }: PersonalSetup
           id="onboarding-displayName"
           label="Display Name"
           placeholder="e.g. Adarsh"
-          required
+          readOnly
           value={displayName}
-          error={error}
-          onChange={(e) => {
-            setDisplayName(e.target.value);
-            if (error) setError(undefined);
-          }}
-          helperText="How Kivo addresses you across your personal workspace."
+          helperText="Your registered identity. Profile editing is not currently supported."
         />
 
         {/* Currency Presentation */}
