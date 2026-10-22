@@ -23,12 +23,15 @@ import {
   Scale,
 } from "lucide-react";
 
+import { TransactionActionModal } from "./TransactionActionModal";
+
 interface TransactionDetailCardProps {
   transaction: TransactionEntity;
 }
 
 export function TransactionDetailCard({ transaction }: TransactionDetailCardProps) {
   const [reversalAttempted, setReversalAttempted] = React.useState(false);
+  const [actionModalOpen, setActionModalOpen] = React.useState(false);
 
   const isExpense = transaction.kind === "expense";
   const isReceipt = transaction.kind === "receipt";
@@ -228,7 +231,10 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setReversalAttempted(true)}
+              onClick={() => {
+                setReversalAttempted(true);
+                setActionModalOpen(true);
+              }}
               className="gap-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive/10"
             >
               <RotateCcw className="size-3.5" />
@@ -237,6 +243,12 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
           </div>
         </CardContent>
       </Card>
+
+      <TransactionActionModal
+        open={actionModalOpen}
+        onOpenChange={setActionModalOpen}
+        transaction={transaction}
+      />
     </div>
   );
 }

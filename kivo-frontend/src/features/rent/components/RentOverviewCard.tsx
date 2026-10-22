@@ -3,7 +3,8 @@ import { RentStatusBadge } from "./RentStatusBadge";
 import { MoneyAmount } from "@/features/shared-financial/MoneyAmount";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Home, Calendar, CreditCard, Settings2, AlertTriangle, Info } from "lucide-react";
+import { Home, Calendar, CreditCard, Settings2, AlertTriangle, Info, Sparkles } from "lucide-react";
+import { RentGenerateModal } from "./RentGenerateModal";
 import type { RentPlanEntity, RentObligationEntity } from "../types";
 
 interface RentOverviewCardProps {
@@ -24,6 +25,7 @@ export function RentOverviewCard({
   const isOverdue = currentObligation?.status === "overdue";
   const isPaid = currentObligation?.status === "paid";
   const isSkipped = currentObligation?.status === "skipped";
+  const [generateModalOpen, setGenerateModalOpen] = React.useState(false);
 
   return (
     <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs space-y-5">
@@ -70,17 +72,29 @@ export function RentOverviewCard({
           </div>
         </div>
 
-        {onConfigurePlan && (
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
           <Button
             variant="outline"
             size="sm"
-            onClick={onConfigurePlan}
-            className="text-xs gap-1.5 self-start sm:self-auto"
+            onClick={() => setGenerateModalOpen(true)}
+            className="text-xs gap-1.5 border-kivo-sage/60 text-kivo-brand-dark dark:text-kivo-sage hover:bg-kivo-sage/10"
           >
-            <Settings2 className="size-3.5" />
-            <span>Configure Plan</span>
+            <Sparkles className="size-3.5" />
+            <span>Generate Obligations</span>
           </Button>
-        )}
+
+          {onConfigurePlan && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onConfigurePlan}
+              className="text-xs gap-1.5"
+            >
+              <Settings2 className="size-3.5" />
+              <span>Configure Plan</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Current Obligation Highlight Banner */}
@@ -178,6 +192,12 @@ export function RentOverviewCard({
           your account only when you record a confirmed payment.
         </p>
       </div>
+
+      <RentGenerateModal
+        open={generateModalOpen}
+        onOpenChange={setGenerateModalOpen}
+        plan={plan}
+      />
     </div>
   );
 }

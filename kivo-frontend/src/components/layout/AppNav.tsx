@@ -24,6 +24,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Rent & Reserves", href: "/rent", phase: "Phase 5", isAvailable: true },
   { label: "Budgets", href: "/budgets", phase: "Phase 6", isAvailable: true },
   { label: "Reports & Analytics", href: "/reports", phase: "Phase 6", isAvailable: true },
+  { label: "Categories", href: "/settings/categories", phase: "Phase 7", isAvailable: true },
 ];
 
 export function AppNav() {
