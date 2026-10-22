@@ -88,3 +88,13 @@ that interpreter against isolated remote Supabase PostgreSQL. See the
 [Phase 3 verification report](../phases/phase-03-verification.md) for exact commands
 and outcomes. Project runtime metadata now requires Python >=3.13. System Python
 and the existing `backend/.venv` Python 3.14 environment were preserved.
+
+## Phase 7 runtime directive
+
+The user explicitly requires the existing original-repository virtual environment
+and forbids rebuilding Python or changing dependencies without approval. Phase 7
+therefore verifies Python 3.14.4 at `backend/.venv/bin/python`. All 25 lockfile
+distributions match installed versions; dependency checks and actual runtime tests
+are recorded in [Phase 7](../phases/phase-07-verification.md). The expired temporary
+Python 3.13 environment is not recreated. Server/client-tool additions remain
+approval-dependent; configuration does not imply installation.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from django.contrib.auth import login, logout
 from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 from rest_framework import status
@@ -21,6 +22,7 @@ from apps.users.throttling import LoginRateThrottle, RegisterRateThrottle
 
 
 @method_decorator(ensure_csrf_cookie, name="dispatch")
+@method_decorator(never_cache, name="dispatch")
 class CSRFTokenView(APIView):
     """Endpoint for web clients to obtain an initial CSRF cookie."""
 
@@ -41,6 +43,7 @@ class CSRFTokenView(APIView):
 
 
 @method_decorator(csrf_protect, name="dispatch")
+@method_decorator(never_cache, name="dispatch")
 class RegisterView(APIView):
     """API endpoint for new user registration."""
 
@@ -81,6 +84,7 @@ class RegisterView(APIView):
 
 
 @method_decorator(csrf_protect, name="dispatch")
+@method_decorator(never_cache, name="dispatch")
 class LoginView(APIView):
     """API endpoint for user authentication and session establishment."""
 
@@ -121,6 +125,7 @@ class LoginView(APIView):
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
 
+@method_decorator(never_cache, name="dispatch")
 class LogoutView(APIView):
     """API endpoint to terminate the active user session."""
 
@@ -142,6 +147,7 @@ class LogoutView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+@method_decorator(never_cache, name="dispatch")
 class MeView(APIView):
     """API endpoint to inspect current authenticated user profile."""
 

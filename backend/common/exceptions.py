@@ -5,11 +5,44 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from rest_framework import status
+from django.core.exceptions import SuspiciousOperation
+from django.db import InterfaceError, OperationalError
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.views.csrf import csrf_failure as django_csrf_failure
 from rest_framework.response import Response
-from rest_framework.views import exception_handler
+from rest_framework.views import exception_handler, set_rollback
 
 logger = logging.getLogger("kivo.api")
+
+
+def server_error_data(status_code: int) -> dict[str, Any]:
+    """Do not imply that a failed response proves a financial write rolled back."""
+    return {
+        "error": {
+            "status_code": status_code,
+            "type": "database_unavailable" if status_code == 503 else "internal_server_error",
+            "message": (
+                "The service could not complete this response. For a financial write, "
+                "retry only with the same Idempotency-Key and identical request body."
+            ),
+        }
+    }
+
+
+def csrf_failure(request: HttpRequest, reason: str = "") -> HttpResponse:
+    """Keep anonymous CSRF failures in the API's safe JSON error contract."""
+    if not request.path.startswith("/api/"):
+        return django_csrf_failure(request, reason=reason)
+    return JsonResponse(
+        {
+            "error": {
+                "status_code": 403,
+                "type": "permission_denied",
+                "details": {"detail": "CSRF verification failed."},
+            }
+        },
+        status=403,
+    )
 
 
 def kivo_exception_handler(exc: Exception, context: dict[str, Any]) -> Response | None:
@@ -46,18 +79,27 @@ def kivo_exception_handler(exc: Exception, context: dict[str, Any]) -> Response 
         response.data = custom_data
         return response
 
-    # Unhandled 500 server error — mask internal details from client
+    # Mark ATOMIC_REQUESTS rollback before converting an exception to a response.
+    set_rollback()
+    if isinstance(exc, SuspiciousOperation):
+        return Response(
+            {
+                "error": {
+                    "status_code": 400,
+                    "type": "invalid_request",
+                    "message": "Invalid request.",
+                }
+            },
+            status=400,
+        )
+    # Neither exception text nor traceback is safe for arbitrary log handlers:
+    # database errors may contain SQL parameters or credentials.
     view = context.get("view")
     view_name = view.__class__.__name__ if view else "UnknownView"
-    logger.exception("Unhandled server error in %s: %s", view_name, exc)
-
-    return Response(
-        {
-            "error": {
-                "status_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "type": "internal_server_error",
-                "message": "An internal server error occurred. Please try again later.",
-            }
-        },
-        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    logger.error(
+        "request_failed",
+        extra={"view": view_name, "exception_class": type(exc).__name__},
     )
+
+    code = 503 if isinstance(exc, (OperationalError, InterfaceError)) else 500
+    return Response(server_error_data(code), status=code)

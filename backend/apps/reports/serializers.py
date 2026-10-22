@@ -21,7 +21,8 @@ class TrendQuerySerializer(ReportQuerySerializer):
 
 class BreakdownQuerySerializer(ReportQuerySerializer):
     dimension = serializers.ChoiceField(
-        choices=["category", "merchant", "account", "payment_method", "contact"], required=False
+        choices=["category", "merchant", "account", "payment_method", "contact", "kind"],
+        required=False,
     )
 
 

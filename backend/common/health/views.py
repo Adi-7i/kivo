@@ -18,6 +18,7 @@ class HealthCheckView(APIView):
     """Liveness probe confirming the Django application process is running."""
 
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []
 
     @extend_schema(
         summary="Application Liveness Check",
@@ -43,6 +44,7 @@ class DatabaseHealthCheckView(APIView):
     """Readiness probe checking connectivity to Supabase PostgreSQL."""
 
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []
 
     @extend_schema(
         summary="Database Readiness Check",

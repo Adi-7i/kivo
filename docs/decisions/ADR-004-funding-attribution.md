@@ -93,3 +93,12 @@ Product approval is needed to define provisional/unexplained funding, cleared
 overdrafts, manual reassignment precedence, recovery write-offs and conflict
 resolution policy. None is invented here. New actual financial records and
 auditable corrections continue to use the approved ledger services.
+
+## Phase 7 review
+
+The subsequently approved v2 policy in ADR-005 governs lending and recovery;
+remaining source capacity includes receivable custody. Liquid exhaustion in older
+illustrative scenarios is not substituted for v2 capacity exhaustion. Phase 7
+verifies retained v1 and current v2 without changing that approved policy.
+See [verification](../phases/phase-07-verification.md) for executed scenarios and
+the separate production role/deployment gates.

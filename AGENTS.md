@@ -110,3 +110,14 @@ When resolving conflicting specifications:
 4. *Kivo Product Requirements Document v1.0*.
 5. Official technology documentation.
 6. Independent implementation recommendations.
+## Workspace Rules
+
+- The primary project root is /home/lucifer/Desktop/Kivo.
+- Apply all final source-code changes directly to this project.
+- Do not use a separate temporary project copy for development.
+- Temporary files may be used for tests and debugging.
+- Never leave final source changes exclusively in /tmp.
+- Do not overwrite or delete existing code without review.
+- Preserve existing database data and project functionality.
+- Do not modify production databases without explicit approval.
+- After completing a task, report all modified files and test results.

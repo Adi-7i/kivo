@@ -13,6 +13,7 @@ from rest_framework import serializers
 from rest_framework.filters import BaseFilterBackend, search_smart_split
 
 from apps.ledger.models import Account, Category, Event, Posting
+from apps.ledger.money import MAX_PAISE, MoneyField
 from apps.ledger.serializers import StrictSerializer
 from apps.sharing.models import BillShare, Contact
 from apps.users.models import User
@@ -77,6 +78,16 @@ class HistoryQuerySerializer(StrictSerializer):
     date = serializers.DateField(required=False)
     date_from = serializers.DateField(required=False)
     date_to = serializers.DateField(required=False)
+    amount_min = MoneyField(
+        source="amount_min_paise",
+        required=False,
+        help_text="Inclusive transaction face-amount minimum in INR.",
+    )
+    amount_max = MoneyField(
+        source="amount_max_paise",
+        required=False,
+        help_text="Inclusive transaction face-amount maximum in INR.",
+    )
     account = serializers.UUIDField(required=False)
     destination = serializers.UUIDField(required=False)
     category = serializers.UUIDField(required=False)
@@ -104,6 +115,8 @@ class HistoryQuerySerializer(StrictSerializer):
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         date_range(attrs, timezone.localdate())
+        if attrs.get("amount_min_paise", 0) > attrs.get("amount_max_paise", MAX_PAISE):
+            raise serializers.ValidationError({"amount_max": "Must be at least amount_min."})
         if "sort" in attrs and "ordering" in attrs:
             raise serializers.ValidationError({"sort": "Choose sort or ordering."})
         return attrs
@@ -126,6 +139,10 @@ def filter_events(rows: QuerySet[Event], user: User, data: dict[str, Any]) -> Qu
         rows = rows.filter(effective_date__gte=start)
     if end:
         rows = rows.filter(effective_date__lte=end)
+    if "amount_min_paise" in data:
+        rows = rows.filter(amount_paise__gte=data["amount_min_paise"])
+    if "amount_max_paise" in data:
+        rows = rows.filter(amount_paise__lte=data["amount_max_paise"])
     for key, model in (
         ("account", Account),
         ("destination", Account),

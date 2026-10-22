@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 from apps.users.models import User
 
@@ -44,18 +44,31 @@ def register_user(
     if User.objects.filter(email__iexact=clean_email).exists():
         raise DjangoValidationError({"email": "A user with this email address already exists."})
 
-    # Validate password against configured Django validators
-    validate_password(password)
-
     clean_name = name.strip() if name else ""
+    candidate = User(email=clean_email, name=clean_name)
+    try:
+        validate_password(password, user=candidate)
+    except DjangoValidationError as exc:
+        raise DjangoValidationError({"password": exc.messages}) from exc
 
-    with transaction.atomic():
-        user = User.objects.create_user(
-            email=clean_email,
-            password=password,
-            name=clean_name,
-        )
-        logger.info("New user account registered successfully with id=%s", user.id)
+    try:
+        with transaction.atomic():
+            user = User.objects.create_user(
+                email=clean_email,
+                password=password,
+                name=clean_name,
+            )
+            transaction.on_commit(
+                lambda: logger.info("New user account registered successfully with id=%s", user.id)
+            )
+    except IntegrityError as exc:
+        # Catch only identity conflicts after the savepoint has rolled back.
+        constraint = getattr(getattr(exc.__cause__, "diag", None), "constraint_name", None)
+        if constraint not in {"users_email_key", "users_email_ci_unique"}:
+            raise
+        raise DjangoValidationError(
+            {"email": "A user with this email address already exists."}
+        ) from exc
 
     return user
 

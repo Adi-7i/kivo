@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
+from django.conf import settings
 from django.db.models import BigIntegerField, Q, QuerySet, Sum, Value
 from django.http import StreamingHttpResponse
+from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import mixins, serializers, viewsets
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,7 +18,7 @@ from rest_framework.views import APIView
 
 from apps.funds.models import FundingBatch
 from apps.funds.views import FundingBatchViewSet
-from apps.ledger.history import validate_query
+from apps.ledger.history import date_range, validate_query
 from apps.ledger.serializers import StrictSerializer
 from apps.ledger.views import IDEMPOTENCY
 from apps.reports import selectors
@@ -141,18 +144,71 @@ class BreakdownView(APIView):
 
 class ExportView(APIView):
     @extend_schema(
-        parameters=[ReportQuerySerializer], responses={(200, "text/csv"): OpenApiTypes.STR}
+        parameters=[
+            ReportQuerySerializer,
+            *[
+                OpenApiParameter(
+                    name, str, OpenApiParameter.HEADER, response=[200], description=description
+                )
+                for name, description in (
+                    (
+                        "X-Kivo-Export-Timezone",
+                        "Timezone used for effective-date calendar selection.",
+                    ),
+                    (
+                        "X-Kivo-Export-Generated-At",
+                        "ISO timestamp when the export response was prepared.",
+                    ),
+                    (
+                        "X-Kivo-Export-Filters",
+                        "JSON object containing the requested filters, including the default period.",
+                    ),
+                    (
+                        "X-Kivo-Export-Date-From",
+                        "Inclusive date lower bound, absent for an unbounded selection.",
+                    ),
+                    (
+                        "X-Kivo-Export-Date-To",
+                        "Inclusive date upper bound, absent for an unbounded selection.",
+                    ),
+                )
+            ],
+        ],
+        responses={(200, "text/csv"): OpenApiTypes.STR},
     )
     def get(self, request: Request) -> StreamingHttpResponse:
         query = validate_query(request.query_params, ReportQuerySerializer)
         if not any(key in query for key in ("period", "date", "date_from", "date_to")):
             query["period"] = "month"
+        # Pin calendar presets before streaming can cross midnight/month-end.
+        start, end = date_range(query, timezone.localdate())
+        frozen_query = {
+            key: value
+            for key, value in query.items()
+            if key not in ("period", "date", "date_from", "date_to")
+        }
+        if start:
+            frozen_query["date_from"] = start
+        if end:
+            frozen_query["date_to"] = end
+        requested_filters = dict(request.query_params.items())
+        if "period" in query:
+            requested_filters["period"] = query["period"]
         response = StreamingHttpResponse(
-            csv_rows(request.user, query), content_type="text/csv; charset=utf-8"
+            csv_rows(request.user, frozen_query), content_type="text/csv; charset=utf-8"
         )
         response["Content-Disposition"] = 'attachment; filename="kivo-transactions.csv"'
         response["Cache-Control"] = "private, no-store"
         response["X-Content-Type-Options"] = "nosniff"
+        response["X-Kivo-Export-Timezone"] = settings.TIME_ZONE
+        response["X-Kivo-Export-Generated-At"] = timezone.now().isoformat()
+        response["X-Kivo-Export-Filters"] = json.dumps(
+            requested_filters, ensure_ascii=True, separators=(",", ":")
+        )
+        if start:
+            response["X-Kivo-Export-Date-From"] = start.isoformat()
+        if end:
+            response["X-Kivo-Export-Date-To"] = end.isoformat()
         return response
 
 

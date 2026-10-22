@@ -77,6 +77,7 @@ ASGI_APPLICATION = "config.asgi.application"
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "OPTIONS": {"user_attributes": ("email", "name")},
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
@@ -112,9 +113,12 @@ SESSION_SAVE_EVERY_REQUEST = False
 
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_FAILURE_VIEW = "common.exceptions.csrf_failure"
 
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
+    # Never accept a client-supplied X-Forwarded-For as a throttle identity.
+    "NUM_PROXIES": 0,
     "DEFAULT_AUTHENTICATION_CLASSES": ("common.authentication.KivoSessionAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
@@ -138,6 +142,9 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": (
         "Kivo Personal Money & Expense Management REST API. "
         "Provides backend services for accounts, transactions, funds, and analytics."
+        " Session authentication requires a CSRF cookie/header for writes, including anonymous login."
+        " Financial writes require a durable Idempotency-Key. A 500/503 response can have an"
+        " ambiguous commit outcome: retry with the same key and identical body, never a new key."
     ),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,

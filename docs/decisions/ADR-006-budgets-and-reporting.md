@@ -2,7 +2,8 @@
 
 Status: implemented, subject to the executed verification gates in
 [Phase 6 verification](../phases/phase-06-verification.md). Authorized by the
-user's renewed Phase 6 directive on 2026-10-17. Phase 7 is excluded.
+user's renewed Phase 6 directive on 2026-10-17. Phase 7 is subsequently authorized;
+its current audit is in [Phase 7 verification](../phases/phase-07-verification.md).
 
 ## Financial authority and scope
 
@@ -23,9 +24,9 @@ the bill date; later settlement affects cash/payable without another expense.
 Unpaid ordinary rent contributes no recognized expense. Existing active rent
 reserves reduce safe-to-spend, never actual liquid funds.
 
-The new reporting paths do not implement or infer the pending friend-paid
-landlord-bill/rent-obligation link in ADR-005. They report approved posted effects
-and the existing reserve lifecycle. No reserve disposition rule is invented.
+Reporting includes the approved linked friend-paid rent recognition and retained
+reserve policy in ADR-005. It reads their posted effects and reserve audit changes
+without inferring a link from transaction descriptions or duplicating expense.
 
 ## Budget periods and warning semantics
 
@@ -137,3 +138,17 @@ postings. Summing these contribution columns under the same filters reconciles
 with report net expense and external cash in minus cash out. A transfer's
 external cash contribution is zero. The shared-bill face amount can be gross
 while its expense contribution is only the owner's recognized share.
+
+## Phase 7 contract corrections
+
+`amount_min`/`amount_max` are inclusive exact INR-string filters on event face
+amounts, shared by history, reports and CSV. A selected shared bill still reports
+only its posted owner expense. `dimension=kind` groups net expense postings by
+transaction type; loans/transfers are not recategorized as spending.
+
+CSV responses include `X-Kivo-Export-Timezone`, `X-Kivo-Export-Generated-At`,
+`X-Kivo-Export-Filters` and bounded selections' `X-Kivo-Export-Date-From/To` headers.
+Generation time describes response preparation. Calendar presets are resolved
+before iteration and held constant through the stream. Contribution columns,
+formula protection, owner locking and bounded iteration remain in use. OpenAPI
+declares the filters, kind dimension and response headers.

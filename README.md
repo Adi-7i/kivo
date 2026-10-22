@@ -161,12 +161,16 @@ python backend/manage.py check
 
 ## 9. Current Phase Status
 
+Phase 1–6 entries retain their historical checkpoint results. Phase 7 records the
+current consolidated audit and regression evidence on the established runtime.
+
 * **Phase 2 prerequisite:** PASS on Python 3.14.4: 69 regression tests passed against isolated remote PostgreSQL. See [readiness evidence](docs/phases/phase-02-readiness.md).
 * **Phase 3:** PASS: 107 tests passed on Python 3.13.16 against isolated remote PostgreSQL. See [verification](docs/phases/phase-03-verification.md).
 * **Phase 4:** PASS: dedicated gate 25 passed; final full regression **129 passed** on Python 3.13.16 against isolated remote PostgreSQL. See [verification](docs/phases/phase-04-verification.md).
 * **Phase 5:** PARTIALLY COMPLETE; approved lending/shared posting and FIFO v2 have passing Python 3.13/PostgreSQL evidence (56 selected Phase 5 module cases in the earlier combined run; complete socket HTTP passed on retry). The friend-paid rent reserve policy is now approved and implemented; targeted verification is recorded in [Phase 5 evidence](docs/phases/phase-05-verification.md). The clean full-suite gate remains open. Phase 6 readiness: NOT READY.
 * **Phase 6:** PARTIALLY COMPLETE. Budgets, dashboard, shared history filtering, reports and streaming CSV are implemented and tested on Python 3.13/PostgreSQL. Earlier full regression: **224 passed / 1 Supabase connection-timeout failure**; the complete HTTP + CSV focused retry then **2 passed**. A clean full-suite gate remains open; the prior Phase 5 rent policy question is resolved. See [current evidence](docs/phases/phase-06-verification.md), [plan](docs/phases/phase-06-plan.md) and [ADR-006](docs/decisions/ADR-006-budgets-and-reporting.md). Phase 7 readiness: NOT READY.
 * **Architecture Rules:** See [AGENTS.md](AGENTS.md) for permanent engineering principles, financial calculation invariants, and anti-hallucination policies.
+* **Phase 7:** PARTIALLY COMPLETE in the original lowercase repository, using the existing Python **3.14.4** `backend/.venv` without runtime/dependency changes. Authentication/security fixes, reporting contract repairs and actual PostgreSQL financial/concurrency regressions are implemented. Complete post-change regression: **293 passed / 1 HTTP response-timeout failure / 0 skipped**, with all 294 cases executed. The timeout, privileged database role, pending application email index, deployment controls and recovery drill keep production **NOT READY**. See [Phase 7 evidence](docs/phases/phase-07-verification.md), [release gates](docs/release/kivo-v1-release-readiness.md) and [operations](docs/security-and-operations.md).
 
 ## 10. Financial API contracts
 
@@ -204,11 +208,20 @@ resource UUIDs return the same 404 as missing resources. Anonymous calls return
 401; missing CSRF on authenticated writes returns 403.
 
 History accepts `kind`, `account`, `destination`, `category`, `date_from`,
-`date_to`, `search`, `ordering` and `page`. Sort fields are `effective_date`,
+`date_to`, `amount_min`, `amount_max`, `search`, `ordering` and `page`. Amount
+bounds are inclusive exact INR strings and select transaction face amounts;
+shared bills still contribute only the owner's expense to spending reports.
+Sort fields are `effective_date`,
 `created_at`, `amount_paise` (prefix `-` for descending). Response money is always
 a decimal string. `/api/schema/` documents the actual generated contracts.
 Responses carry a validated/generated `X-Request-ID`; logs contain structured
 request metadata and committed write identifiers, never request bodies.
+
+Unexpected API errors remain JSON, including CSRF and unknown-route errors.
+Database outages return sanitized 503 responses. A failed financial response may
+have an ambiguous commit outcome: retry the identical body with its original
+Idempotency-Key. Production schema/docs require authentication. See
+[security/deployment procedures](docs/security-and-operations.md).
 
 See [ADR-003](docs/decisions/ADR-003-financial-ledger.md) for ledger semantics,
 historical correction order, archival, insufficient-funds rejection and deferred
@@ -264,13 +277,11 @@ attribution to receivable custody, recovery and liability-funded borrowing sourc
 Prior v1 snapshots and its algorithm remain available. V2 remaining capacity
 includes recoverable receivables and is not cash.
 
-The temporary Python 3.13.16 verification environment has been rebuilt under
-`/tmp/kivo-venv313` with the unchanged lockfile. Earlier Phase 6 prerequisite
-diagnostics used Python 3.14.4; current Phase 5 evidence records the new Python
-3.13 runs separately. No new application dependency was introduced. The renewed
-Phase 6 request authorizes reporting over the implemented ledger/FIFO v2 paths;
-the friend-paid rent link follows the approved retained-reserve policy in ADR-005.
-Phase 7 remains excluded.
+Earlier Phase 5–6 evidence used a temporary Python 3.13.16 environment, which has
+expired. Current Phase 7 explicitly requires the established Python 3.14.4
+environment at `backend/.venv`; do not rebuild or replace it without approval.
+The friend-paid rent link follows the approved retained-reserve policy in ADR-005.
+Phase 7 is now authorized; its verification is recorded separately.
 
 ## 12. Phase 5 contacts, personal rent and reserves
 
@@ -428,9 +439,14 @@ FIFO snapshots; they never maintain or modify another balance.
 | `/api/v1/transactions/` | Existing history, extended shared filters and stable sorting |
 | `/api/v1/reports/summary/` | GET recognized expenses, cash-flow classes, averages and prior-period comparison |
 | `/api/v1/reports/trends/` | GET net expense by `interval=day\|week\|month` |
-| `/api/v1/reports/breakdown/` | GET `dimension=category\|merchant\|account\|payment_method\|contact` |
+| `/api/v1/reports/breakdown/` | GET `dimension=category\|merchant\|account\|payment_method\|contact\|kind` |
 | `/api/v1/reports/funds/` | GET paginated existing funding batches plus classified attribution movements; optional owned `run` |
 | `/api/v1/reports/export/` | GET filtered streaming UTF-8 CSV |
+
+Exports include `X-Kivo-Export-Timezone`, `X-Kivo-Export-Generated-At`,
+`X-Kivo-Export-Filters` and applicable `X-Kivo-Export-Date-From/To` headers.
+Calendar presets are pinned before streaming. CSV exports all selected rows;
+history pagination does not limit the export.
 
 Budget creation requires `name`, `period_start`, `period_end`, and `limit`.
 `period_type` defaults to `monthly`, which requires one full calendar month;

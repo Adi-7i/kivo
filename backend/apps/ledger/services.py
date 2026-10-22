@@ -22,7 +22,18 @@ from apps.ledger.money import MAX_PAISE
 from apps.ledger.selectors import active_events
 from apps.users.models import User
 
-DEFAULT_CATEGORIES = ("Food", "Transport", "Housing", "Shopping", "Health", "Education", "Other")
+DEFAULT_CATEGORIES = (
+    "Food",
+    "Transport",
+    "Housing",
+    "Shopping",
+    "Health",
+    "Education",
+    "Other",
+    "Groceries",
+    "Friends & Social",
+    "Utilities & Recharge",
+)
 logger = logging.getLogger("kivo.ledger")
 
 

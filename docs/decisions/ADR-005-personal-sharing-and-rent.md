@@ -224,3 +224,8 @@ receive RLS and explicit revocation of Supabase client-role table/sequence grant
 Additive migrations are inspected before authorized development application;
 destructive tests remain on the isolated remote test database. Actual results and
 remaining blockers belong in phase-05-verification.md, not inferred from code.
+
+Phase 7 performs consolidated authentication, financial, PostgreSQL concurrency,
+reporting and operational verification of these approved rules. Current results
+and release limitations are in [Phase 7](../phases/phase-07-verification.md);
+targeted passes do not imply production deployment or restoration readiness.
