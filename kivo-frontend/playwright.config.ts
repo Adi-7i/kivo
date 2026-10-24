@@ -5,8 +5,11 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  // Real development verification shares a single-threaded Django runner, not a load-test server.
+  // Serialize real development workflows; the bounded Django runner is not a load-test server.
   workers: 1,
+  // Remote PostgreSQL reads can outlast 5s. Observe the real bounded response/render,
+  // not a placeholder; HTTP status assertions and application deadlines stay unchanged.
+  expect: { timeout: 20_000 },
   reporter: "list",
   globalSetup: "./e2e/global-setup.ts",
   use: {
@@ -25,7 +28,7 @@ export default defineConfig({
     },
     {
       name: "Mobile Chrome",
-      testIgnore: "**/part1-live.spec.ts",
+      testIgnore: ["**/part1-live.spec.ts", "**/part2-live.spec.ts"],
       use: { ...devices["Pixel 5"] },
     },
   ],

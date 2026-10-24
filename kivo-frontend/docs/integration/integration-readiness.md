@@ -1,10 +1,10 @@
 # Integration Readiness Checklist & Roadmap
 
-Current recovery: the owner-approved existing development database is in use; Part 0 is **GO**. Part 1 authentication, read-only profile and initial-account onboarding are **IMPLEMENTED**, with a passing real Django lifecycle, production build, and 236 mocked-HTTP/unit/component tests. The [Part 1 report](../../../docs/integration/part-01-auth-onboarding-verification.md) records final browser-regression results and limitations. Part 2 remains unauthorized.
+Current recovery: the existing development database remains owner-approved; Part 0 is **GO** and Part 1 is **VERIFIED**. Accounts, categories and core transactions are **IMPLEMENTED / VERIFIED for the approved Part 2 development scope**. All 176 unique browser cases have passing evidence across retained and resumed runs; earlier outages remain documented. See the [Part 1 report](../../../docs/integration/part-01-auth-onboarding-verification.md) for the retained authentication checkpoint.
 
 **Document Reference:** `docs/integration/integration-readiness.md`  
 **Phase:** Kivo Frontend Phase 7 (Final Verification, UI Completion & Backend Coverage Review)  
-**Status:** PART 1 VERIFIED — OWNER-APPROVED DEVELOPMENT TARGET
+**Status:** PARTS 1–2 VERIFIED FOR DEVELOPMENT — PRODUCTION NOT CERTIFIED
 **Author:** Principal Next.js Architect & Quality Engineering Lead  
 **Date:** October 2026
 
@@ -19,7 +19,9 @@ Phase 7 historically reported 200 Vitest passes, 190 Playwright passes and a suc
 The [Part 0 safety audit](../../../docs/integration/part-00-safety-audit.md) preserves the original NO-GO and appends the superseding owner decision: existing `postgres` is dedicated to development and approved for identifiable integration records. Its read-only connectivity check passed; a separate staging database is not required. Scoped Node build/browser execution now works.
 
 > [!IMPORTANT]
-> **Current boundary**: Authentication, current-user profile and initial-account onboarding use live Django APIs. Other financial modules retain preview/pending states. No dashboard metrics or Part 2 workflow was integrated.
+> **Current boundary**: Authentication, profile, onboarding, accounts, categories, Quick Add, history and audited corrections use Django APIs. Dashboard metrics, Fund Journey and other later modules remain preview/pending. Part 3 has not begun.
+
+Current Part 2 results and runtime recovery limits are recorded in the [core transactions verification report](../../../docs/integration/part-02-core-transactions-verification.md); implementation is distinct from the final live verification status.
 
 ---
 
@@ -75,7 +77,7 @@ The [Part 0 safety audit](../../../docs/integration/part-00-safety-audit.md) pre
 
 ## 4. Recommended Sequential Integration Order
 
-The diagram below is a historical roadmap, not authorization to begin further integration. The current request authorizes Part 1 only after Part 0 GO: authentication, read-only profile and initial-account onboarding together. All other financial workflows remain deferred; Part 2 requires explicit authorization.
+The diagram below is a historical roadmap, not blanket authorization. The current request explicitly authorizes Part 2 after its Part 1 gate. Dashboard metrics and Fund Journey remain deferred to a separately authorized Part 3.
 
 ```mermaid
 graph TD
@@ -152,11 +154,14 @@ UI/layout/accessibility entries retain the historical Phase 7 assessment. Only t
 - [x] Empty, loading skeleton, and error boundary states implemented on all routes.
 - [x] Responsive layout verified at 375px, 768px, and 1440px.
 - [x] WCAG 2.2 AA accessibility (colors, labels, focus rings, ARIA roles) verified.
-- [x] Current unit/component/mocked-HTTP gate: 236 tests in 48 files passed.
-- [x] Current real-session Playwright regression: 175/175 passed, no failures/skips, 7.9m, one worker against the bounded development runner. Obsolete preview-only auth cases were replaced with actual integration behavior.
+- [x] Retained Part 1 unit/component/mocked-HTTP checkpoint: 236 tests in 48 files passed.
+- [x] Retained Part 1 real-session Playwright checkpoint: 175/175 passed, no failures/skips, 7.9m. Obsolete preview-only auth cases were replaced with actual integration behavior.
+- [x] Current Part 2 unit/component/mocked-HTTP gate: 266 tests in 51 files passed (fresh 2026-10-24 run: 53.61s, exit 0).
+- [x] Focused real Django/PostgreSQL Part 2 lifecycle: 1 passed (6.9m test, 7.3m overall, exit 0), including authoritative balances, immutable corrections, response-loss replay and two-user isolation.
+- [x] All 176 unique Part 2 desktop/mobile cases have passing evidence: 60 retained passes plus 116 resumed passes (9.9m, exit 0, no skips/flaky retries). Identity comparison confirms zero missing/extra cases. This is not a single uninterrupted clean run; the prior outage failure remains documented.
 - [x] Production build succeeds using the installed Node CLI with scoped runner permission.
 - [x] Existing dedicated development database approved by the owner and verified by a read-only connection; no separate staging database is required.
 - [x] Focused real development-database lifecycle verifies cookies, CSRF, sessions, ownership, logout and user switching; final browser regression is recorded in Part 1.
 - [x] Zero mock persistence or fake database engines present in source code.
 
-**Current decision:** **GO for the authorized development integration**. Part 1 is implemented and verified; its report records all final gates and earlier failures. Historical UI checklist entries are not integration claims for other modules or production certification. Part 2 needs separate authorization.
+**Current decision:** **GO — Part 2 IMPLEMENTED / VERIFIED for the approved development scope**, finalized 2026-10-24. The Part 2 report records real Django financial/security evidence, all 176 unique browser cases across saved/resumed runs, current automated gates and retained failures. Remote-write latency and intermittent service availability remain runtime risks, not resolved performance claims. Production certification remains NOT VERIFIED. Part 3 has not begun and requires separate authorization.

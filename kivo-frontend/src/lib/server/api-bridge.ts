@@ -7,7 +7,33 @@ const OPERATIONS: Record<string, readonly string[]> = {
   "/api/v1/auth/login/": ["POST"],
   "/api/v1/auth/logout/": ["POST"],
   "/api/v1/accounts/": ["GET", "POST"],
+  "/api/v1/categories/": ["GET", "POST"],
+  "/api/v1/categories/defaults/": ["POST"],
+  "/api/v1/transactions/": ["GET", "POST"],
 };
+
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const RESOURCE = new RegExp(`^/api/v1/(accounts|categories|transactions)/${UUID}/$`, "i");
+const ACTION = new RegExp(`^/api/v1/transactions/${UUID}/(reverse|void|correct)/$`, "i");
+const HISTORY_QUERY = new Set([
+  "page",
+  "period",
+  "date",
+  "date_from",
+  "date_to",
+  "amount_min",
+  "amount_max",
+  "account",
+  "destination",
+  "category",
+  "kind",
+  "contact",
+  "payment_method",
+  "merchant",
+  "search",
+  "sort",
+  "ordering",
+]);
 
 function failure(status: number, message: string): Response {
   return Response.json(
@@ -23,13 +49,23 @@ function failure(status: number, message: string): Response {
 export async function forwardDjango(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const path = `${url.pathname.replace(/\/$/, "")}/`;
-  const methods = OPERATIONS[path];
+  const resource = path.match(RESOURCE);
+  const methods =
+    OPERATIONS[path] ??
+    (resource
+      ? resource[1] === "transactions"
+        ? ["GET"]
+        : ["GET", "PATCH"]
+      : ACTION.test(path)
+        ? ["POST"]
+        : undefined);
   if (!methods) return failure(404, "API operation is not available in this integration.");
   if (!methods.includes(request.method)) return failure(405, "Method not allowed.");
   const headers = new Headers({ Accept: "application/json" });
   headers.set("Cookie", djangoCookies(request.headers.get("cookie")));
   let body: string | undefined;
-  if (request.method === "POST") {
+  if (request.method !== "GET") {
+    if (url.search) return failure(400, "Write queries are unsupported.");
     // Do not rewrite the browser's Origin to make an untrusted origin pass Django CSRF.
     if (
       request.headers.get("origin") !== url.origin ||
@@ -49,13 +85,21 @@ export async function forwardDjango(request: Request): Promise<Response> {
       const value = request.headers.get(key);
       if (value) headers.set(key, value);
     }
-  } else if (
-    url.search &&
-    (path !== "/api/v1/accounts/" ||
-      [...url.searchParams.keys()].some((key) => key !== "page") ||
-      !/^[1-9]\d*$/.test(url.searchParams.get("page") || ""))
-  ) {
-    return failure(400, "Unsupported query parameters.");
+  } else if (url.search) {
+    const allowed =
+      path === "/api/v1/transactions/"
+        ? HISTORY_QUERY
+        : ["/api/v1/accounts/", "/api/v1/categories/"].includes(path)
+          ? new Set(["page"])
+          : new Set();
+    if (
+      url.search.length > 4096 ||
+      [...url.searchParams.keys()].some(
+        (key) => !allowed.has(key) || url.searchParams.getAll(key).length !== 1
+      )
+    )
+      return failure(400, "Unsupported or repeated query parameters.");
+    // Django validates the actual financial filter values and owner scope.
   }
   try {
     const upstream = await fetch(`${djangoOrigin()}${path}${url.search}`, {
@@ -80,7 +124,7 @@ export async function forwardDjango(request: Request): Promise<Response> {
     if (upstream.status === 204)
       return new Response(null, { status: 204, headers: responseHeaders });
     if (!upstream.headers.get("content-type")?.includes("application/json")) {
-      return failure(502, "The authentication service returned an invalid response.");
+      return failure(502, "The service returned an invalid response.");
     }
     return new Response(await upstream.text(), {
       status: upstream.status,

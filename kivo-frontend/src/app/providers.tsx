@@ -41,7 +41,15 @@ export function Providers({ children }: ProvidersProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SessionBoundary>{children}</SessionBoundary>
+      <React.Suspense
+        fallback={
+          <main className="p-8 text-center" role="status">
+            Checking your session…
+          </main>
+        }
+      >
+        <SessionBoundary>{children}</SessionBoundary>
+      </React.Suspense>
       <Toaster position="top-right" richColors closeButton />
     </QueryClientProvider>
   );

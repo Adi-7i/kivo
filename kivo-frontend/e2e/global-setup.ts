@@ -78,6 +78,11 @@ export default async function setup() {
   }
   expect(body.balance).toBe("123.45");
   process.env.KIVO_E2E_ACCOUNT_A = body.id;
+  const history = await context.get(`${frontendOrigin}/api/v1/transactions/?account=${body.id}`);
+  expect(history.status()).toBe(200);
+  const opening = (await history.json()).results[0];
+  expect(opening.kind).toBe("opening");
+  process.env.KIVO_E2E_OPENING_EVENT = opening.id;
   await context.storageState({ path: ".playwright-auth/session.json" });
   await chmod(".playwright-auth/session.json", 0o600);
   await context.dispose();

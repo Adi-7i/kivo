@@ -24,7 +24,7 @@ describe("AccountCard component", () => {
     expect(screen.getByText("₹15,000.00")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /View activity/i })).toHaveAttribute(
       "href",
-      "/transactions?accountId=acc-1"
+      "/money/acc-1"
     );
   });
 

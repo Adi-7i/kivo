@@ -4,14 +4,11 @@ export interface CategoryEntity {
   slug?: string;
   icon?: string;
   color?: string;
-  isExpense: boolean;
+  isExpense?: boolean;
+  parent?: string | null;
+  archived?: boolean;
   isDefault?: boolean;
   createdAt?: string;
 }
 
-export interface CategoryFormData {
-  name: string;
-  color?: string;
-  icon?: string;
-  isExpense: boolean;
-}
+export type { CategoryFormData } from "../schemas/category.schema";

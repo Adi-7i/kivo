@@ -38,12 +38,14 @@ export function AccountCard({ account, onEdit, className }: AccountCardProps) {
     >
       <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full space-y-4">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div className="flex size-9 items-center justify-center rounded-lg bg-muted/80">
               {KIND_ICONS[account.kind]}
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-foreground leading-tight">{account.name}</h3>
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-foreground leading-tight break-all">
+                {account.name}
+              </h3>
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 Opened {account.openedOn ? formatDateDisplay(account.openedOn) : "Recently"}
               </p>
@@ -52,6 +54,7 @@ export function AccountCard({ account, onEdit, className }: AccountCardProps) {
 
           <Badge variant="outline" className="text-[10px] capitalize font-medium">
             {account.kind}
+            {account.archived ? " · Archived" : ""}
           </Badge>
         </div>
 
@@ -64,7 +67,8 @@ export function AccountCard({ account, onEdit, className }: AccountCardProps) {
 
         <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
           <Link
-            href={`/transactions?accountId=${account.id}`}
+            prefetch={false}
+            href={`/money/${account.id}`}
             className="inline-flex items-center gap-1 text-kivo-primary hover:text-kivo-secondary font-medium transition-colors"
           >
             <span>View activity</span>

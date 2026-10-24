@@ -19,16 +19,18 @@ export function TransactionListMobile({ transactions }: TransactionListMobilePro
 
         return (
           <Link
+            prefetch={false}
             key={tx.id}
             href={`/transactions/${tx.id}`}
             className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-card hover:bg-muted/30 transition-colors text-xs gap-3 group"
           >
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <TransactionTypeBadge kind={tx.kind} showIcon={false} />
-              <div className="space-y-0.5">
-                <p className="font-semibold text-foreground group-hover:text-kivo-primary transition-colors">
+              <div className="space-y-0.5 min-w-0 break-words">
+                <p className="font-semibold text-foreground group-hover:text-kivo-primary transition-colors [overflow-wrap:anywhere]">
                   {tx.title}
                 </p>
+                <p className="text-[10px] uppercase text-muted-foreground">{tx.status}</p>
                 <p className="text-[11px] text-muted-foreground">
                   {tx.accountName} {tx.categoryName ? `• ${tx.categoryName}` : ""} •{" "}
                   {formatDateDisplay(tx.effectiveDate)}
@@ -40,7 +42,6 @@ export function TransactionListMobile({ transactions }: TransactionListMobilePro
               <MoneyAmount
                 paise={tx.amountPaise}
                 variant={isExpense ? "expense" : isReceipt ? "income" : "transfer"}
-                showSign={isExpense || isReceipt}
                 size="sm"
                 tabular
               />

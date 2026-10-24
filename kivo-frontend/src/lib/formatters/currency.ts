@@ -17,7 +17,7 @@ function formatIndianNumber(num: number): string {
  * Strictly requires integer input — zero floating-point arithmetic allowed.
  */
 export function formatInr(paise: number, options: FormatInrOptions = {}): string {
-  if (typeof paise !== "number" || !Number.isInteger(paise) || isNaN(paise)) {
+  if (typeof paise !== "number" || !Number.isSafeInteger(paise)) {
     throw new TypeError("Paise must be an integer");
   }
 
@@ -87,7 +87,7 @@ export function parseDecimalStringToPaise(input: string): number {
  * Converts integer paise to exact 2-decimal string format (e.g. 123456 -> "1234.56").
  */
 export function paiseToDecimalString(paise: number): string {
-  if (typeof paise !== "number" || !Number.isInteger(paise) || isNaN(paise)) {
+  if (typeof paise !== "number" || !Number.isSafeInteger(paise)) {
     throw new TypeError("Paise must be an integer");
   }
 

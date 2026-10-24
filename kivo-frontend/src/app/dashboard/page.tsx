@@ -257,7 +257,6 @@ export default function DashboardPage() {
         open={isQuickAddOpen}
         onOpenChange={setIsQuickAddOpen}
         defaultType={quickAddType}
-        accounts={PREVIEW_ACCOUNTS}
       />
     </div>
   );

@@ -8,6 +8,7 @@ import { isProtectedPath, navigate } from "./navigation";
 import { KivoApiError } from "@/lib/api/errors";
 import { Button } from "@/components/ui/button";
 import { clearOnboardingAttempts } from "@/features/onboarding/attempt";
+import { clearFinancialAttempts } from "@/features/finance/recovery";
 
 export const SESSION_KEY = ["session"] as const;
 
@@ -110,6 +111,7 @@ export function SessionMenu() {
       await client.cancelQueries();
       client.clear();
       clearOnboardingAttempts();
+      clearFinancialAttempts();
       notifySessionChange();
       // A full navigation discards the Next.js router cache and all component state.
       navigate("/login");

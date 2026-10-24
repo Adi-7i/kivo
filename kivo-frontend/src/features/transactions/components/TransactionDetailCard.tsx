@@ -7,7 +7,8 @@ import { TransactionTypeBadge } from "@/features/shared-financial/TransactionTyp
 import { MoneyAmount } from "@/features/shared-financial/MoneyAmount";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { IntegrationPendingBadge } from "@/components/shared/IntegrationPendingBadge";
+import { decimalPaise } from "@/features/finance/api";
+import { usePendingFinancialWrite } from "@/features/finance/useFinancialWrite";
 import { formatDateDisplay } from "@/lib/formatters/date";
 import type { TransactionEntity } from "../types";
 import {
@@ -30,8 +31,8 @@ interface TransactionDetailCardProps {
 }
 
 export function TransactionDetailCard({ transaction }: TransactionDetailCardProps) {
-  const [reversalAttempted, setReversalAttempted] = React.useState(false);
   const [actionModalOpen, setActionModalOpen] = React.useState(false);
+  const pendingWrite = usePendingFinancialWrite(`transaction:${transaction.id}:action`);
 
   const isExpense = transaction.kind === "expense";
   const isReceipt = transaction.kind === "receipt";
@@ -41,6 +42,7 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
       {/* Top back navigation */}
       <div className="flex items-center justify-between">
         <Link
+          prefetch={false}
           href="/transactions"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -56,19 +58,12 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
         </Badge>
       </div>
 
-      {reversalAttempted && (
-        <IntegrationPendingBadge
-          variant="banner"
-          message="Backend integration pending: Transaction corrections and ledger reversals will execute against the Django API in subsequent phases. No ledger mutations occurred."
-        />
-      )}
-
       {/* Primary Overview Card */}
       <Card className="border-border shadow-xs bg-card">
         <CardHeader className="pb-4 border-b border-border/60">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="space-y-1">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 break-all">
                 <TransactionTypeBadge kind={transaction.kind} />
                 <span className="text-xs text-muted-foreground">Ref #{transaction.id}</span>
               </div>
@@ -84,7 +79,6 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
               <MoneyAmount
                 paise={transaction.amountPaise}
                 variant={isExpense ? "expense" : isReceipt ? "income" : "transfer"}
-                showSign={isExpense || isReceipt}
                 size="2xl"
                 tabular
               />
@@ -176,48 +170,49 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
             </p>
 
             <div className="divide-y divide-border/60">
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <span className="font-semibold text-foreground">{transaction.accountName}</span>
-                  <span className="text-muted-foreground block text-[10px]">
-                    Leg 1: Asset Balance Adjustment
-                  </span>
+              {transaction.raw?.financial_effects.map((leg, index) => (
+                <div key={index} className="flex items-center justify-between gap-3 py-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold capitalize">{leg.book}</p>
+                    <p className="text-muted-foreground text-[10px] break-all">
+                      {leg.account || leg.claim || "Ledger counterparty"}
+                    </p>
+                  </div>
+                  <MoneyAmount paise={decimalPaise(leg.amount)} size="xs" />
                 </div>
-                <div className="text-right">
-                  <Badge variant="outline" className="text-[10px] font-bold">
-                    {isExpense ? "CREDIT" : "DEBIT"}
-                  </Badge>
-                  <MoneyAmount
-                    paise={transaction.amountPaise}
-                    size="xs"
-                    className="block font-tabular mt-0.5"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <span className="font-semibold text-foreground">
-                    {transaction.destinationName ||
-                      transaction.categoryName ||
-                      "Equity Counterparty"}
-                  </span>
-                  <span className="text-muted-foreground block text-[10px]">
-                    Leg 2: Balancing Ledger Leg
-                  </span>
-                </div>
-                <div className="text-right">
-                  <Badge variant="outline" className="text-[10px] font-bold">
-                    {isExpense ? "DEBIT" : "CREDIT"}
-                  </Badge>
-                  <MoneyAmount
-                    paise={transaction.amountPaise}
-                    size="xs"
-                    className="block font-tabular mt-0.5"
-                  />
-                </div>
-              </div>
+              ))}
             </div>
+            {transaction.raw?.funding_source && (
+              <p>Funding source: {transaction.raw.funding_source}</p>
+            )}
+            {transaction.raw?.reason && <p>Audit reason: {transaction.raw.reason}</p>}
+            {transaction.raw?.reversed_by && (
+              <Link
+                prefetch={false}
+                className="block text-kivo-primary break-all"
+                href={`/transactions/${transaction.raw.reversed_by}`}
+              >
+                View linked reversal
+              </Link>
+            )}
+            {transaction.raw?.supersedes && (
+              <Link
+                prefetch={false}
+                className="block text-kivo-primary"
+                href={`/transactions/${transaction.raw.supersedes}`}
+              >
+                View original corrected entry
+              </Link>
+            )}
+            {transaction.raw?.reverses && (
+              <Link
+                prefetch={false}
+                className="block text-kivo-primary"
+                href={`/transactions/${transaction.raw.reverses}`}
+              >
+                View reversed original
+              </Link>
+            )}
           </div>
 
           {/* Audit & Correction Actions */}
@@ -232,13 +227,22 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
               variant="outline"
               size="sm"
               onClick={() => {
-                setReversalAttempted(true);
                 setActionModalOpen(true);
               }}
+              disabled={
+                !pendingWrite &&
+                (!transaction.raw ||
+                  transaction.status !== "posted" ||
+                  !["opening", "receipt", "expense", "transfer", "refund"].includes(
+                    transaction.kind
+                  ))
+              }
               className="gap-1.5 text-xs border-destructive/30 text-destructive hover:bg-destructive/10"
             >
               <RotateCcw className="size-3.5" />
-              <span>Record Reversal / Correction</span>
+              <span>
+                {pendingWrite ? "Resolve pending request" : "Record Reversal / Correction"}
+              </span>
             </Button>
           </div>
         </CardContent>

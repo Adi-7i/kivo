@@ -45,7 +45,7 @@ describe("same-origin API bridge (mocked upstream HTTP)", () => {
   });
   it("exposes no unapproved financial API operation", async () => {
     expect(
-      (await forwardDjango(new Request("http://localhost:3000/api/v1/transactions/"))).status
+      (await forwardDjango(new Request("http://localhost:3000/api/v1/dashboard/"))).status
     ).toBe(404);
     expect(fetch).not.toHaveBeenCalled();
   });
@@ -55,6 +55,49 @@ describe("same-origin API bridge (mocked upstream HTTP)", () => {
     expect(response.status).toBe(503);
     expect(JSON.stringify(await response.json())).not.toContain("sensitive diagnostic");
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it.each([
+    "/accounts/00000000-0000-4000-8000-000000000001/",
+    "/categories/00000000-0000-4000-8000-000000000001/",
+  ])("forwards CSRF-protected metadata PATCH %s", async (path) => {
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ id: "owned" }));
+    const response = await forwardDjango(
+      new Request(`http://localhost:3000/api/v1${path}`, {
+        method: "PATCH",
+        body: '{"name":"Updated"}',
+        headers: {
+          Origin: "http://localhost:3000",
+          "Content-Type": "application/json",
+          "X-CSRFToken": "csrf",
+        },
+      })
+    );
+    expect(response.status).toBe(200);
+    expect(vi.mocked(fetch).mock.calls[0][1]?.method).toBe("PATCH");
+  });
+  it.each(["page=1&page=2", "unknown=true"])(
+    "rejects unsupported/repeated history queries %s",
+    async (query) => {
+      expect(
+        (await forwardDjango(new Request(`http://localhost:3000/api/v1/transactions/?${query}`)))
+          .status
+      ).toBe(400);
+      expect(fetch).not.toHaveBeenCalled();
+    }
+  );
+  it("preserves financial filter values for Django validation and never permits event PATCH/DELETE", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ count: 0, results: [] }));
+    expect(
+      (
+        await forwardDjango(
+          new Request("http://localhost:3000/api/v1/transactions/?sort=highest&amount_min=0.29")
+        )
+      ).status
+    ).toBe(200);
+    expect(vi.mocked(fetch).mock.calls[0][0]).toContain("amount_min=0.29");
+    const path = "http://localhost:3000/api/v1/transactions/00000000-0000-4000-8000-000000000001/";
+    expect((await forwardDjango(new Request(path, { method: "PATCH" }))).status).toBe(405);
+    expect((await forwardDjango(new Request(path, { method: "DELETE" }))).status).toBe(405);
   });
   it("never relays a debug HTML response to the browser", async () => {
     vi.mocked(fetch).mockResolvedValue(

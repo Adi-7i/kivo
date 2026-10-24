@@ -44,6 +44,7 @@ describe("receiptSchema", () => {
     const valid = {
       amount: "50000",
       title: "Client Retainer",
+      fundingSource: "Client",
       accountId: "acc-bank-1",
       effectiveDate: "2026-10-17",
     };

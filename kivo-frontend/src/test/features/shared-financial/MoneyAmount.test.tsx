@@ -27,4 +27,12 @@ describe("MoneyAmount component", () => {
     render(<MoneyAmount paise={7500} showSymbol={false} />);
     expect(screen.getByText("75.00")).toBeInTheDocument();
   });
+  it.each([12.5, Number.NaN, Number.MAX_SAFE_INTEGER + 1])(
+    "never rounds or fabricates a zero for invalid paise (%s)",
+    (paise) => {
+      render(<MoneyAmount paise={paise} />);
+      expect(screen.getByText("Amount unavailable")).toBeInTheDocument();
+      expect(screen.queryByText("₹0.00")).not.toBeInTheDocument();
+    }
+  );
 });

@@ -2,10 +2,10 @@
 
 **Document Reference:** `docs/audits/backend-api-frontend-coverage.md`  
 **Phase:** Kivo Frontend Phase 7 (Audit, UI Completion & Backend Coverage Review)  
-**Status:** ROUTE INVENTORY VERIFIED; PART 1 IMPLEMENTED (2026-10-22)
+**Status:** ROUTE INVENTORY VERIFIED; PARTS 1–2 VERIFIED FOR DEVELOPMENT (2026-10-24)
 **Auditor:** Principal Next.js Architect & Django API Contract Auditor  
 **Date:** October 2026  
-**Backend Mode:** READ-ONLY (Zero mutations, zero database modifications)
+**Backend Mode:** Source unchanged; identifiable workflow mutations authorized in the existing development database only.
 
 ---
 
@@ -43,22 +43,22 @@ The matrix records route-to-UI mappings, with the current limitations above. Pha
 | **Auth** | `POST /api/v1/auth/login/` | User authentication | `/login` (`LoginForm.tsx`) | IMPLEMENTED | Django sessions/CSRF; safe account-state routing | P0 |
 | **Auth** | `POST /api/v1/auth/logout/` | Terminate session | `SessionMenu` in app header | IMPLEMENTED | Confirmed logout, private cache reset and full login navigation | P0 |
 | **Auth** | `GET /api/v1/auth/me/` | Current user profile | `/settings/profile`, session boundary/server proxy | IMPLEMENTED | Real id/email/name/date_joined; updates/preferences unsupported | P1 |
-| **Accounts** | `GET /api/v1/accounts/` | List user accounts | `/money` (`AccountList.tsx`) | FULL | Cards render liquid balances in paise | P0 |
-| **Accounts** | `POST /api/v1/accounts/` | Create account + opening leg | `/onboarding`; general `/money` UI still pending | IMPLEMENTED (ONBOARDING ONLY) | Exact INR string, original-key recovery, no automatic POST retry | P0 |
-| **Accounts** | `GET /api/v1/accounts/{id}/` | Account detail | `/money` (`AccountCard.tsx`) | FULL | Visual breakdown of balance & status | P1 |
-| **Accounts** | `PATCH /api/v1/accounts/{id}/` | Update account | `/money` (`AccountFormModal.tsx`) | FULL | Supports name and archived only; color/icon unsupported | P1 |
-| **Accounts** | `GET /api/v1/accounts/summary/` | Liquid total & stats | `/dashboard`, `/money` summary cards | FULL | Aggregates liquid vs illiquid | P0 |
-| **Categories** | `GET /api/v1/categories/` | List categories | `/settings/categories` (`CategoryList.tsx`) | FULL | Implemented in Phase 7 | P1 |
-| **Categories** | `GET /api/v1/categories/{id}/` | Category detail | `/settings/categories` | PENDING | Route verified in Part 0; missing from the original inventory | P1 |
-| **Categories** | `POST /api/v1/categories/` | Create category | `/settings/categories` (`CategoryModal.tsx`) | FULL | Implemented in Phase 7 | P1 |
-| **Categories** | `PATCH /api/v1/categories/{id}/` | Edit category | `/settings/categories` (`CategoryModal.tsx`) | FULL | Implemented in Phase 7 | P1 |
-| **Categories** | `POST /api/v1/categories/defaults/` | Seed system defaults | `/settings/categories` (`CategorySeedBanner.tsx`) | FULL | Implemented in Phase 7 | P1 |
-| **Transactions** | `GET /api/v1/transactions/` | Paginated ledger history | `/transactions` (`TransactionTable.tsx`) | FULL | 15+ filter params matching DRF backend | P0 |
-| **Transactions** | `POST /api/v1/transactions/` | Post financial event | `QuickAddModal.tsx` | FULL | Header: `Idempotency-Key`, receipts, expenses, transfers | P0 |
-| **Transactions** | `GET /api/v1/transactions/{id}/` | Retrieve transaction | `/transactions/[id]` (`TransactionDetailCard.tsx`) | FULL | Full double-entry debit/credit postings | P0 |
-| **Transactions** | `POST /api/v1/transactions/{id}/reverse/` | Execute ledger reversal | `TransactionActionModal.tsx` | FULL | Implemented in Phase 7 (requires reason) | P0 |
-| **Transactions** | `POST /api/v1/transactions/{id}/void/` | Void unposted event | `TransactionActionModal.tsx` | FULL | Implemented in Phase 7 (requires reason) | P1 |
-| **Transactions** | `POST /api/v1/transactions/{id}/correct/` | Correct transaction | `TransactionActionModal.tsx` | FULL | Implemented in Phase 7 (audit notes) | P1 |
+| **Accounts** | `GET /api/v1/accounts/` | List owned accounts | `/money` | IMPLEMENTED | All pages; authoritative balance strings converted exactly for display | P0 |
+| **Accounts** | `POST /api/v1/accounts/` | Create account + opening equity | `/onboarding`, `/money` | IMPLEMENTED | Exact INR; persistent original key/body; no automatic retry | P0 |
+| **Accounts** | `GET /api/v1/accounts/{id}/` | Account detail | `/money/[id]` | IMPLEMENTED | Owned balance, opening funds, archive state and linked history | P1 |
+| **Accounts** | `PATCH /api/v1/accounts/{id}/` | Account metadata | `AccountFormModal` | IMPLEMENTED | Name/archive only; nonzero archive rejected by Django | P1 |
+| **Accounts** | `GET /api/v1/accounts/summary/` | Liquid funds, personal expense, external receipts | Future Part 3 | PENDING | Not exposed through BFF; direct read-only test oracle only | P0 |
+| **Categories** | `GET /api/v1/categories/` | List owned categories | Settings, Quick Add, history | IMPLEMENTED | All pages; UUID selection; archived options excluded from new writes | P1 |
+| **Categories** | `GET /api/v1/categories/{id}/` | Category detail | BFF transport and verification | IMPLEMENTED (TRANSPORT) | UI edits from list data; no separate category detail page | P1 |
+| **Categories** | `POST /api/v1/categories/` | Create category | `CategoryModal` | IMPLEMENTED | Name/parent/archive; no invented color or income classification | P1 |
+| **Categories** | `PATCH /api/v1/categories/{id}/` | Edit/archive category | `CategoryModal` | IMPLEMENTED | Django enforces duplicate, hierarchy and active-child rules | P1 |
+| **Categories** | `POST /api/v1/categories/defaults/` | Initialize missing defaults | `CategorySeedBanner` | IMPLEMENTED | Explicit action; server get-or-create prevents duplicate initialization | P1 |
+| **Transactions** | `GET /api/v1/transactions/` | Server-filtered history | `/transactions` | IMPLEMENTED | Real 20-row pagination, search, kinds, owned accounts/categories, Kolkata presets/custom dates, sorting | P0 |
+| **Transactions** | `POST /api/v1/transactions/` | Record receipt/expense/transfer | `QuickAddModal` | IMPLEMENTED | Exact INR strings, actual UUIDs, external funding source, durable original-key recovery | P0 |
+| **Transactions** | `GET /api/v1/transactions/{id}/` | Immutable event detail | `/transactions/[id]` | IMPLEMENTED | Actual signed financial_effects and audit links; no fabricated legs | P0 |
+| **Transactions** | `POST /api/v1/transactions/{id}/reverse/` | Audited mirror reversal | `TransactionActionModal` | IMPLEMENTED | Required reason/key; original history retained | P0 |
+| **Transactions** | `POST /api/v1/transactions/{id}/void/` | Audited void via reversal | `TransactionActionModal` | IMPLEMENTED | Posted originals become voided; not deletion or an unposted-only operation | P1 |
+| **Transactions** | `POST /api/v1/transactions/{id}/correct/` | Atomic reversal and replacement | `TransactionActionModal` | IMPLEMENTED | Full verified payload; UI edits amount/date/title/merchant/notes, preserving kind/accounts/category/references | P1 |
 | **Funds** | `GET /api/v1/funds/summary/` | Attribution summary | `/money/sources` (`FundOverviewCard.tsx`) | FULL | Capacity, allocated, unfunded gaps | P1 |
 | **Funds** | `GET /api/v1/funds/batches/` | List funding sources | `/money/sources` (`FundingSourceList.tsx`) | FULL | Filterable by status and account | P1 |
 | **Funds** | `GET /api/v1/funds/batches/{id}/` | Batch detail | `/money/sources/[id]` | FULL | Initial amount vs remaining capacity | P1 |
@@ -145,14 +145,14 @@ The matrix records route-to-UI mappings, with the current limitations above. Pha
 
 ### C. Verified Contract Limits
 
-- Resolver/schema inventory agrees on 68 paths / 84 operations. Real development-target auth/onboarding behavior is verified in the linked Part 1 report; other module integrations remain deferred.
+- Resolver/schema inventory agrees on 68 paths / 84 operations. Part 1 auth/onboarding is verified; Part 2 accounts/categories/core transactions are implemented with current evidence in the Part 2 report. Later modules remain deferred.
 - Profile/preference updates and an onboarding-completion field are absent.
 - Account updates support name/archive only. Category input supports name/parent/archive, not the preview color field.
 - Account creation accepts `name`, `kind`, `opened_on` and optional `opening_balance` as an exact two-place INR string. An identical idempotent replay returns HTTP 200 plus the account object, without a `replayed` property.
 - Direct cross-origin browser requests are unsupported by the current backend CORS configuration. Same-origin ingress/proxy must preserve Django's CSRF and session enforcement.
 
 ### D. Unsupported UI Features (None Fabricated)
-- The frontend does NOT claim live financial mutation, persistent background polling, or bank synchronization. All mutation buttons display transparent integration notices.
+- Part 2 enables actual scoped account/category/core-transaction mutations. Persistent background polling and bank synchronization remain unsupported. Later-domain workflows retain transparent integration notices; historical FULL labels describe UI only.
 
 ---
 
@@ -169,5 +169,5 @@ When authorized to begin backend API integration, the following requirements mus
 
 ## 5. Conclusion & Status
 
-**Route inventory: VERIFIED (68 paths / 84 operations). Part 1: IMPLEMENTED.**
-The linked Part 1 report distinguishes real Django/browser evidence from mocked unit/component tests and records final gates. Only the approved development target and Part 1 scope are authorized; other financial integrations remain deferred.
+**Route inventory: VERIFIED (68 paths / 84 operations). Part 1: VERIFIED. Part 2: IMPLEMENTED.** See the [Part 2 evidence and limits](../integration/part-02-core-transactions-verification.md) for current live verification. Accounts, categories and core transactions are no longer preview-only; historical FULL labels for later modules do not establish live API integration. Dashboard metrics and Fund Journey remain pending; Part 3 has not begun.
+The linked reports distinguish real Django/browser evidence from mocked unit/component tests and record verification gates. Only the approved development target and Parts 1–2 are authorized; Dashboard/Fund Journey and other later financial integrations remain deferred.
