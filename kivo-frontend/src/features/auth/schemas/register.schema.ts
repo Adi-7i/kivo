@@ -6,17 +6,17 @@ export const registerSchema = z
       .string()
       .trim()
       .min(2, "Full name must be at least 2 characters")
-      .max(100, "Full name cannot exceed 100 characters"),
+      .max(150, "Full name cannot exceed 150 characters"),
     email: z
       .string()
       .trim()
       .min(1, "Email address is required")
-      .email("Please enter a valid email address"),
+      .email("Please enter a valid email address")
+      .max(255, "Email cannot exceed 255 characters"),
     password: z
       .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[0-9]/, "Password must contain at least one number")
-      .regex(/[a-zA-Z]/, "Password must contain at least one letter"),
+      .min(10, "Password must be at least 10 characters")
+      .refine((value) => !/^\d+$/.test(value), "Password cannot be entirely numeric"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -36,18 +36,13 @@ export function checkPasswordCriteria(password: string): PasswordCriterion[] {
   return [
     {
       id: "min-length",
-      label: "At least 8 characters",
-      met: password.length >= 8,
+      label: "At least 10 characters",
+      met: password.length >= 10,
     },
     {
-      id: "has-letter",
-      label: "Contains at least one letter",
-      met: /[a-zA-Z]/.test(password),
-    },
-    {
-      id: "has-number",
-      label: "Contains at least one number",
-      met: /[0-9]/.test(password),
+      id: "not-numeric",
+      label: "Not entirely numeric",
+      met: password.length > 0 && !/^\d+$/.test(password),
     },
   ];
 }

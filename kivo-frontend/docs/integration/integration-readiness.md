@@ -1,8 +1,10 @@
 # Integration Readiness Checklist & Roadmap
 
+Current recovery: the existing development database remains owner-approved; Part 0 is **GO** and Part 1 is **VERIFIED**. Accounts, categories and core transactions are **IMPLEMENTED / VERIFIED for the approved Part 2 development scope**. All 176 unique browser cases have passing evidence across retained and resumed runs; earlier outages remain documented. See the [Part 1 report](../../../docs/integration/part-01-auth-onboarding-verification.md) for the retained authentication checkpoint.
+
 **Document Reference:** `docs/integration/integration-readiness.md`  
 **Phase:** Kivo Frontend Phase 7 (Final Verification, UI Completion & Backend Coverage Review)  
-**Status:** READY FOR FUTURE INTEGRATION (FRONTEND UI VERIFIED)  
+**Status:** PARTS 1–2 VERIFIED FOR DEVELOPMENT — PRODUCTION NOT CERTIFIED
 **Author:** Principal Next.js Architect & Quality Engineering Lead  
 **Date:** October 2026
 
@@ -12,16 +14,20 @@
 
 This document establishes the official readiness criteria, architectural prerequisites, data conventions, and sequential execution order for connecting the Kivo Next.js frontend to the remote Django REST Framework backend.
 
-All frontend user interfaces (Phases 1 through 7) are **100% complete, fully audited, responsive, accessible, and verified by 200 Vitest tests and 190 Playwright E2E tests**.
+Phase 7 historically reported 200 Vitest passes, 190 Playwright passes and a successful build. The 2026-10-22 baseline reproduced 200 Vitest passes and a successful typecheck; lint passed with three existing warnings. Build and Playwright execution failed in this runner. Historical UI results do not establish integration readiness.
+
+The [Part 0 safety audit](../../../docs/integration/part-00-safety-audit.md) preserves the original NO-GO and appends the superseding owner decision: existing `postgres` is dedicated to development and approved for identifiable integration records. Its read-only connectivity check passed; a separate staging database is not required. Scoped Node build/browser execution now works.
 
 > [!IMPORTANT]
-> **Definitive Boundary**: No backend connections or live API requests exist in the current frontend code. This document outlines the roadmap for the **subsequent separately authorized integration stage**.
+> **Current boundary**: Authentication, profile, onboarding, accounts, categories, Quick Add, history and audited corrections use Django APIs. Dashboard metrics, Fund Journey and other later modules remain preview/pending. Part 3 has not begun.
+
+Current Part 2 results and runtime recovery limits are recorded in the [core transactions verification report](../../../docs/integration/part-02-core-transactions-verification.md); implementation is distinct from the final live verification status.
 
 ---
 
 ## 2. Readiness by Frontend Module
 
-| Module | Route(s) | UI Components & Forms | Client Validation Schema | Backend Endpoints Target | Integration Status |
+| Module | Route(s) | UI Components & Forms | Client Validation Schema | Backend Endpoints Target | Historical UI Status |
 |---|---|---|---|---|---|
 | **Auth & Onboarding** | `/login`, `/register`, `/onboarding` | `LoginForm`, `RegisterForm`, `OnboardingShell` | `loginSchema`, `registerSchema`, `accountSchema` | `/api/v1/auth/*` | READY |
 | **Profile & Settings** | `/settings/profile`, `/settings/categories` | `ProfilePage`, `CategoryList`, `CategoryModal` | `categorySchema` | `/api/v1/auth/me/`, `/api/v1/categories/*` | READY |
@@ -40,7 +46,7 @@ All frontend user interfaces (Phases 1 through 7) are **100% complete, fully aud
 ## 3. Core Architectural Decisions for Integration
 
 ### A. Session Authentication & CSRF Bootstrap
-1. **Cookie-Based Sessions**: The Django backend relies on secure `sessionid` and `csrftoken` cookies.
+1. **Cookie-Based Sessions**: Django is the sole authentication authority, using `sessionid` (HttpOnly) and readable `csrftoken` cookies. Secure flags are enabled by production settings; active development flags are false. Current backend has no CORS middleware: use verified same-origin ingress/proxy routing, not an assumed direct cross-origin connection.
 2. **Bootstrap Flow**:
    - Web client makes initial call to `GET /api/v1/auth/csrf/` on app initialization.
    - Django responds with `200 OK` and sets the `csrftoken` cookie.
@@ -48,26 +54,30 @@ All frontend user interfaces (Phases 1 through 7) are **100% complete, fully aud
 3. **Session Lifecycle**:
    - `POST /api/v1/auth/login/` rotates session keys internally to prevent session fixation.
    - `POST /api/v1/auth/logout/` invalidates the active session and flushes cookies.
+   - Registration returns a profile with 201 and does not log in. Login requires a subsequent explicit request. Registration/login need CSRF even anonymously; login rotates CSRF state too.
+   - `GET /api/v1/auth/me/` returns only `id`, `email`, `name`, `date_joined`. Profile/preference updates and an onboarding-completion flag are unsupported.
+   - Errors are nested under `error.details` (or `error.message` for server errors); Part 1 now normalizes those envelopes and maps supported fields.
 
 ### B. Durable Idempotency Keys (`Idempotency-Key`)
-1. **Financial Write Invariant**: Every financial mutation endpoint requires an `Idempotency-Key` header (1–128 characters, UUIDv4 recommended).
+1. **Account Creation**: `POST /api/v1/accounts/` requires an owner-scoped `Idempotency-Key` (1–128 characters). Determine requirements per operation; not all metadata updates accept/require this header.
 2. **Network Retry Semantics**:
-   - If a request times out or receives a `500` / `503` status, client **must retry with the identical key and payload**.
-   - If a request is received with an existing key and matching payload, Django returns the cached response with `status: 200` (`replayed: true`).
+   - After a timeout or `500` / `503`, reconcile the account state before a deliberate retry. Preserve the original key and identical payload. Never automatically retry an ambiguous account-creation POST.
+   - An existing key with matching payload returns the account again with HTTP 200. There is no `replayed: true` response field.
    - If a request is received with an existing key but differing payload, Django returns `409 Conflict`.
 
 ### C. Exact Integer Arithmetic (Paise)
-1. **Zero Floating Point Rule**: Monetary amounts in the API are represented in integer paise ($1\text{ INR} = 100\text{ paise}$).
+1. **Zero Floating Point Rule**: The database/services use integer paise; the HTTP API accepts and returns exact decimal INR **strings with two decimal places**, e.g. `"1450.75"`. It rejects monetary JSON numbers.
 2. **Frontend Responsibility**:
    - The UI accepts standard decimal inputs from users (e.g. `1450.75`).
-   - Before dispatching the JSON payload, the frontend converts the input to integer paise using `decimalStringToPaise("1450.75") -> 145075`.
-   - Incoming amounts from backend responses are formatted using `formatPaise(145075) -> "₹1,450.75"`.
+   - Normalize validated decimal text without floating-point arithmetic before dispatch. Account input uses `name`, `kind`, `opened_on`, `opening_balance: "1450.75"`.
+   - Preserve exactness when formatting responses. Part 1 removes onboarding `parseFloat` conversion, validates real dates and normalizes exact decimal strings.
+   - Opening balance is opening equity, never an artificial income transaction.
 
 ---
 
 ## 4. Recommended Sequential Integration Order
 
-To minimize integration risk and preserve data integrity, the integration stage should follow these 6 sequential steps:
+The diagram below is a historical roadmap, not blanket authorization. The current request explicitly authorizes Part 2 after its Part 1 gate. Dashboard metrics and Fund Journey remain deferred to a separately authorized Part 3.
 
 ```mermaid
 graph TD
@@ -120,7 +130,7 @@ graph TD
 ## 5. Critical End-to-End User Journeys for Integration Testing
 
 1. **User Onboarding & First Account**:
-   - Register -> Obtain CSRF -> Login -> Create first Bank Account with Opening Balance -> Arrive at Dashboard.
+   - Obtain CSRF -> Register -> Login -> Use rotated CSRF -> Create first account with exact opening-balance string -> Arrive at the existing dashboard.
 2. **Daily Expense & Inflow Journey**:
    - Quick Add Expense -> Validate integer paise debit -> Check updated Account Balance -> Verify FIFO Funding Source Attribution.
 3. **Friend Lending & Settlement Journey**:
@@ -136,15 +146,22 @@ graph TD
 
 ## 6. Readiness Verification Checklist
 
-- [x] All 52 backend endpoints cataloged and mapped to UI screens.
+UI/layout/accessibility entries retain the historical Phase 7 assessment. Only the current command results and contract inventory were reverified in Part 0.
+
+- [x] Actual resolver and regenerated OpenAPI cross-check: 68 paths, 84 operations. The previous 52-endpoint claim was incorrect; category-detail GET was omitted from the original table.
 - [x] Zod v4 validation schemas written for all user-input forms.
-- [x] React Hook Form controllers configured with decimal-to-paise sanitization.
+- [x] Part 1 aligns form validation, exact decimal-string transport and nested error handling with the actual backend.
 - [x] Empty, loading skeleton, and error boundary states implemented on all routes.
 - [x] Responsive layout verified at 375px, 768px, and 1440px.
 - [x] WCAG 2.2 AA accessibility (colors, labels, focus rings, ARIA roles) verified.
-- [x] 200 Vitest component tests passing.
-- [x] 190 Playwright E2E tests passing.
-- [x] Production bundle successfully builds with Turbopack (43 static routes).
+- [x] Retained Part 1 unit/component/mocked-HTTP checkpoint: 236 tests in 48 files passed.
+- [x] Retained Part 1 real-session Playwright checkpoint: 175/175 passed, no failures/skips, 7.9m. Obsolete preview-only auth cases were replaced with actual integration behavior.
+- [x] Current Part 2 unit/component/mocked-HTTP gate: 266 tests in 51 files passed (fresh 2026-10-24 run: 53.61s, exit 0).
+- [x] Focused real Django/PostgreSQL Part 2 lifecycle: 1 passed (6.9m test, 7.3m overall, exit 0), including authoritative balances, immutable corrections, response-loss replay and two-user isolation.
+- [x] All 176 unique Part 2 desktop/mobile cases have passing evidence: 60 retained passes plus 116 resumed passes (9.9m, exit 0, no skips/flaky retries). Identity comparison confirms zero missing/extra cases. This is not a single uninterrupted clean run; the prior outage failure remains documented.
+- [x] Production build succeeds using the installed Node CLI with scoped runner permission.
+- [x] Existing dedicated development database approved by the owner and verified by a read-only connection; no separate staging database is required.
+- [x] Focused real development-database lifecycle verifies cookies, CSRF, sessions, ownership, logout and user switching; final browser regression is recorded in Part 1.
 - [x] Zero mock persistence or fake database engines present in source code.
 
-**Conclusion:** Kivo frontend UI is **100% verified** and ready for authorized backend integration.
+**Current decision:** **GO — Part 2 IMPLEMENTED / VERIFIED for the approved development scope**, finalized 2026-10-24. The Part 2 report records real Django financial/security evidence, all 176 unique browser cases across saved/resumed runs, current automated gates and retained failures. Remote-write latency and intermittent service availability remain runtime risks, not resolved performance claims. Production certification remains NOT VERIFIED. Part 3 has not begun and requires separate authorization.

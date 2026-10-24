@@ -17,12 +17,14 @@ interface TransactionTypeBadgeProps {
   showIcon?: boolean;
 }
 
-const badgeConfig: Record<
-  TransactionKind,
-  {
-    icon: React.ReactNode;
-    classes: string;
-  }
+const badgeConfig: Partial<
+  Record<
+    TransactionKind,
+    {
+      icon: React.ReactNode;
+      classes: string;
+    }
+  >
 > = {
   expense: {
     icon: <ArrowUpRight className="size-3 text-finance-expense shrink-0" />,
@@ -55,7 +57,7 @@ export function TransactionTypeBadge({
   className,
   showIcon = true,
 }: TransactionTypeBadgeProps) {
-  const config = badgeConfig[kind] || badgeConfig.expense;
+  const config = badgeConfig[kind] || badgeConfig.reversal!;
   const label = TRANSACTION_KIND_LABELS[kind] || kind;
 
   return (

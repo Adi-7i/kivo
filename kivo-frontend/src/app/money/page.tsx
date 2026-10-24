@@ -8,55 +8,20 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/features/shared-financial/SectionHeader";
 import { AccountList } from "@/features/accounts/components/AccountList";
 import { AccountFormModal } from "@/features/accounts/components/AccountFormModal";
-import { MoneyAmount } from "@/features/shared-financial/MoneyAmount";
+import { useAccounts } from "@/features/finance/queries";
+import { accountEntity } from "@/features/finance/api";
+import { QueryState } from "@/features/finance/QueryState";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Plus, Info, Building2, Banknote, Wallet, Layers, Landmark } from "lucide-react";
 import type { AccountEntity, AccountKind } from "@/features/accounts/types";
 
-// Default proposal accounts for design presentation prior to Django integration
-const PREVIEW_ACCOUNTS: AccountEntity[] = [
-  {
-    id: "acc-bank-1",
-    name: "HDFC Salary Account",
-    kind: "bank",
-    balancePaise: 4850000, // ₹48,500.00
-    openingBalancePaise: 2500000,
-    openedOn: "2026-01-10",
-    archived: false,
-    createdAt: "2026-01-10T10:00:00Z",
-  },
-  {
-    id: "acc-cash-1",
-    name: "Physical Cash Stash",
-    kind: "cash",
-    balancePaise: 350000, // ₹3,500.00
-    openingBalancePaise: 500000,
-    openedOn: "2026-01-10",
-    archived: false,
-    createdAt: "2026-01-10T10:05:00Z",
-  },
-  {
-    id: "acc-wallet-1",
-    name: "Amazon Pay Wallet",
-    kind: "wallet",
-    balancePaise: 125000, // ₹1,250.00
-    openingBalancePaise: 0,
-    openedOn: "2026-02-01",
-    archived: false,
-    createdAt: "2026-02-01T12:00:00Z",
-  },
-];
-
 export default function MoneyAccountsPage() {
-  const [accounts] = React.useState<AccountEntity[]>(PREVIEW_ACCOUNTS);
+  const query = useAccounts();
+  const accounts = (query.data ?? []).map(accountEntity);
   const [filterKind, setFilterKind] = React.useState<AccountKind | "all">("all");
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [editingAccount, setEditingAccount] = React.useState<AccountEntity | null>(null);
-
-  const totalLiquidPaise = React.useMemo(() => {
-    return accounts.reduce((acc, curr) => acc + curr.balancePaise, 0);
-  }, [accounts]);
 
   const handleOpenAdd = () => {
     setEditingAccount(null);
@@ -79,12 +44,11 @@ export default function MoneyAccountsPage() {
           <Alert className="border-amber-600/30 bg-amber-500/10 text-foreground">
             <Info className="size-4 text-amber-700 dark:text-amber-400" />
             <AlertTitle className="font-semibold text-amber-900 dark:text-amber-200">
-              Money Accounts UI Architecture
+              Authoritative Money Accounts
             </AlertTitle>
             <AlertDescription className="text-muted-foreground mt-1 text-xs">
-              This screen displays the account presentation layout, balance cards, and interactive
-              modal dialog. Real financial transactions and backend ledger state will sync with
-              Django in Phase 4.
+              Balances come directly from Django. Opening balances are not income. Archived accounts
+              remain visible for historical reference.
             </AlertDescription>
           </Alert>
 
@@ -114,9 +78,9 @@ export default function MoneyAccountsPage() {
               <div className="flex items-center gap-3">
                 <div className="flex flex-col items-end text-right">
                   <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-                    Total Liquid Funds
+                    Money Accounts
                   </span>
-                  <MoneyAmount paise={totalLiquidPaise} size="lg" />
+                  <span className="text-lg font-bold">{accounts.length}</span>
                 </div>
                 <Button size="sm" onClick={handleOpenAdd} className="gap-1.5 font-medium">
                   <Plus className="size-4" />
@@ -178,16 +142,20 @@ export default function MoneyAccountsPage() {
           </div>
 
           {/* Accounts Grid */}
-          <AccountList
-            accounts={accounts}
-            onAddAccount={handleOpenAdd}
-            onEditAccount={handleOpenEdit}
-            filterKind={filterKind}
-          />
+          <QueryState query={query} />
+          {query.isSuccess && (
+            <AccountList
+              accounts={accounts}
+              onAddAccount={handleOpenAdd}
+              onEditAccount={handleOpenEdit}
+              filterKind={filterKind}
+            />
+          )}
         </main>
       </PageContainer>
 
       <AccountFormModal
+        key={editingAccount?.id ?? `new:${isModalOpen}`}
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         initialAccount={editingAccount}

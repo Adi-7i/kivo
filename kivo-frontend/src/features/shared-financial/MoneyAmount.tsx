@@ -41,9 +41,9 @@ export function MoneyAmount({
   // Ensure we safely format valid integer paise
   const formatted = React.useMemo(() => {
     try {
-      return formatInr(Math.round(paise), { showSymbol, showSign });
+      return formatInr(paise, { showSymbol, showSign });
     } catch {
-      return "₹0.00";
+      return "Amount unavailable";
     }
   }, [paise, showSymbol, showSign]);
 

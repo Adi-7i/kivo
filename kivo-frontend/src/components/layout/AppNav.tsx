@@ -1,6 +1,9 @@
+"use client";
+
 import * as React from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { useSession } from "@/features/auth/session";
 
 interface NavItem {
   label: string;
@@ -28,6 +31,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export function AppNav() {
+  const { data: user } = useSession();
   return (
     <nav
       aria-label="Application navigation"
@@ -35,11 +39,13 @@ export function AppNav() {
     >
       <div className="flex items-center gap-1">
         {NAV_ITEMS.map((item) => {
+          if (user && ["/login", "/register"].includes(item.href)) return null;
           if (item.isAvailable) {
             return (
               <Link
                 key={item.label}
                 href={item.href}
+                prefetch={false}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 font-medium rounded-md hover:bg-muted text-foreground text-xs transition-colors"
               >
                 <span>{item.label}</span>

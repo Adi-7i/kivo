@@ -12,19 +12,24 @@ import { zodResolver } from "@/lib/utils/zodResolver";
 import { FormField } from "./FormField";
 import { PasswordField } from "./PasswordField";
 import { Button } from "@/components/ui/button";
-import { IntegrationPendingBadge } from "@/components/shared/IntegrationPendingBadge";
+import { authApi } from "../api";
+import { ValidationError } from "@/lib/api/errors";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { UserPlus, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function RegisterForm() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [submitAttempted, setSubmitAttempted] = React.useState(false);
+  const [message, setMessage] = React.useState("");
+  const [registered, setRegistered] = React.useState(false);
+  const submitLock = React.useRef(false);
 
   const {
     register,
     handleSubmit,
     control,
+    setError,
+    resetField,
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -40,21 +45,50 @@ export function RegisterForm() {
   const passwordValue = useWatch({ control, name: "password", defaultValue: "" });
   const criteria = checkPasswordCriteria(passwordValue || "");
 
-  const onSubmit = async () => {
+  const onSubmit = async (data: RegisterFormData) => {
+    if (submitLock.current || registered) return;
+    submitLock.current = true;
     setIsSubmitting(true);
-    // Showcase loading-ready state transition briefly without fake API or storage
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    setIsSubmitting(false);
-    setSubmitAttempted(true);
+    setMessage("");
+    try {
+      await authApi.register({ name: data.fullName, email: data.email, password: data.password });
+      resetField("password");
+      resetField("confirmPassword");
+      setRegistered(true);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        for (const [field, messages] of Object.entries(error.fieldErrors)) {
+          const name = field === "name" ? "fullName" : field;
+          if (["fullName", "email", "password"].includes(name))
+            setError(name as keyof RegisterFormData, { message: messages.join(" ") });
+        }
+      }
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Registration could not be confirmed. Try signing in before retrying."
+      );
+    } finally {
+      submitLock.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-      {submitAttempted && (
-        <IntegrationPendingBadge
-          variant="banner"
-          message="Backend integration pending: Account registration API will be connected in Phase 3. No records were created."
-        />
+    <form onSubmit={(event) => void handleSubmit(onSubmit)(event)} className="space-y-4" noValidate>
+      {message && (
+        <p role="alert" className="text-sm text-destructive">
+          {message}
+        </p>
+      )}
+      {registered && (
+        <div role="status" className="rounded-lg border border-kivo-sage p-3 text-sm">
+          Your account was created.{" "}
+          <Link href="/login" className="font-semibold underline">
+            Sign in to continue to setup
+          </Link>
+          .
+        </div>
       )}
 
       <FormField
@@ -96,7 +130,7 @@ export function RegisterForm() {
         {/* Live password requirement guidance */}
         <div className="rounded-lg border border-border/70 bg-muted/30 p-2.5 text-xs space-y-1">
           <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">
-            Password Guidelines (Pre-Backend Verification)
+            Password Requirements
           </p>
           <ul className="space-y-1 pt-1">
             {criteria.map((item) => (
@@ -116,6 +150,7 @@ export function RegisterForm() {
               </li>
             ))}
           </ul>
+          <p>Django also rejects common passwords and passwords similar to your name or email.</p>
         </div>
       </div>
 
@@ -131,7 +166,12 @@ export function RegisterForm() {
       />
 
       <div className="pt-2">
-        <Button type="submit" className="w-full font-medium" size="lg" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          className="w-full font-medium"
+          size="lg"
+          disabled={isSubmitting || registered}
+        >
           {isSubmitting ? (
             <>
               <LoadingSpinner size="sm" label="Creating account..." className="mr-2" />

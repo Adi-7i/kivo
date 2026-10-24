@@ -24,13 +24,13 @@ export function ProfileHeader({
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-border bg-card p-6 shadow-2xs">
-      <div className="flex items-center gap-4">
+      <div className="flex min-w-0 items-center gap-4">
         <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-kivo-primary/10 text-kivo-primary font-bold text-xl border border-kivo-primary/20">
           {initials}
         </div>
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+        <div className="min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="min-w-0 break-words text-xl font-bold tracking-tight text-foreground sm:text-2xl">
               {displayName}
             </h1>
             <Badge
@@ -42,7 +42,7 @@ export function ProfileHeader({
           </div>
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
             <User className="size-3.5" />
-            <span>{email}</span>
+            <span className="min-w-0 break-all">{email}</span>
           </p>
         </div>
       </div>

@@ -81,7 +81,7 @@ export function AuthPageLayout({ children, title, subtitle }: AuthPageLayoutProp
 
         {/* Bottom meta */}
         <div className="relative z-10 pt-6 border-t border-white/10 text-xs text-kivo-stone/60">
-          <span>Phase 2: Authentication & Onboarding UI &bull; Kivo Architecture</span>
+          <span>Secure Sign In &amp; Account Setup &bull; Kivo</span>
         </div>
       </aside>
 
@@ -95,7 +95,7 @@ export function AuthPageLayout({ children, title, subtitle }: AuthPageLayoutProp
             </div>
             <span className="font-bold text-lg tracking-tight text-foreground">Kivo</span>
           </Link>
-          <span className="text-xs font-medium text-muted-foreground">Phase 2 UI</span>
+          <span className="text-xs font-medium text-muted-foreground">Your Kivo Account</span>
         </div>
 
         <div className="w-full max-w-md">{children}</div>

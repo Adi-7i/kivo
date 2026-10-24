@@ -1,7 +1,7 @@
 import type { AccountKind } from "../accounts/types";
+import type { EventDTO } from "@/features/finance/api";
 
-export type TransactionKind =
-  "expense" | "receipt" | "transfer" | "opening" | "refund" | "reversal";
+export type TransactionKind = EventDTO["kind"];
 
 export type TransactionStatus = "posted" | "reversed" | "voided" | "reversal";
 
@@ -13,6 +13,7 @@ export interface TransactionPosting {
 }
 
 export interface TransactionEntity {
+  raw?: EventDTO;
   id: string;
   kind: TransactionKind;
   title: string;
@@ -60,4 +61,10 @@ export const TRANSACTION_KIND_LABELS: Record<TransactionKind, string> = {
   opening: "Opening Balance",
   refund: "Expense Refund",
   reversal: "Reversal",
+  lend: "Money Lent",
+  borrow: "Money Borrowed",
+  repay_in: "Repayment Received",
+  repay_out: "Repayment Paid",
+  shared_paid: "Shared Bill Paid",
+  shared_due: "Shared Bill Due",
 };

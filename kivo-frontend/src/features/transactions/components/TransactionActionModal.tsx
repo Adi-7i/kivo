@@ -14,7 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/features/auth/components/FieldError";
-import { IntegrationPendingBadge } from "@/components/shared/IntegrationPendingBadge";
+import { FinancialWriteStatus, useFinancialWrite } from "@/features/finance/useFinancialWrite";
+import { normalizeOpeningBalance } from "@/features/onboarding/money";
+import type { CorrectionInput } from "@/features/finance/api";
 import {
   transactionActionSchema,
   type TransactionActionFormData,
@@ -35,15 +37,17 @@ export function TransactionActionModal({
   transaction,
   onSuccess,
 }: TransactionActionModalProps) {
-  const [actionType, setActionType] = React.useState<"reversal" | "void" | "correction">("reversal");
-  const [pendingNotice, setPendingNotice] = React.useState<string | null>(null);
+  const [actionType, setActionType] = React.useState<"reversal" | "void" | "correction">(
+    "reversal"
+  );
+  const write = useFinancialWrite(`transaction:${transaction.id}:action`);
 
   const {
     register,
     handleSubmit,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<TransactionActionFormData>({
     resolver: zodResolver(transactionActionSchema),
     values: {
@@ -52,12 +56,13 @@ export function TransactionActionModal({
       title: transaction.title || "",
       merchant: transaction.merchant || "",
       notes: transaction.notes || "",
+      amount: transaction.raw?.amount ?? "",
+      effectiveDate: transaction.effectiveDate,
     },
   });
 
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
-      setPendingNotice(null);
       reset();
     }
     onOpenChange(isOpen);
@@ -66,7 +71,6 @@ export function TransactionActionModal({
   const handleTypeChange = (type: "reversal" | "void" | "correction") => {
     setActionType(type);
     setValue("actionType", type);
-    setPendingNotice(null);
   };
 
   const onSubmit = async (data: TransactionActionFormData) => {
@@ -79,10 +83,34 @@ export function TransactionActionModal({
       endpoint = `POST /api/v1/transactions/${transaction.id}/correct/`;
     }
 
-    setPendingNotice(
-      `Backend integration pending: ${endpoint} with Idempotency-Key header. Reason: "${data.reason}". No database mutation occurred.`
-    );
-    onSuccess?.();
+    const event = transaction.raw;
+    if (!event || !event.account) return;
+    let body: { reason: string } | CorrectionInput = { reason: data.reason };
+    if (data.actionType === "correction") {
+      if (!["opening", "receipt", "expense", "transfer", "refund"].includes(event.kind)) return;
+      body = {
+        kind: event.kind as CorrectionInput["kind"],
+        amount: normalizeOpeningBalance(data.amount || event.amount),
+        effective_date: data.effectiveDate || event.effective_date,
+        account: event.account,
+        destination: event.destination,
+        category: event.category,
+        original_expense: event.original_expense,
+        contact: event.contact,
+        classification: event.classification,
+        funding_source: event.funding_source,
+        payment_method: event.payment_method,
+        title: data.title || event.title,
+        merchant: data.merchant ?? event.merchant,
+        notes: data.notes ?? event.notes,
+        reason: data.reason,
+      };
+    }
+    const result = await write.run(endpoint.replace("POST ", ""), body);
+    if (result) {
+      onSuccess?.();
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -98,14 +126,17 @@ export function TransactionActionModal({
             </DialogTitle>
           </div>
           <DialogDescription className="text-xs text-muted-foreground">
-            Transaction: <span className="font-semibold text-foreground">{transaction.title}</span> &bull; Ref #{transaction.id}
+            Transaction: <span className="font-semibold text-foreground">{transaction.title}</span>{" "}
+            &bull; Ref #{transaction.id}
           </DialogDescription>
         </DialogHeader>
 
-        {/* Integration pending banner */}
-        <IntegrationPendingBadge
-          variant="banner"
-          message="Backend API pending: Ledger reversal and void actions will connect to the Django Financial API with Idempotency-Key in subsequent phases."
+        <FinancialWriteStatus
+          write={write}
+          onConfirmed={() => {
+            onSuccess?.();
+            onOpenChange(false);
+          }}
         />
 
         {/* Immutable ledger explanation notice */}
@@ -116,149 +147,173 @@ export function TransactionActionModal({
               Immutable Accounting Standard
             </p>
             <p className="text-muted-foreground text-[11px] leading-relaxed">
-              In Kivo&apos;s double-entry ledger, posted entries are never erased. A reversal writes a mirror balancing event with identical integer paise to nullify the effect.
+              In Kivo&apos;s double-entry ledger, posted entries are never erased. A reversal writes
+              a mirror balancing event with identical integer paise to nullify the effect.
             </p>
           </div>
         </div>
 
-        {pendingNotice && (
-          <IntegrationPendingBadge variant="banner" message={pendingNotice} />
-        )}
-
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
-          {/* Action Type Selector */}
-          <div className="space-y-1.5 text-left">
-            <Label className="text-xs font-semibold text-foreground">
-              Select Action Type
-            </Label>
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <button
+          <fieldset
+            disabled={write.busy || write.pending || !transaction.raw}
+            className="space-y-4 min-w-0"
+          >
+            {/* Action Type Selector */}
+            <div className="space-y-1.5 text-left">
+              <Label className="text-xs font-semibold text-foreground">Select Action Type</Label>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => handleTypeChange("reversal")}
+                  className={`py-2 px-2.5 rounded-lg border font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                    actionType === "reversal"
+                      ? "border-destructive bg-destructive/10 text-destructive"
+                      : "border-border text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  <RotateCcw className="size-3.5" />
+                  <span>Reversal</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleTypeChange("void")}
+                  className={`py-2 px-2.5 rounded-lg border font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                    actionType === "void"
+                      ? "border-destructive bg-destructive/10 text-destructive"
+                      : "border-border text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  <Ban className="size-3.5" />
+                  <span>Void</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleTypeChange("correction")}
+                  className={`py-2 px-2.5 rounded-lg border font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                    actionType === "correction"
+                      ? "border-kivo-primary bg-kivo-primary/10 text-kivo-primary"
+                      : "border-border text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  <Edit3 className="size-3.5" />
+                  <span>Correct</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Audit Reason */}
+            <div className="space-y-1.5 text-left">
+              <Label htmlFor="action-reason" className="text-xs font-semibold text-foreground">
+                Audit Reason <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="action-reason"
+                placeholder="e.g. Accidental duplicate charge entered by user"
+                {...register("reason")}
+                className="text-xs bg-muted/20"
+              />
+              {errors.reason && <FieldError message={errors.reason.message} />}
+              <p className="text-[10px] text-muted-foreground">
+                Durable explanation recorded in the financial audit log (minimum 5 characters).
+              </p>
+            </div>
+
+            {/* Additional fields for correction */}
+            {actionType === "correction" && (
+              <div className="space-y-3 pt-2 border-t border-border/60">
+                <div className="space-y-1.5 text-left">
+                  <Label htmlFor="corr-title" className="text-xs font-semibold text-foreground">
+                    Corrected Title
+                  </Label>
+                  <Input id="corr-title" {...register("title")} className="text-xs bg-muted/20" />
+                  <FieldError error={"title" in errors ? errors.title?.message : undefined} />
+                </div>
+
+                <div className="space-y-1.5 text-left">
+                  <Label htmlFor="corr-merchant" className="text-xs font-semibold text-foreground">
+                    Corrected Merchant / Payee
+                  </Label>
+                  <Input
+                    id="corr-merchant"
+                    {...register("merchant")}
+                    className="text-xs bg-muted/20"
+                  />
+                  <FieldError error={"merchant" in errors ? errors.merchant?.message : undefined} />
+                </div>
+
+                <div className="space-y-1.5 text-left">
+                  <Label htmlFor="corr-notes" className="text-xs font-semibold text-foreground">
+                    Updated Notes & Memorandum
+                  </Label>
+                  <Input id="corr-notes" {...register("notes")} className="text-xs bg-muted/20" />
+                  <FieldError error={"notes" in errors ? errors.notes?.message : undefined} />
+                </div>
+              </div>
+            )}
+
+            {actionType === "correction" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <label>
+                  Corrected amount (₹)
+                  <Input
+                    aria-label="Corrected amount"
+                    inputMode="decimal"
+                    {...register("amount")}
+                  />
+                  <FieldError error={"amount" in errors ? errors.amount?.message : undefined} />
+                </label>
+                <label>
+                  Corrected effective date
+                  <Input
+                    aria-label="Corrected effective date"
+                    type="date"
+                    readOnly={transaction.kind === "opening"}
+                    {...register("effectiveDate")}
+                  />
+                  <FieldError
+                    error={"effectiveDate" in errors ? errors.effectiveDate?.message : undefined}
+                  />
+                </label>
+                <p className="sm:col-span-2 text-muted-foreground">
+                  The original kind, accounts, category and linked references are preserved. Django
+                  creates a reversal and replacement atomically.
+                </p>
+              </div>
+            )}
+            {/* Action buttons */}
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/60">
+              <Button
                 type="button"
-                onClick={() => handleTypeChange("reversal")}
-                className={`py-2 px-2.5 rounded-lg border font-medium flex items-center justify-center gap-1.5 transition-colors ${
-                  actionType === "reversal"
-                    ? "border-destructive bg-destructive/10 text-destructive"
-                    : "border-border text-muted-foreground hover:bg-muted/40"
+                variant="outline"
+                size="sm"
+                onClick={() => handleOpenChange(false)}
+                className="text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={write.busy}
+                className={`text-xs text-white gap-1.5 ${
+                  actionType === "correction"
+                    ? "bg-kivo-primary hover:bg-kivo-brand-dark"
+                    : "bg-destructive hover:bg-destructive/90"
                 }`}
               >
                 <RotateCcw className="size-3.5" />
-                <span>Reversal</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleTypeChange("void")}
-                className={`py-2 px-2.5 rounded-lg border font-medium flex items-center justify-center gap-1.5 transition-colors ${
-                  actionType === "void"
-                    ? "border-destructive bg-destructive/10 text-destructive"
-                    : "border-border text-muted-foreground hover:bg-muted/40"
-                }`}
-              >
-                <Ban className="size-3.5" />
-                <span>Void</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleTypeChange("correction")}
-                className={`py-2 px-2.5 rounded-lg border font-medium flex items-center justify-center gap-1.5 transition-colors ${
-                  actionType === "correction"
-                    ? "border-kivo-primary bg-kivo-primary/10 text-kivo-primary"
-                    : "border-border text-muted-foreground hover:bg-muted/40"
-                }`}
-              >
-                <Edit3 className="size-3.5" />
-                <span>Correct</span>
-              </button>
+                <span>
+                  {actionType === "reversal"
+                    ? "Execute Reversal"
+                    : actionType === "void"
+                      ? "Void Transaction"
+                      : "Save Correction"}
+                </span>
+              </Button>
             </div>
-          </div>
-
-          {/* Audit Reason */}
-          <div className="space-y-1.5 text-left">
-            <Label htmlFor="action-reason" className="text-xs font-semibold text-foreground">
-              Audit Reason <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="action-reason"
-              placeholder="e.g. Accidental duplicate charge entered by user"
-              {...register("reason")}
-              className="text-xs bg-muted/20"
-            />
-            {errors.reason && <FieldError message={errors.reason.message} />}
-            <p className="text-[10px] text-muted-foreground">
-              Durable explanation recorded in the financial audit log (minimum 5 characters).
-            </p>
-          </div>
-
-          {/* Additional fields for correction */}
-          {actionType === "correction" && (
-            <div className="space-y-3 pt-2 border-t border-border/60">
-              <div className="space-y-1.5 text-left">
-                <Label htmlFor="corr-title" className="text-xs font-semibold text-foreground">
-                  Corrected Title
-                </Label>
-                <Input
-                  id="corr-title"
-                  {...register("title")}
-                  className="text-xs bg-muted/20"
-                />
-              </div>
-
-              <div className="space-y-1.5 text-left">
-                <Label htmlFor="corr-merchant" className="text-xs font-semibold text-foreground">
-                  Corrected Merchant / Payee
-                </Label>
-                <Input
-                  id="corr-merchant"
-                  {...register("merchant")}
-                  className="text-xs bg-muted/20"
-                />
-              </div>
-
-              <div className="space-y-1.5 text-left">
-                <Label htmlFor="corr-notes" className="text-xs font-semibold text-foreground">
-                  Updated Notes & Memorandum
-                </Label>
-                <Input
-                  id="corr-notes"
-                  {...register("notes")}
-                  className="text-xs bg-muted/20"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Action buttons */}
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/60">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleOpenChange(false)}
-              className="text-xs"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={isSubmitting}
-              className={`text-xs text-white gap-1.5 ${
-                actionType === "correction"
-                  ? "bg-kivo-primary hover:bg-kivo-brand-dark"
-                  : "bg-destructive hover:bg-destructive/90"
-              }`}
-            >
-              <RotateCcw className="size-3.5" />
-              <span>
-                {actionType === "reversal"
-                  ? "Execute Reversal"
-                  : actionType === "void"
-                  ? "Void Transaction"
-                  : "Save Correction"}
-              </span>
-            </Button>
-          </div>
+          </fieldset>
         </form>
       </DialogContent>
     </Dialog>

@@ -12,7 +12,7 @@ interface TransactionFilterBarProps {
   onFilterChange: (newFilters: Partial<TransactionFilterState>) => void;
   onReset: () => void;
   accounts: AccountEntity[];
-  categories: string[];
+  categories: (string | { id: string; name: string })[];
 }
 
 export function TransactionFilterBar({
@@ -54,6 +54,7 @@ export function TransactionFilterBar({
 
         {/* Account Filter */}
         <select
+          aria-label="Filter account"
           value={filters.accountId}
           onChange={(e) => onFilterChange({ accountId: e.target.value })}
           className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -70,6 +71,7 @@ export function TransactionFilterBar({
 
         {/* Category Filter */}
         <select
+          aria-label="Filter category"
           value={filters.categoryName}
           onChange={(e) => onFilterChange({ categoryName: e.target.value })}
           className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -78,14 +80,19 @@ export function TransactionFilterBar({
             All Categories
           </option>
           {categories.map((c) => (
-            <option key={c} value={c} className="bg-card text-foreground">
-              {c}
+            <option
+              key={typeof c === "string" ? c : c.id}
+              value={typeof c === "string" ? c : c.id}
+              className="bg-card text-foreground"
+            >
+              {typeof c === "string" ? c : c.name}
             </option>
           ))}
         </select>
 
         {/* Sort By */}
         <select
+          aria-label="Sort transactions"
           value={filters.sortBy}
           onChange={(e) =>
             onFilterChange({
@@ -111,7 +118,7 @@ export function TransactionFilterBar({
 
       {/* Type Filter Pills & Reset */}
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-border/60">
-        <div className="flex items-center gap-1 text-xs">
+        <div className="flex flex-wrap items-center gap-1 text-xs">
           {(["all", "expense", "receipt", "transfer"] as const).map((k) => (
             <button
               key={k}

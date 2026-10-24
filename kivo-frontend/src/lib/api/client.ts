@@ -3,11 +3,22 @@ import { getCsrfToken } from "./csrf";
 import { normalizeHttpError, normalizeError } from "./errors";
 import type { RequestOptions } from "@/types/api";
 
-/**
- * Base fetch client for Django REST API communication.
- * Note: Under Phase 3 strict UI guidelines, backend operations are deferred
- * and UI interactions display integration-pending states.
- */
+let csrfBootstrap: Promise<unknown> | null = null;
+
+/** Bootstrap Django's cookie only when missing; always reread it after rotation. */
+async function ensureCsrf(): Promise<void> {
+  if (getCsrfToken()) return;
+  csrfBootstrap ??= apiClient("/api/v1/auth/csrf/", { skipCsrf: true });
+  try {
+    await csrfBootstrap;
+  } finally {
+    csrfBootstrap = null;
+  }
+  if (!getCsrfToken())
+    throw new Error("The CSRF cookie is unavailable. Check your browser cookie settings.");
+}
+
+/** Same-origin, no-store Fetch transport. Mutations are never retried here. */
 export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const {
     method = "GET",
@@ -20,7 +31,10 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     ...fetchInit
   } = options;
 
-  let url = endpoint.startsWith("http") ? endpoint : `${API_BASE_URL}${endpoint}`;
+  if (!endpoint.startsWith("/api/v1/") || endpoint.includes("\\") || endpoint.includes("..")) {
+    throw new Error("API requests must use a local /api/v1/ path.");
+  }
+  let url = `${API_BASE_URL}${endpoint}`;
 
   if (params) {
     const searchParams = new URLSearchParams();
@@ -43,6 +57,7 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
   }
 
   if (!skipCsrf && ["POST", "PUT", "PATCH", "DELETE"].includes(method.toUpperCase())) {
+    await ensureCsrf();
     const csrfToken = getCsrfToken();
     if (csrfToken) {
       headers.set("X-CSRFToken", csrfToken);
@@ -58,16 +73,17 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
 
   try {
     const response = await fetch(url, {
+      ...fetchInit,
       method,
       headers,
-      credentials: "include",
-      signal: controller.signal,
+      credentials: "same-origin",
+      cache: "no-store",
+      signal: fetchInit.signal
+        ? AbortSignal.any([controller.signal, fetchInit.signal])
+        : controller.signal,
       body:
         body !== undefined ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
-      ...fetchInit,
     });
-
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       let errorPayload: unknown;
@@ -75,6 +91,13 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
         errorPayload = await response.json();
       } catch {
         errorPayload = { detail: response.statusText };
+      }
+      if (
+        response.status === 401 &&
+        endpoint !== "/api/v1/auth/me/" &&
+        typeof window !== "undefined"
+      ) {
+        window.dispatchEvent(new Event("kivo:session-expired"));
       }
       throw normalizeHttpError(response.status, errorPayload);
     }
@@ -85,7 +108,8 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
 
     return (await response.json()) as T;
   } catch (error) {
-    clearTimeout(timeoutId);
     throw normalizeError(error);
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

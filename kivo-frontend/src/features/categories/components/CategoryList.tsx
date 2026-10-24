@@ -39,9 +39,7 @@ export function CategoryList({ categories, onEditCategory }: CategoryListProps) 
         <div className="rounded-xl border border-dashed border-border p-8 text-center space-y-2">
           <Tag className="size-8 mx-auto text-muted-foreground/60" />
           <h4 className="text-sm font-semibold text-foreground">No Categories Found</h4>
-          <p className="text-xs text-muted-foreground">
-            No categories match your search criteria.
-          </p>
+          <p className="text-xs text-muted-foreground">No categories match your search criteria.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -60,9 +58,7 @@ export function CategoryList({ categories, onEditCategory }: CategoryListProps) 
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="text-sm font-semibold text-foreground truncate">
-                        {cat.name}
-                      </p>
+                      <p className="text-sm font-semibold text-foreground truncate">{cat.name}</p>
                       {cat.isDefault && (
                         <Badge
                           variant="outline"
@@ -73,7 +69,8 @@ export function CategoryList({ categories, onEditCategory }: CategoryListProps) 
                       )}
                     </div>
                     <span className="text-[11px] text-muted-foreground">
-                      {cat.isExpense ? "Expense Category" : "Inflow Category"}
+                      {cat.archived ? "Archived" : "Transaction category"}
+                      {cat.parent ? " · Subcategory" : ""}
                     </span>
                   </div>
                 </div>

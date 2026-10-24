@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { posted, openResource } from "./live-api";
 
 test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transactions E2E", () => {
   test.describe("Financial Dashboard (/dashboard)", () => {
@@ -56,23 +57,22 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
       await page.goto("/money");
 
       await expect(page.getByRole("heading", { name: "Money Accounts" })).toBeVisible();
-      await expect(page.getByText("Total Liquid Funds")).toBeVisible();
-      await expect(page.getByText("HDFC Salary Account")).toBeVisible();
-      await expect(page.getByText("Physical Cash Stash")).toBeVisible();
+      const baseline = `Integration baseline ${process.env.KIVO_E2E_RUN}`;
+      await expect(page.getByText("Authoritative Money Accounts")).toBeVisible();
+      await expect(page.getByText(baseline)).toBeVisible();
 
       // Click Banks filter pill
       await page.getByRole("button", { name: /Banks/i }).click();
-      await expect(page.getByText("HDFC Salary Account")).toBeVisible();
-      await expect(page.getByText("Physical Cash Stash")).not.toBeVisible();
+      await expect(page.getByText(baseline)).not.toBeVisible();
 
       // Click All filter pill
       await page.getByRole("button", { name: /^All/i }).click();
-      await expect(page.getByText("Physical Cash Stash")).toBeVisible();
+      await expect(page.getByText(baseline)).toBeVisible();
     });
 
     test("opens Add Account modal and validates inputs with invariant explanation", async ({
       page,
-    }) => {
+    }, testInfo) => {
       await page.goto("/money");
 
       await page.getByRole("button", { name: /Add Account/i }).click();
@@ -81,14 +81,15 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
       await expect(page.getByText(/Note on UPI:/i)).toBeVisible();
 
       // Fill valid account data
-      await page.getByLabel(/Account Name/i).fill("Axis Emergency Reserve");
-      await page.getByLabel(/Opening Balance/i).fill("10000");
+      const name = `Part2 UI ${process.env.KIVO_E2E_RUN} ${testInfo.project.name}`;
+      await page.getByLabel(/Account Name/i).fill(name);
+      await page.getByLabel(/Opening Balance/i).fill("0.01");
 
       // Submit and check integration pending badge
+      const response = page.waitForResponse((result) => posted(result, "/api/v1/accounts/"));
       await page.getByRole("button", { name: /Create Account/i }).click();
-      await expect(
-        page.getByText(/Backend integration pending: Account creation with opening ledger entry/i)
-      ).toBeVisible();
+      expect((await response).status()).toBe(201);
+      await expect(page.getByText(name)).toBeVisible();
     });
   });
 
@@ -101,22 +102,22 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
       await expect(page.getByRole("heading", { name: "Transaction Activity" })).toBeVisible();
       await expect(page.getByPlaceholder(/Search title, merchant, notes/i)).toBeVisible();
       await expect(
-        page.getByText("Zepto Quick Groceries").filter({ visible: true }).first()
+        page.getByText("Opening balance", { exact: true }).filter({ visible: true }).first()
       ).toBeVisible();
 
       // Filter by search
-      await page.getByPlaceholder(/Search title, merchant, notes/i).fill("Zepto");
+      await page.getByPlaceholder(/Search title, merchant, notes/i).fill("Opening balance");
       await expect(
-        page.getByText("Zepto Quick Groceries").filter({ visible: true }).first()
+        page.getByText("Opening balance", { exact: true }).filter({ visible: true }).first()
       ).toBeVisible();
       await expect(
-        page.getByText("ATM Cash Withdrawal").filter({ visible: true })
+        page.getByText("Fabricated preview transaction").filter({ visible: true })
       ).not.toBeVisible();
 
       // Reset search
       await page.getByRole("button", { name: /Reset Filters/i }).click();
       await expect(
-        page.getByText("ATM Cash Withdrawal").filter({ visible: true }).first()
+        page.getByText("Opening balance", { exact: true }).filter({ visible: true }).first()
       ).toBeVisible();
     });
 
@@ -125,31 +126,33 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
 
       // Click Transfer filter pill
       await page.getByRole("button", { name: "transfer" }).click();
+      await expect(page.getByText("No Matching Transactions")).toBeVisible();
       await expect(
-        page.getByText("ATM Cash Withdrawal").filter({ visible: true }).first()
-      ).toBeVisible();
-      await expect(
-        page.getByText("Zepto Quick Groceries").filter({ visible: true })
+        page.getByText("Opening balance", { exact: true }).filter({ visible: true })
       ).not.toBeVisible();
     });
   });
 
   test.describe("Transaction Detail (/transactions/[id])", () => {
     test("renders full ledger event attributes and double-entry postings", async ({ page }) => {
-      await page.goto("/transactions/tx-1");
+      await openResource(
+        page,
+        `/transactions/${process.env.KIVO_E2E_OPENING_EVENT}`,
+        `/api/v1/transactions/${process.env.KIVO_E2E_OPENING_EVENT}/`
+      );
 
-      await expect(page.getByText("Zepto Quick Groceries").first()).toBeVisible();
+      await expect(page.getByText("Opening balance", { exact: true }).first()).toBeVisible();
       await expect(page.getByText("Effective Date")).toBeVisible();
-      await expect(page.getByText("HDFC Salary Account").first()).toBeVisible();
+      await expect(
+        page.getByText(`Integration baseline ${process.env.KIVO_E2E_RUN}`).first()
+      ).toBeVisible();
       await expect(page.getByText("Ledger Postings Breakdown")).toBeVisible();
-      await expect(page.getByText("Leg 1: Asset Balance Adjustment")).toBeVisible();
+      await expect(page.getByText("liquid", { exact: true })).toBeVisible();
       await expect(page.getByText("Immutable Ledger Entry")).toBeVisible();
 
       // Click Reversal / Correction button
       await page.getByRole("button", { name: /Record Reversal \/ Correction/i }).click();
-      await expect(
-        page.getByText(/Backend integration pending: Transaction corrections and ledger reversals/i)
-      ).toBeVisible();
+      await expect(page.getByText("Immutable Accounting Standard")).toBeVisible();
     });
   });
 
@@ -168,7 +171,15 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
           page,
         }) => {
           await page.setViewportSize({ width: vp.width, height: vp.height });
-          await page.goto(route);
+          if (route === "/transactions/tx-1") {
+            await openResource(
+              page,
+              `/transactions/${process.env.KIVO_E2E_OPENING_EVENT}`,
+              `/api/v1/transactions/${process.env.KIVO_E2E_OPENING_EVENT}/`
+            );
+          } else await page.goto(route);
+          if (route === "/transactions/tx-1")
+            await expect(page.getByText("Ledger Postings Breakdown")).toBeVisible();
 
           const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
           const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);

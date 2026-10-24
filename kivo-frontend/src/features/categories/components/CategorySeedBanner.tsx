@@ -1,57 +1,46 @@
 "use client";
-
-import * as React from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Sparkles, CheckCircle2 } from "lucide-react";
-import { IntegrationPendingBadge } from "@/components/shared/IntegrationPendingBadge";
-
-interface CategorySeedBannerProps {
-  onSeedDefaults?: () => void;
-}
-
-export function CategorySeedBanner({ onSeedDefaults }: CategorySeedBannerProps) {
-  const [triggered, setTriggered] = React.useState(false);
-
-  const handleSeed = () => {
-    setTriggered(true);
-    onSeedDefaults?.();
-  };
-
+import { Sparkles } from "lucide-react";
+import { apiClient } from "@/lib/api/client";
+import { financialError } from "@/features/finance/validation";
+export function CategorySeedBanner() {
+  const client = useQueryClient();
+  const mutation = useMutation({
+    retry: false,
+    mutationFn: () => apiClient("/api/v1/categories/defaults/", { method: "POST", body: {} }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
   return (
-    <div className="space-y-3">
-      {triggered && (
-        <IntegrationPendingBadge
-          variant="banner"
-          message="Backend integration pending: POST /api/v1/categories/defaults/ will idempotently seed standard categories in the remote Django database."
-        />
-      )}
-
-      <div className="rounded-xl border border-kivo-sage/40 bg-kivo-sage/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+    <div className="rounded-xl border border-kivo-sage/40 bg-kivo-sage/10 p-4 space-y-3 text-left text-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-start gap-3">
-          <div className="size-8 rounded-lg bg-kivo-primary text-white flex items-center justify-center shrink-0 mt-0.5">
-            <Sparkles className="size-4" />
-          </div>
+          <Sparkles className="size-5 text-kivo-primary" />
           <div>
-            <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
-              Seed Default Categories
-            </h4>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Instantly provision standard categories (Food, Groceries, Transport, Housing, Utilities, Social) matching the backend ledger defaults.
+            <h4 className="font-bold uppercase tracking-wider">Seed Default Categories</h4>
+            <p className="text-muted-foreground">
+              Django adds missing standard categories without duplicating existing names.
             </p>
           </div>
         </div>
-
         <Button
           type="button"
           size="sm"
           variant="outline"
-          onClick={handleSeed}
-          className="text-xs shrink-0 self-start sm:self-auto gap-1.5 border-kivo-primary/30 text-kivo-primary hover:bg-kivo-primary/10"
+          disabled={mutation.isPending}
+          onClick={() => mutation.mutate()}
         >
-          <CheckCircle2 className="size-3.5" />
-          <span>Seed Defaults</span>
+          {mutation.isPending ? "Seeding…" : "Seed Defaults"}
         </Button>
       </div>
+      {mutation.isSuccess && <p role="status">Default categories confirmed by Django.</p>}
+      {mutation.isError && (
+        <p role="alert" className="text-destructive">
+          {financialError(mutation.error)}
+        </p>
+      )}
     </div>
   );
 }

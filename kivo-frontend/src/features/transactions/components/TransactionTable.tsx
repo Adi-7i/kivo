@@ -87,13 +87,13 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
                   <MoneyAmount
                     paise={tx.amountPaise}
                     variant={isExpense ? "expense" : isReceipt ? "income" : "transfer"}
-                    showSign={isExpense || isReceipt}
                     size="sm"
                     tabular
                   />
                 </td>
                 <td className="px-3 py-3 text-right whitespace-nowrap">
                   <Link
+                    prefetch={false}
                     href={`/transactions/${tx.id}`}
                     className="inline-flex items-center text-muted-foreground group-hover:text-kivo-primary transition-colors p-1 rounded-md"
                     aria-label={`View details for ${tx.title}`}

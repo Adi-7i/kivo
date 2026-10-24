@@ -4,21 +4,12 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { IntegrationPendingBadge } from "@/components/shared/IntegrationPendingBadge";
+import type { UserProfile } from "@/features/auth/api";
 import { User, Mail, Globe, Lock, ShieldCheck } from "lucide-react";
 
-export function ProfileInfoSection() {
-  const [attemptedSave, setAttemptedSave] = React.useState(false);
-
+export function ProfileInfoSection({ user }: { user: UserProfile }) {
   return (
     <div className="space-y-6">
-      {attemptedSave && (
-        <IntegrationPendingBadge
-          variant="banner"
-          message="Backend integration pending: Profile mutations and preference updates will connect to the Django User API in subsequent phases."
-        />
-      )}
-
       {/* Account Credentials / Personal Information */}
       <Card className="border-border shadow-xs bg-card">
         <CardHeader className="border-b border-border/60 pb-3">
@@ -38,8 +29,7 @@ export function ProfileInfoSection() {
               </Label>
               <Input
                 id="profile-name"
-                defaultValue=""
-                placeholder="Unconnected Profile Name"
+                value={user.name}
                 disabled
                 className="bg-muted/40 cursor-not-allowed"
               />
@@ -55,8 +45,7 @@ export function ProfileInfoSection() {
               <div className="relative">
                 <Input
                   id="profile-email"
-                  defaultValue=""
-                  placeholder="user@example.com (unauthenticated)"
+                  value={user.email}
                   disabled
                   className="bg-muted/40 cursor-not-allowed pr-10"
                 />
@@ -73,7 +62,8 @@ export function ProfileInfoSection() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setAttemptedSave(true)}
+              disabled
+              title="Profile updates are not currently supported"
               className="text-xs"
             >
               Update Profile Details
@@ -146,7 +136,7 @@ export function ProfileInfoSection() {
               <div>
                 <p className="font-semibold text-foreground">Password Authentication</p>
                 <p className="text-[11px] text-muted-foreground">
-                  Managed via Django Argon2 / PBKDF2 password hashing.
+                  Your password is securely managed by the authentication service.
                 </p>
               </div>
             </div>
@@ -154,7 +144,8 @@ export function ProfileInfoSection() {
               type="button"
               variant="outline"
               size="xs"
-              onClick={() => setAttemptedSave(true)}
+              disabled
+              title="Password changes are not currently supported"
               className="text-xs"
             >
               Change Password
