@@ -52,6 +52,12 @@ export interface TransactionFilterState {
   startDate?: string;
   endDate?: string;
   sortBy: "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
+  contact?: string;
+  merchant?: string;
+  paymentMethod?: string;
+  amountMin?: string;
+  amountMax?: string;
+  destination?: string;
 }
 
 export const TRANSACTION_KIND_LABELS: Record<TransactionKind, string> = {

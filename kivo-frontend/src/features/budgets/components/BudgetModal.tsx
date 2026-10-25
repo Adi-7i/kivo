@@ -1,7 +1,5 @@
 "use client";
-
-import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@/lib/utils/zodResolver";
 import {
   Dialog,
@@ -14,252 +12,195 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/features/auth/components/FieldError";
-import { IntegrationPendingBadge } from "@/components/shared/IntegrationPendingBadge";
+import { useCategories } from "@/features/finance/queries";
+import { QueryState } from "@/features/finance/QueryState";
+import { useFinancialWrite, FinancialWriteStatus } from "@/features/finance/useFinancialWrite";
+import { normalizeOpeningBalance, todayInKolkata } from "@/features/onboarding/money";
 import { budgetSchema, type BudgetFormData } from "../schemas/budget.schema";
-import { EXPENSE_CATEGORIES } from "../data/previewBudgets";
-import { paiseToDecimalString } from "@/lib/formatters/currency";
-import { Target, Layers, Info } from "lucide-react";
-import type { BudgetEntity, BudgetType } from "../types";
-
-interface BudgetModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  budget?: BudgetEntity | null;
-  defaultType?: BudgetType;
-  defaultPeriod?: string;
-  onSuccess?: (data: BudgetFormData) => void;
-}
+import { monthBounds, type BudgetDTO, type BudgetInput } from "../api";
 
 export function BudgetModal({
   open,
   onOpenChange,
   budget,
   defaultType = "category",
-  defaultPeriod = "2026-10",
-  onSuccess,
-}: BudgetModalProps) {
-  const [pendingNotice, setPendingNotice] = React.useState<string | null>(null);
-
+  defaultPeriod = todayInKolkata().slice(0, 7),
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  budget?: BudgetDTO | null;
+  defaultType?: "overall" | "category";
+  defaultPeriod?: string;
+}) {
+  const categories = useCategories(open);
+  const write = useFinancialWrite("budget-" + (budget?.id ?? "create"), true);
   const {
     register,
+    control,
     handleSubmit,
-    setValue,
-    watch,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<BudgetFormData>({
     resolver: zodResolver(budgetSchema),
-    values: {
-      type: budget?.type || defaultType,
-      category: budget?.categoryName || "",
-      amount: budget ? paiseToDecimalString(budget.limitPaise) : "",
-      period: budget?.period || defaultPeriod,
-      notes: budget?.notes || "",
-    },
-    resetOptions: {
-      keepDirtyValues: true,
+    defaultValues: {
+      name: budget?.name ?? "",
+      type: budget?.category ? "category" : budget ? "overall" : defaultType,
+      category: budget?.category ?? "",
+      amount: budget?.limit ?? "",
+      periodType: budget?.period_type === "custom" ? "custom" : "monthly",
+      period: budget?.period_start.slice(0, 7) ?? defaultPeriod,
+      start: budget?.period_start ?? defaultPeriod + "-01",
+      end: budget?.period_end ?? monthBounds(defaultPeriod).end,
+      warning: String(budget?.warning_percent ?? 80),
+      archived: budget?.archived ?? false,
     },
   });
-
-  const budgetType = watch("type") || defaultType;
-
-  const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {
-      setPendingNotice(null);
-    }
-    onOpenChange(isOpen);
-  };
-
-  const handleTypeSelect = (type: BudgetType) => {
-    setValue("type", type);
-    if (type === "overall") {
-      setValue("category", "");
-    }
-  };
-
-  const onSubmit = async (data: BudgetFormData) => {
-    const targetLabel =
-      data.type === "overall" ? "Overall spending cap" : `Category "${data.category}"`;
-    setPendingNotice(
-      `Budget for ${targetLabel} (₹${data.amount} for ${data.period}) validated. In Phase 7 integration, budgets persist to Django /api/v1/budgets/.`
+  const scope = useWatch({ control, name: "type" }),
+    periodType = useWatch({ control, name: "periodType" });
+  const submit = async (data: BudgetFormData) => {
+    const dates =
+      data.periodType === "monthly"
+        ? monthBounds(data.period)
+        : { start: data.start, end: data.end };
+    const body: BudgetInput = {
+      name: data.name,
+      category: data.type === "overall" ? null : data.category,
+      period_type: data.periodType,
+      period_start: dates.start,
+      period_end: dates.end,
+      limit: normalizeOpeningBalance(data.amount),
+      warning_percent: Number(data.warning),
+      archived: data.archived,
+    };
+    // An unchanged archived category need not be revalidated as a new selection.
+    const payload =
+      budget && body.category === budget.category
+        ? Object.fromEntries(Object.entries(body).filter(([key]) => key !== "category"))
+        : body;
+    const result = await write.run<BudgetDTO>(
+      "/api/v1/budgets/" + (budget ? budget.id + "/" : ""),
+      payload,
+      budget ? "PATCH" : "POST"
     );
-
-    if (onSuccess) {
-      onSuccess(data);
-    }
+    if (result) onOpenChange(false);
   };
-
-  const isEditing = Boolean(budget);
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[480px] max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            <div className="size-8 rounded-lg bg-kivo-primary/10 text-kivo-primary flex items-center justify-center">
-              <Target className="size-4" />
-            </div>
-            <div>
-              <DialogTitle className="text-lg font-heading font-bold text-foreground">
-                {isEditing ? "Edit Budget Limit" : "Create Budget Plan"}
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                Define a spending boundary. A budget is a spending plan, not actual account balance.
-              </DialogDescription>
-            </div>
-          </div>
+          <DialogTitle>{budget ? "Edit Budget Limit" : "Create Budget Plan"}</DialogTitle>
+          <DialogDescription>
+            A spending limit is a plan, separate from account balance and safe-to-spend.
+          </DialogDescription>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
-          {/* Budget Type Selector */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-foreground">Budget Scope</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleTypeSelect("category")}
-                className={`flex items-center justify-center gap-1.5 p-2.5 rounded-lg border text-xs font-medium transition-all ${
-                  budgetType === "category"
-                    ? "border-kivo-primary bg-kivo-primary/10 text-kivo-primary shadow-xs"
-                    : "border-border text-muted-foreground hover:bg-muted/40"
-                }`}
-              >
-                <Layers className="size-3.5" />
-                <span>Category Budget</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleTypeSelect("overall")}
-                className={`flex items-center justify-center gap-1.5 p-2.5 rounded-lg border text-xs font-medium transition-all ${
-                  budgetType === "overall"
-                    ? "border-kivo-primary bg-kivo-primary/10 text-kivo-primary shadow-xs"
-                    : "border-border text-muted-foreground hover:bg-muted/40"
-                }`}
-              >
-                <Target className="size-3.5" />
-                <span>Overall Monthly Cap</span>
-              </button>
+        <QueryState query={categories} />
+        <form onSubmit={handleSubmit(submit)} noValidate className="space-y-4">
+          <fieldset disabled={write.busy || write.pending} className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="budget-name">Budget name</Label>
+              <Input id="budget-name" {...register("name")} aria-invalid={!!errors.name} />
+              <FieldError error={errors.name?.message} />
             </div>
-          </div>
-
-          {/* Category Dropdown (only when type is category) */}
-          {budgetType === "category" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="category" className="text-xs font-medium text-foreground">
-                Expense Category <span className="text-destructive">*</span>
-              </Label>
-              <select
-                id="category"
-                {...register("category")}
-                className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                <option value="">Select an expense category...</option>
-                {EXPENSE_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-              <FieldError error={errors.category?.message} />
-            </div>
-          )}
-
-          {/* Limit Amount (INR) */}
-          <div className="space-y-1.5">
-            <Label htmlFor="amount" className="text-xs font-medium text-foreground">
-              Budget Limit Amount (₹) <span className="text-destructive">*</span>
-            </Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-semibold">
-                ₹
-              </span>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                placeholder="10000.00"
-                {...register("amount")}
-                className="pl-8 text-sm font-mono"
-              />
-            </div>
-            <FieldError error={errors.amount?.message} />
-            <p className="text-[11px] text-muted-foreground">
-              Entered in Rupees, saved and verified as integer paise.
-            </p>
-          </div>
-
-          {/* Period (YYYY-MM) */}
-          <div className="space-y-1.5">
-            <Label htmlFor="period" className="text-xs font-medium text-foreground">
-              Budget Month Period <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="period"
-              type="text"
-              placeholder="2026-10"
-              {...register("period")}
-              className="text-sm font-mono"
-            />
-            <FieldError error={errors.period?.message} />
-            <p className="text-[11px] text-muted-foreground">
-              Format: YYYY-MM (e.g., 2026-10 for October 2026)
-            </p>
-          </div>
-
-          {/* Optional Notes */}
-          <div className="space-y-1.5">
-            <Label htmlFor="notes" className="text-xs font-medium text-foreground">
-              Notes & Guidelines <span className="text-muted-foreground">(Optional)</span>
-            </Label>
-            <Input
-              id="notes"
-              type="text"
-              placeholder="e.g. Cap for dining out and weekend activities"
-              {...register("notes")}
-              className="text-sm"
-            />
-            <FieldError error={errors.notes?.message} />
-          </div>
-
-          {/* Invariant Warning Notice */}
-          <div className="rounded-lg border border-border/60 bg-muted/20 p-2.5 text-[11px] text-muted-foreground flex items-start gap-2">
-            <Info className="size-3.5 text-kivo-secondary shrink-0 mt-0.5" />
-            <span>
-              Reminding: A budget limit is not guaranteed money in your bank account. It is an upper
-              spending ceiling.
-            </span>
-          </div>
-
-          {/* Pending Backend Integration Notice */}
-          {pendingNotice && (
-            <div className="rounded-lg border border-kivo-secondary/30 bg-kivo-secondary/5 p-3 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-kivo-brand-dark dark:text-kivo-sage">
-                  Validation Successful
-                </span>
-                <IntegrationPendingBadge />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="budget-scope">Budget Scope</Label>
+                <select
+                  id="budget-scope"
+                  {...register("type")}
+                  className="w-full rounded-md border bg-background p-2 text-sm"
+                >
+                  <option value="overall">Overall Budget</option>
+                  <option value="category">Category Budget</option>
+                </select>
               </div>
-              <p className="text-xs text-muted-foreground">{pendingNotice}</p>
+              <div>
+                <Label htmlFor="budget-period-type">Period type</Label>
+                <select
+                  id="budget-period-type"
+                  {...register("periodType")}
+                  className="w-full rounded-md border bg-background p-2 text-sm"
+                >
+                  <option value="monthly">Monthly</option>
+                  <option value="custom">Custom inclusive range</option>
+                </select>
+              </div>
             </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleOpenChange(false)}
-            >
-              {pendingNotice ? "Done" : "Cancel"}
+            {scope === "category" && (
+              <div>
+                <Label htmlFor="budget-category">Expense Category</Label>
+                <select
+                  id="budget-category"
+                  {...register("category")}
+                  className="w-full rounded-md border bg-background p-2 text-sm"
+                >
+                  <option value="">Select a category...</option>
+                  {(categories.data ?? [])
+                    .filter((c) => !c.archived || c.id === budget?.category)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                        {c.archived ? " (archived)" : ""}
+                      </option>
+                    ))}
+                </select>
+                <FieldError error={errors.category?.message} />
+              </div>
+            )}
+            <div>
+              <Label htmlFor="budget-amount">Budget Limit Amount (₹)</Label>
+              <Input
+                id="budget-amount"
+                inputMode="decimal"
+                {...register("amount")}
+                aria-invalid={!!errors.amount}
+              />
+              <FieldError error={errors.amount?.message} />
+              <p className="text-[11px] text-muted-foreground">
+                Zero limits are supported; utilization is then undefined.
+              </p>
+            </div>
+            {periodType === "monthly" ? (
+              <div>
+                <Label htmlFor="budget-month">Budget Month Period</Label>
+                <Input id="budget-month" type="month" {...register("period")} />
+                <FieldError error={errors.period?.message} />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {(["start", "end"] as const).map((key) => (
+                  <div key={key}>
+                    <Label htmlFor={"budget-" + key}>
+                      {key === "start" ? "From Date" : "To Date"}
+                    </Label>
+                    <Input id={"budget-" + key} type="date" {...register(key)} />
+                    <FieldError error={errors[key]?.message} />
+                  </div>
+                ))}
+              </div>
+            )}
+            <div>
+              <Label htmlFor="budget-warning">Warning threshold (%)</Label>
+              <Input id="budget-warning" inputMode="numeric" {...register("warning")} />
+              <FieldError error={errors.warning?.message} />
+            </div>
+            {budget && (
+              <label className="flex gap-2 text-sm">
+                <input type="checkbox" {...register("archived")} />
+                Archived
+              </label>
+            )}
+          </fieldset>
+          <FinancialWriteStatus write={write} onConfirmed={() => onOpenChange(false)} />
+          <div className="flex justify-end gap-2 border-t pt-3">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
             </Button>
             <Button
               type="submit"
-              size="sm"
-              disabled={isSubmitting}
-              className="bg-kivo-primary hover:bg-kivo-brand-dark text-white font-medium"
+              disabled={
+                write.busy || write.pending || (scope === "category" && !categories.isSuccess)
+              }
             >
-              {isEditing ? "Update Budget" : "Save Budget"}
+              {write.busy ? "Saving…" : budget ? "Update Budget" : "Save Budget"}
             </Button>
           </div>
         </form>

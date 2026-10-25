@@ -54,7 +54,7 @@ export function useFinancialWrite(slot: string, singleUse = false) {
       const parsed = JSON.parse(raw) as Attempt;
       if (
         typeof parsed.key !== "string" ||
-        !/^\/api\/v1\/(accounts|transactions|contacts|loans|settlements|shared-bills|rent\/(?:plans|obligations|payments|reserves))\//.test(
+        !/^\/api\/v1\/(accounts|transactions|contacts|loans|settlements|shared-bills|budgets|rent\/(?:plans|obligations|payments|reserves))\//.test(
           parsed.endpoint
         ) ||
         !["POST", "PATCH"].includes(parsed.method)
@@ -142,12 +142,12 @@ export function useFinancialWrite(slot: string, singleUse = false) {
     try {
       // A matching amount/title is not proof of this operation. Only an idempotent replay can confirm it.
       const resource = attempt.endpoint.match(
-        /^(\/api\/v1\/(?:accounts|transactions|contacts|loans|settlements|shared-bills|rent\/(?:plans|obligations|payments|reserves))\/[^/]+\/)/
+        /^(\/api\/v1\/(?:accounts|transactions|contacts|loans|settlements|shared-bills|budgets|rent\/(?:plans|obligations|payments|reserves))\/[^/]+\/)/
       )?.[1];
       await apiClient(
         resource ||
           attempt.endpoint.match(
-            /^\/api\/v1\/(?:accounts|transactions|contacts|loans|settlements|shared-bills|rent\/(?:plans|obligations|payments|reserves))\//
+            /^\/api\/v1\/(?:accounts|transactions|contacts|loans|settlements|shared-bills|budgets|rent\/(?:plans|obligations|payments|reserves))\//
           )![0]
       );
       await invalidateFinance(client);

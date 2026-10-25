@@ -137,11 +137,11 @@ describe("Part 4 actual contract boundaries (mocked HTTP only)", () => {
       ).toBe(405);
     }
   );
-  it("does not expose future budget or claim mutation workflows", async () => {
+  it("does not expose unsupported or claim mutation workflows", async () => {
     expect(
       (
         await forwardDjango(
-          new Request("http://localhost:3000/api/v1/budgets/", { method: "POST" })
+          new Request("http://localhost:3000/api/v1/not-integrated/", { method: "POST" })
         )
       ).status
     ).toBe(404);

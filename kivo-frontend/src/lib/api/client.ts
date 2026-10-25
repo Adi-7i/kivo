@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "../config/env";
 import { getCsrfToken } from "./csrf";
 import { normalizeHttpError, normalizeError } from "./errors";
-import type { RequestOptions } from "@/types/api";
+import type { RequestOptions, ApiDownload } from "@/types/api";
 import { clientTimeoutMs } from "./timeouts";
 
 let csrfBootstrap: Promise<unknown> | null = null;
@@ -20,7 +20,15 @@ async function ensureCsrf(): Promise<void> {
 }
 
 /** Same-origin, no-store Fetch transport. Mutations are never retried here. */
-export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+export function apiClient(
+  endpoint: string,
+  options: RequestOptions & { responseType: "download" }
+): Promise<ApiDownload>;
+export function apiClient<T>(endpoint: string, options?: RequestOptions): Promise<T>;
+export async function apiClient<T>(
+  endpoint: string,
+  options: RequestOptions & { responseType?: "download" } = {}
+): Promise<T | ApiDownload> {
   const {
     method = "GET",
     body,
@@ -29,6 +37,7 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     skipCsrf = false,
     idempotencyKey,
     headers: customHeaders,
+    responseType,
     ...fetchInit
   } = options;
 
@@ -51,7 +60,7 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
   }
 
   const headers = new Headers(customHeaders);
-  headers.set("Accept", "application/json");
+  headers.set("Accept", responseType === "download" ? "text/csv" : "application/json");
 
   if (body !== undefined && !(body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
@@ -106,10 +115,16 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
       throw normalizeHttpError(response.status, errorPayload);
     }
 
-    if (response.status === 204) {
-      return {} as T;
+    if (responseType === "download") {
+      if (
+        response.status !== 200 ||
+        response.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "text/csv"
+      )
+        throw normalizeHttpError(502, { detail: "The service did not return a CSV file." });
+      // Complete the stream before offering a file; a truncated response is never success.
+      return { blob: await response.blob(), headers: response.headers };
     }
-
+    if (response.status === 204) return {} as T;
     return (await response.json()) as T;
   } catch (error) {
     throw normalizeError(error);

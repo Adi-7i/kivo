@@ -166,6 +166,25 @@ export default async function setup() {
   process.env.KIVO_E2E_RENT_NAME_A = plan.title;
   process.env.KIVO_E2E_RENT_OBLIGATION_A = obligation.id;
   process.env.KIVO_E2E_RENT_RESERVE_A = reserve.id;
+  const budgetMonth = date.slice(0, 7) + "-01";
+  const overallBudget = await seed("budgets", {
+    name: "Integration overall " + run,
+    period_start: budgetMonth,
+    period_end: monthEnd,
+    limit: "1.00",
+    warning_percent: 50,
+  });
+  const categoryBudget = await seed("budgets", {
+    name: "Integration category " + run,
+    category: category.id,
+    period_start: budgetMonth,
+    period_end: monthEnd,
+    limit: "0.05",
+    warning_percent: 50,
+  });
+  process.env.KIVO_E2E_BUDGET_A = overallBudget.id;
+  process.env.KIVO_E2E_CATEGORY_BUDGET_A = categoryBudget.id;
+  process.env.KIVO_E2E_BUDGET_NAME_A = overallBudget.name;
   await context.storageState({ path: ".playwright-auth/session.json" });
   await chmod(".playwright-auth/session.json", 0o600);
   await context.dispose();

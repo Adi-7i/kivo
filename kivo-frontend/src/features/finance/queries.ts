@@ -21,12 +21,12 @@ export function useCategories(enabled = true) {
     retry: false,
   });
 }
-export function useHistory(params: HistoryParams) {
+export function useHistory(params: HistoryParams, enabled = true) {
   const { data: user } = useSession();
   return useQuery({
     queryKey: ["transactions", user?.id, params],
     queryFn: ({ signal }) => financeApi.history(params, signal),
-    enabled: !!user,
+    enabled: !!user && enabled,
     retry: false,
   });
 }

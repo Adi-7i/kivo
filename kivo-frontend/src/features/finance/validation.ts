@@ -27,7 +27,11 @@ export const calendarDate = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
   .refine((value) => {
     const date = new Date(`${value}T00:00:00Z`);
-    return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
+    return (
+      !value.startsWith("0000") &&
+      !Number.isNaN(date.valueOf()) &&
+      date.toISOString().slice(0, 10) === value
+    );
   }, "Enter a valid calendar date");
 export function financialError(error: unknown): string {
   if (error instanceof ValidationError)

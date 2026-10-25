@@ -1,352 +1,298 @@
 import { test, expect } from "@playwright/test";
-
-test.describe("Frontend Phase 6 — Budget Management, Financial Analytics, Reports & CSV Export E2E", () => {
-  test.describe("Budget Management (/budgets)", () => {
-    test("loads /budgets with hero overview, financial invariants and category cards", async ({
-      page,
-    }) => {
-      const response = await page.goto("/budgets");
-      expect(response?.status()).toBe(200);
-
-      // Title & Heading
-      await expect(page.getByRole("heading", { name: "Budget Management" })).toBeVisible();
-      await expect(page.getByText("Phase 6 UI").first()).toBeVisible();
-
-      // Monthly Spending Budget Overview Card
-      await expect(page.getByText("Monthly Spending Budget")).toBeVisible();
-      await expect(page.getByText("Overall Budget Limit")).toBeVisible();
-      await expect(page.getByText("Personal Spent")).toBeVisible();
-      await expect(page.getByText("Budget Remaining", { exact: true })).toBeVisible();
-      await expect(page.getByText("Overall Utilization Progress")).toBeVisible();
-
-      // Financial Invariant Notice
-      await expect(
-        page.getByText("Budget Remaining ≠ Actual Account Balance ≠ Safe-to-Spend")
-      ).toBeVisible();
-
-      // Category Budgets Grid
-      await expect(page.getByText("Category Spending Budgets")).toBeVisible();
-      await expect(page.getByText("Food & Groceries").first()).toBeVisible();
-      await expect(page.getByText("Living Expenses").first()).toBeVisible();
-      await expect(page.getByText("Dining & Entertainment").first()).toBeVisible();
-
-      // Status Badges
-      await expect(page.getByText("On Track").first()).toBeVisible();
-      await expect(page.getByText("Approaching Limit (80%+)").first()).toBeVisible();
-      await expect(page.getByText("100% Utilized").first()).toBeVisible();
-      await expect(page.getByText("Over Budget").first()).toBeVisible();
-    });
-
-    test("filters category budgets using search input and tab pills", async ({ page }) => {
-      await page.goto("/budgets");
-
-      const searchInput = page.getByPlaceholder(/Search category/i);
-      await expect(searchInput).toBeVisible();
-
-      // Search for Groceries
-      await searchInput.fill("Groceries");
-      await expect(page.getByText("Food & Groceries").first()).toBeVisible();
-      await expect(page.getByText("Transit & Fuel")).not.toBeVisible();
-
-      // Clear search
-      await searchInput.fill("");
-      await expect(page.getByText("Transit & Fuel").first()).toBeVisible();
-
-      // Filter by Over Budget tab pill
-      await page.getByRole("button", { name: /Over Budget/i }).click();
-      await expect(page.getByText("Living Expenses").first()).toBeVisible();
-      await expect(page.getByText("Food & Groceries")).not.toBeVisible();
-
-      // Filter by On Track tab pill
-      await page.getByRole("button", { name: /On Track/i }).click();
-      await expect(page.getByText("Utilities & Bills").first()).toBeVisible();
-      await expect(page.getByText("Living Expenses")).not.toBeVisible();
-
-      // Return to All tab
-      await page.getByRole("button", { name: /All \(/i }).click();
-      await expect(page.getByText("Food & Groceries").first()).toBeVisible();
-    });
-
-    test("navigates calendar periods using period selector", async ({ page }) => {
-      await page.goto("/budgets");
-
-      await expect(page.getByText("October 2026")).toBeVisible();
-
-      // Click previous month
-      await page.getByRole("button", { name: "Previous month" }).click();
-      await expect(page.getByText("September 2026")).toBeVisible();
-
-      // Click next month twice to go to November 2026
-      await page.getByRole("button", { name: "Next month" }).click();
-      await page.getByRole("button", { name: "Next month" }).click();
-      await expect(page.getByText("November 2026")).toBeVisible();
-    });
-
-    test("switches between preview, honest empty, and loading skeleton states", async ({
-      page,
-    }) => {
-      await page.goto("/budgets");
-
-      // Switch to Empty
-      await page.getByRole("tab", { name: "Empty" }).click();
-      await expect(page.getByText(/No Spending Budgets Configured/i)).toBeVisible();
-      await expect(
-        page.getByRole("button", { name: "Set Up Monthly Budget" }).first()
-      ).toBeVisible();
-      await expect(
-        page.getByText("Budget Principle: Discretionary Ceiling, Not Liquid Cash")
-      ).toBeVisible();
-
-      // Switch to Loading
-      await page.getByRole("tab", { name: "Loading" }).click();
-      await expect(page.getByLabel("Loading budgets")).toBeVisible();
-
-      // Switch back to Preview
-      await page.getByRole("tab", { name: "Preview" }).click();
-      await expect(page.getByText("Monthly Spending Budget")).toBeVisible();
-      await expect(page.getByText("Category Spending Budgets")).toBeVisible();
-    });
-
-    test("opens BudgetModal, validates inputs, and presents integration pending banner", async ({
-      page,
-    }) => {
-      await page.goto("/budgets");
-
-      // Open Add Category Budget modal
-      await page.getByRole("button", { name: "Add Category Budget" }).first().click();
-      await expect(page.getByRole("heading", { name: "Create Budget Plan" })).toBeVisible();
-
-      // Try submitting empty
-      await page.getByRole("button", { name: "Save Budget" }).click();
-      await expect(page.getByText(/Budget amount is required|Enter a valid amount/i)).toBeVisible();
-
-      // Fill in valid details
-      await page.selectOption("#category", "Healthcare & Medical");
-      await page.fill("#amount", "12500");
-      await page.fill("#notes", "Medicine and quarterly clinic visits");
-
-      // Submit form
-      await page.getByRole("button", { name: "Save Budget" }).click();
-
-      // Integration pending banner rendered
-      await expect(page.getByText("Validation Successful")).toBeVisible();
-      await expect(
-        page.getByText(/In Phase 7 integration, budgets persist to Django/i)
-      ).toBeVisible();
-
-      // Close modal
-      await page.getByRole("button", { name: "Done" }).click();
-      await expect(page.getByRole("heading", { name: "Create Budget Plan" })).not.toBeVisible();
-    });
-
-    test("opens BudgetModal in edit mode from category card", async ({ page }) => {
-      await page.goto("/budgets");
-
-      // Click edit icon on Food & Groceries
-      await page.getByLabel("Edit Food & Groceries limit").click();
-      await expect(page.getByRole("heading", { name: "Edit Budget Limit" })).toBeVisible();
-      await expect(page.locator("#amount")).toHaveValue("18000.00");
-
-      await page.getByRole("button", { name: "Cancel" }).click();
-      await expect(page.getByRole("heading", { name: "Edit Budget Limit" })).not.toBeVisible();
+import { readFile } from "node:fs/promises";
+import { csvRecords } from "./part6-live";
+import { formatInr } from "../src/lib/formatters/currency";
+import { decimalPaise } from "../src/features/finance/api";
+test.describe("Live Budgets, Reports and authenticated CSV screens", () => {
+  // Multi-request chart/filter journeys need an observation budget, not longer API deadlines.
+  test.describe.configure({ timeout: 120_000, retries: 0 });
+  test.beforeEach(async ({ page }) => {
+    if (process.env.KIVO_E2E_READ_ONLY !== "1") return;
+    await page.route("**/api/v1/**", (route) => {
+      if (["GET", "HEAD"].includes(route.request().method())) return route.fallback();
+      return route.fulfill({
+        status: 405,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Read-only verification forbids API mutations." }),
+      });
     });
   });
-
-  test.describe("Financial Analytics & Reports (/reports)", () => {
-    test("loads /reports with KPI summary cards, comparisons, and charts", async ({ page }) => {
-      const response = await page.goto("/reports");
-      expect(response?.status()).toBe(200);
-
-      // Title & Header
-      await expect(
-        page.getByRole("heading", { name: "Financial Analytics & Reports" })
-      ).toBeVisible();
-      await expect(page.getByText("Phase 6 UI").first()).toBeVisible();
-
-      // 6 Metric KPI Grid
-      await expect(page.getByText("Personal Expenses").first()).toBeVisible();
-      await expect(page.getByText("Eligible Inflows").first()).toBeVisible();
-      await expect(page.getByText("Net Cash Flow").first()).toBeVisible();
-      await expect(page.getByText("Daily Average").first()).toBeVisible();
-      await expect(page.getByText("Peak Spending Day").first()).toBeVisible();
-      await expect(page.getByText("Total Transactions").first()).toBeVisible();
-
-      // Cycle-over-Cycle Financial Comparison
-      await expect(page.getByText("Cycle-over-Cycle Comparison")).toBeVisible();
-      await expect(page.getByText("Spending Reduced")).toBeVisible();
-      await expect(page.getByText("Spending Variance")).toBeVisible();
-
-      // Charts & Visualizations
-      await expect(page.getByText("Spending Velocity & Trend")).toBeVisible();
-      await expect(page.getByText("Expense Allocation by Category")).toBeVisible();
-      await expect(page.getByText("Earned Inflows vs Personal Expenses")).toBeVisible();
-      await expect(page.getByText("Spending Channels & Distribution")).toBeVisible();
-
-      // Accounting Rule Banner
-      await expect(page.getByText(/Accounting Rule:/i)).toBeVisible();
-
-      // Detailed Expenditure Breakdown Accordion
-      await expect(page.getByText("Detailed Expenditure Breakdown")).toBeVisible();
-      await expect(page.getByText("Category Itemized Summaries")).toBeVisible();
-      await expect(page.getByRole("link", { name: /View All Transactions/i })).toBeVisible();
-    });
-
-    test("toggles trend intervals and spending distribution channels", async ({ page }) => {
-      await page.goto("/reports");
-
-      // Trend interval toggles (Daily, Weekly, Monthly)
-      await page.getByRole("tab", { name: "Weekly" }).click();
-      await page.getByRole("tab", { name: "Monthly" }).click();
-      await page.getByRole("tab", { name: "Daily" }).click();
-
-      // Distribution channel tabs (By Account, By Method, By Merchant, By Person)
-      await page.getByRole("tab", { name: "By Method" }).click();
-      await expect(page.getByText("UPI QR / Direct")).toBeVisible();
-
-      await page.getByRole("tab", { name: "By Merchant" }).click();
-      await expect(page.getByText("Nature's Basket & Supermarket")).toBeVisible();
-
-      await page.getByRole("tab", { name: "By Person" }).click();
-      await expect(page.getByText("Vikram Mehta (Shared Split)")).toBeVisible();
-
-      await page.getByRole("tab", { name: "By Account" }).click();
-      await expect(page.getByText("HDFC Salary Account")).toBeVisible();
-    });
-
-    test("interacts with report filters and custom date range validation", async ({ page }) => {
-      await page.goto("/reports");
-
-      // Click Last 7 Days preset
-      await page.getByRole("button", { name: "Last 7 Days" }).click();
-      await expect(page.getByText("Active filters:")).toBeVisible();
-      await expect(page.getByText(/Period: last 7 days/i)).toBeVisible();
-
-      // Click Custom Range
-      await page.getByRole("button", { name: "Custom Range" }).click();
-      await expect(page.getByText("Custom Date Range:")).toBeVisible();
-      await expect(page.getByRole("button", { name: "Apply Dates" })).toBeVisible();
-
-      // Reset filters
-      await page.getByRole("button", { name: "Reset" }).click();
-      await expect(page.getByText("Active filters:")).not.toBeVisible();
-    });
-
-    test("switches between populated, empty, and loading views on /reports", async ({ page }) => {
-      await page.goto("/reports");
-
-      // Switch to Empty
-      await page.getByRole("tab", { name: "Empty" }).click();
-      await expect(page.getByText("No Analytics Data Available")).toBeVisible();
-      await expect(page.getByRole("button", { name: "Reset Filters" })).toBeVisible();
-
-      // Switch to Loading
-      await page.getByRole("tab", { name: "Loading" }).click();
-      await expect(page.getByLabel("Loading analytics dashboard")).toBeVisible();
-
-      // Switch back to Preview
-      await page.getByRole("tab", { name: "Preview" }).click();
-      await expect(page.getByText("Spending Velocity & Trend")).toBeVisible();
-    });
-
-    test("opens CSV Export Dialog, displays format specs, and enforces backend integration lock", async ({
-      page,
-    }) => {
-      await page.goto("/reports");
-
-      // Click Export CSV button
-      await page.getByRole("button", { name: "Export CSV" }).click();
-      await expect(
-        page.getByRole("heading", { name: "Export Financial Ledger (CSV)" })
-      ).toBeVisible();
-
-      // CSV Schema Spec Box
-      await expect(page.getByText(/Standard Output Schema/i)).toBeVisible();
-      await expect(page.getByText(/• Date \(ISO 8601\)/i)).toBeVisible();
-      await expect(page.getByText(/• Amount \(INR\)/i)).toBeVisible();
-
-      // Backend integration pending notice
-      await expect(
-        page.getByRole("dialog").getByText("Backend Integration Pending", { exact: true })
-      ).toBeVisible();
-      await expect(page.getByText(/CSV export available after backend integration/i)).toBeVisible();
-
-      // Validate & Request Export button
-      await page.getByRole("button", { name: "Validate & Request Export" }).click();
-      await expect(page.getByText("Export Configuration Validated")).toBeVisible();
-
-      // Close modal
-      await page.getByRole("button", { name: "Cancel" }).click();
-      await expect(
-        page.getByRole("heading", { name: "Export Financial Ledger (CSV)" })
-      ).not.toBeVisible();
-    });
+  test("budgets show actual owned limits, spending and independent remaining amounts", async ({
+    page,
+  }) => {
+    await page.goto("/budgets");
+    await expect(
+      page.getByRole("heading", { name: "Budget Management", exact: true })
+    ).toBeVisible();
+    const id = process.env.KIVO_E2E_BUDGET_A!;
+    const response = await page.request.get("/api/v1/budgets/" + id + "/");
+    expect(response.status()).toBe(200);
+    const data = await response.json();
+    const card = page.getByTestId("budget-card-" + id);
+    await expect(card).toContainText(data.name);
+    await expect(card.getByTestId("budget-spent")).toHaveText(formatInr(decimalPaise(data.spent)));
+    await expect(card.getByTestId("budget-budget-remaining")).toHaveText(
+      formatInr(decimalPaise(data.remaining))
+    );
+    await expect(
+      page.getByText("Budget Remaining ≠ Actual Account Balance ≠ Safe-to-Spend", { exact: true })
+    ).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Preview" })).toHaveCount(0);
   });
-
-  test.describe("Responsive Layout Verification", () => {
-    test("renders /budgets without horizontal overflow on mobile (375px)", async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto("/budgets");
-
-      await expect(page.getByRole("heading", { name: "Budget Management" })).toBeVisible();
-      await expect(page.getByText("Monthly Spending Budget")).toBeVisible();
-      await expect(page.getByText("Overall Budget Limit")).toBeVisible();
-
-      // Verify no horizontal overflow
-      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-      const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
-      expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 2);
-    });
-
-    test("renders /reports without horizontal overflow on mobile (375px)", async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto("/reports");
-
-      await expect(
-        page.getByRole("heading", { name: "Financial Analytics & Reports" })
-      ).toBeVisible();
-      await expect(page.getByText("Personal Expenses").first()).toBeVisible();
-
-      // Verify no horizontal overflow
-      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-      const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
-      expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 2);
-    });
-
-    test("renders /reports cleanly on tablet (768px)", async ({ page }) => {
-      await page.setViewportSize({ width: 768, height: 1024 });
-      await page.goto("/reports");
-
-      await expect(
-        page.getByRole("heading", { name: "Financial Analytics & Reports" })
-      ).toBeVisible();
-      await expect(page.getByText("Spending Velocity & Trend")).toBeVisible();
-      await expect(page.getByText("Expense Allocation by Category")).toBeVisible();
-    });
-
-    test("renders /budgets cleanly on desktop (1440px)", async ({ page }) => {
-      await page.setViewportSize({ width: 1440, height: 900 });
-      await page.goto("/budgets");
-
-      await expect(page.getByRole("heading", { name: "Budget Management" })).toBeVisible();
-      await expect(page.getByText("Food & Groceries").first()).toBeVisible();
-      await expect(page.getByText("Living Expenses").first()).toBeVisible();
-    });
+  test("category search, warning state and archive filters use loaded owned budgets", async ({
+    page,
+  }) => {
+    await page.goto("/budgets");
+    await expect(
+      page.getByTestId("budget-card-" + process.env.KIVO_E2E_CATEGORY_BUDGET_A)
+    ).toBeVisible();
+    await page
+      .getByRole("textbox", { name: "Search category budgets", exact: true })
+      .fill("no-such-development-category");
+    await expect(page.getByText("No category budgets match this period and filter.")).toBeVisible();
+    await page.getByRole("textbox", { name: "Search category budgets", exact: true }).fill("");
+    await page.getByLabel("Budget archive filter").selectOption("true");
+    await expect(page.getByText("No Spending Budgets Configured", { exact: true })).toBeVisible();
   });
-
-  test.describe("Navigation Integration Across App", () => {
-    test("navigates to /budgets and /reports from AppNav", async ({ page }) => {
-      await page.goto("/dashboard");
-
-      // AppNav contains Budgets and Reports links
-      const budgetsLink = page.getByRole("link", { name: /Budgets/i }).first();
-      await expect(budgetsLink).toBeVisible();
-      await budgetsLink.click();
-      await expect(page).toHaveURL(/\/budgets/);
-
-      const reportsLink = page.getByRole("link", { name: /Reports & Analytics/i }).first();
-      await expect(reportsLink).toBeVisible();
-      await reportsLink.click();
-      await expect(page).toHaveURL(/\/reports/);
-    });
+  test("budget period navigation changes the actual selection", async ({ page }) => {
+    await page.goto("/budgets");
+    await expect(page.getByTestId("budget-card-" + process.env.KIVO_E2E_BUDGET_A)).toBeVisible();
+    await page.getByRole("button", { name: "Previous month", exact: true }).click();
+    await expect(
+      page.getByTestId("budget-card-" + process.env.KIVO_E2E_BUDGET_A)
+    ).not.toBeVisible();
+    await page.getByRole("button", { name: "Next month", exact: true }).click();
+    await expect(page.getByTestId("budget-card-" + process.env.KIVO_E2E_BUDGET_A)).toBeVisible();
   });
+  test("budget form uses real categories and validates invalid precision and threshold", async ({
+    page,
+  }) => {
+    await page.goto("/budgets");
+    await page.getByRole("button", { name: "Add Category Budget", exact: true }).click();
+    const modal = page.getByRole("dialog");
+    await modal.locator("#budget-name").fill("Invalid form only");
+    await modal.locator("#budget-category").selectOption(process.env.KIVO_E2E_CATEGORY_A!);
+    await modal.locator("#budget-amount").fill("0.001");
+    await modal.locator("#budget-warning").fill("101");
+    await modal.getByRole("button", { name: "Save Budget", exact: true }).click();
+    await expect(modal.getByText(/at most two decimals/)).toBeVisible();
+    await expect(modal.getByText("Use a whole percentage from 1 to 100")).toBeVisible();
+    await modal.getByRole("button", { name: "Cancel", exact: true }).click();
+  });
+  test("budget edit loads actual configuration and offers supported archival", async ({ page }) => {
+    await page.goto("/budgets");
+    await page
+      .getByTestId("budget-card-" + process.env.KIVO_E2E_BUDGET_A)
+      .getByRole("button", { name: /Edit/ })
+      .click();
+    const modal = page.getByRole("dialog");
+    await expect(modal.locator("#budget-amount")).toHaveValue("1.00");
+    await expect(modal.locator("#budget-warning")).toHaveValue("50");
+    await expect(modal.getByLabel("Archived", { exact: true })).not.toBeChecked();
+    await expect(modal.getByRole("button", { name: /Delete/ })).toHaveCount(0);
+  });
+  test("budget read loading and failure stay distinct from empty data (injected read failure)", async ({
+    page,
+  }) => {
+    let release: () => void = () => {};
+    const waiting = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/api/v1/budgets**", async (route) => {
+      await waiting;
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Simulated budget read outage" }),
+      });
+    });
+    await page.goto("/budgets");
+    await expect(page.getByLabel("Loading budgets")).toBeVisible();
+    release();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Simulated budget read outage" })
+    ).toBeVisible();
+    await expect(
+      page.getByText("No Spending Budgets Configured", { exact: true })
+    ).not.toBeVisible();
+    await page.unroute("**/api/v1/budgets**");
+    await page.getByRole("button", { name: "Retry loading", exact: true }).click();
+    await expect(page.getByTestId("budget-card-" + process.env.KIVO_E2E_BUDGET_A)).toBeVisible();
+  });
+  test("reports render actual summaries, comparisons and accessible charts", async ({ page }) => {
+    await page.goto("/reports");
+    const response = await page.request.get("/api/v1/reports/summary/?period=month");
+    expect(response.status()).toBe(200);
+    const data = await response.json();
+    await expect(page.getByTestId("report-expense")).toHaveText(
+      formatInr(decimalPaise(data.personal_expense))
+    );
+    await expect(page.getByTestId("report-income")).toHaveText(
+      formatInr(decimalPaise(data.external_income))
+    );
+    await expect(
+      page.getByRole("heading", { name: "Cycle-over-Cycle Comparison", exact: true })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Spending Velocity & Trend", exact: true })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Expense Allocation by Category", exact: true })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("img", { name: "Selected period external income and personal expense in INR" })
+    ).toBeVisible();
+  });
+  test("trend intervals and breakdown channels request exact server parameters", async ({
+    page,
+  }) => {
+    await page.goto("/reports");
+    await page.getByRole("button", { name: "Weekly", exact: true }).click();
+    await expect(
+      page.getByRole("img", { name: "week personal expense trend in INR" })
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Monthly", exact: true }).click();
+    await expect(
+      page.getByRole("img", { name: "month personal expense trend in INR" })
+    ).toBeVisible();
+    for (const [label, dimension] of [
+      ["By Method", "payment_method"],
+      ["By Merchant", "merchant"],
+      ["By Person", "contact"],
+      ["By Type", "kind"],
+      ["By Account", "account"],
+    ]) {
+      await page.getByRole("button", { name: label, exact: true }).click();
+      await expect(
+        page.getByRole("table").filter({
+          has: page.getByText(dimension + " · Net owner expense · INR", { exact: true }),
+        })
+      ).toBeVisible();
+    }
+  });
+  test("filters apply explicitly, persist through refresh and clear to the current month", async ({
+    page,
+  }) => {
+    await page.goto("/reports");
+    await expect(page.getByTestId("report-expense")).toBeVisible();
+    await page.getByRole("button", { name: "Last 7 Days", exact: true }).click();
+    await expect(page).toHaveURL(/\/reports$/);
+    await page.getByRole("button", { name: "Apply Filters", exact: true }).click();
+    await expect(page).toHaveURL(/period=last_seven_days/);
+    await page.reload();
+    await expect(page.getByTestId("report-period")).toContainText("7 calendar days");
+    await page.getByRole("button", { name: "Clear Filters", exact: true }).click();
+    await expect(page).toHaveURL(/period=month/);
+  });
+  test("custom inclusive dates validate and correctly return an empty historical selection", async ({
+    page,
+  }) => {
+    await page.goto("/reports");
+    await page.getByRole("button", { name: "Custom Range", exact: true }).click();
+    await page.locator("#report-date_from").fill("2020-02-02");
+    await page.locator("#report-date_to").fill("2020-02-01");
+    await page.getByRole("button", { name: "Apply Filters", exact: true }).click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "End date must be on or after start" })
+    ).toBeVisible();
+    await page.locator("#report-date_from").fill("2020-01-01");
+    await page.locator("#report-date_to").fill("2020-01-31");
+    await page.getByRole("button", { name: "Apply Filters", exact: true }).click();
+    await expect(page.getByTestId("report-count")).toHaveText("0");
+    await expect(page.getByText(/No financial activity matches/)).toBeVisible();
+  });
+  test("unsupported URL filters never render a broader unfiltered report", async ({ page }) => {
+    await page.goto("/reports?owner=other");
+    await expect(
+      page.getByRole("alert").filter({ hasText: "invalid, repeated, or unsupported" })
+    ).toBeVisible();
+    await expect(page.getByTestId("report-expense")).toHaveCount(0);
+    await page.getByRole("button", { name: "Clear Filters", exact: true }).click();
+    await expect(page.getByTestId("report-expense")).toBeVisible();
+  });
+  test("report errors remain visible and recover through real refetch (injected read failure)", async ({
+    page,
+  }) => {
+    await page.route("**/api/v1/reports/summary**", (route) =>
+      route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Simulated report read outage" }),
+      })
+    );
+    await page.goto("/reports");
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Simulated report read outage" })
+    ).toBeVisible();
+    await expect(page.getByTestId("report-expense")).toHaveCount(0);
+    await page.unroute("**/api/v1/reports/summary**");
+    await page.getByRole("button", { name: "Retry loading", exact: true }).click();
+    await expect(page.getByTestId("report-expense")).toBeVisible();
+  });
+  test("CSV downloads the real authenticated UTF-8 backend file once", async ({ page }) => {
+    await page.goto("/reports");
+    await page.getByRole("button", { name: "Export CSV", exact: true }).click();
+    const modal = page.getByRole("dialog");
+    await expect(
+      modal.getByRole("heading", { name: "Export Financial Ledger (CSV)", exact: true })
+    ).toBeVisible();
+    const downloads: unknown[] = [];
+    page.on("download", (d) => downloads.push(d));
+    const downloaded = page.waitForEvent("download");
+    await modal.getByRole("button", { name: "Download CSV", exact: true }).dblclick();
+    const file = await downloaded;
+    expect(file.suggestedFilename()).toBe("kivo-transactions.csv");
+    expect(downloads).toHaveLength(1);
+    const bytes = await readFile((await file.path())!);
+    expect([...bytes.subarray(0, 3)]).toEqual([239, 187, 191]);
+    const rows = csvRecords(bytes.toString("utf8"));
+    expect(rows.length).toBeGreaterThan(0);
+    expect(
+      rows.every((row) => ["posted", "reversed", "voided", "reversal"].includes(row.status))
+    ).toBe(true);
+    expect(rows.every((row) => /^-?\d+\.\d{2}$/.test(row.net_expense_inr))).toBe(true);
+    await expect(modal.getByRole("status")).toContainText("Downloaded");
+  });
+  test("CSV uses actual account/category options and validates inclusive dates", async ({
+    page,
+  }) => {
+    await page.goto("/reports");
+    await page.getByRole("button", { name: "Export CSV", exact: true }).click();
+    const modal = page.getByRole("dialog");
+    await modal.locator("#export-account").selectOption(process.env.KIVO_E2E_ACCOUNT_A!);
+    await modal.locator("#export-category").selectOption(process.env.KIVO_E2E_CATEGORY_A!);
+    await modal.locator("#export-startDate").fill("2026-11-02");
+    await modal.locator("#export-endDate").fill("2026-11-01");
+    await modal.getByRole("button", { name: "Download CSV", exact: true }).click();
+    await expect(modal.getByText("Start date must not be after end date")).toBeVisible();
+  });
+  test("fund reports display a pinned actual snapshot and link to lineage", async ({ page }) => {
+    await page.goto("/reports");
+    await page.getByRole("button", { name: "Fund Attribution Report", exact: true }).click();
+    await expect(
+      page.getByRole("link", { name: "View Journey", exact: true }).first()
+    ).toBeVisible();
+    await expect(page.getByText(/Current pinned FIFO snapshot/)).toBeVisible();
+  });
+  for (const [path, width] of [
+    ["/budgets", 375],
+    ["/reports", 375],
+    ["/reports", 768],
+    ["/budgets", 1440],
+  ] as const) {
+    test(path + " fits " + width + "px without horizontal page overflow", async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(path);
+      if (path === "/reports") await expect(page.getByTestId("report-expense")).toBeVisible();
+      else
+        await expect(
+          page.getByTestId("budget-card-" + process.env.KIVO_E2E_BUDGET_A)
+        ).toBeVisible();
+      const dimensions = await page.evaluate(() => ({
+        scroll: document.documentElement.scrollWidth,
+        client: document.documentElement.clientWidth,
+      }));
+      expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.client + 2);
+    });
+  }
 });

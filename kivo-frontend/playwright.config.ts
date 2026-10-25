@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  testMatch: process.env.KIVO_E2E_READ_ONLY === "1" ? "**/phase6.spec.ts" : undefined,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -11,7 +12,8 @@ export default defineConfig({
   // not a placeholder; HTTP status assertions and application deadlines stay unchanged.
   expect: { timeout: 20_000 },
   reporter: "list",
-  globalSetup: "./e2e/global-setup.ts",
+  globalSetup:
+    process.env.KIVO_E2E_READ_ONLY === "1" ? "./e2e/read-only-setup.ts" : "./e2e/global-setup.ts",
   use: {
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
@@ -36,6 +38,7 @@ export default defineConfig({
         "**/part4-recovery.spec.ts",
         "**/part4-isolated.spec.ts",
         "**/part5-live.spec.ts",
+        "**/part6-live.spec.ts",
       ],
       use: { ...devices["Pixel 5"] },
     },

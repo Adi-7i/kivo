@@ -1,274 +1,213 @@
 "use client";
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Calendar, X, RotateCcw } from "lucide-react";
-import type { PeriodPreset, ReportFilterState } from "../types";
+import { Label } from "@/components/ui/label";
+import { useAccounts, useCategories } from "@/features/finance/queries";
+import { useOwnedList } from "@/features/finance/useOwnedQuery";
+import { QueryState } from "@/features/finance/QueryState";
+import { financialError } from "@/features/finance/validation";
+import { TRANSACTION_KIND_LABELS } from "@/features/transactions/types";
+import { todayInKolkata } from "@/features/onboarding/money";
+import { cleanReportFilters, REPORT_PERIODS, type ReportParams } from "../filters";
+import { ZodError } from "zod";
 
-interface ReportFilterBarProps {
-  filters: ReportFilterState;
-  onFilterChange: (filters: ReportFilterState) => void;
-  className?: string;
-}
-
-const PERIOD_PRESETS: { label: string; value: PeriodPreset }[] = [
-  { label: "This Month", value: "this_month" },
-  { label: "Previous Month", value: "previous_month" },
-  { label: "This Week", value: "this_week" },
-  { label: "Last 7 Days", value: "last_7_days" },
-  { label: "Today", value: "today" },
-  { label: "Yesterday", value: "yesterday" },
-  { label: "This Year", value: "this_year" },
-  { label: "Custom Range", value: "custom" },
-];
-
-export function ReportFilterBar({ filters, onFilterChange, className }: ReportFilterBarProps) {
-  const [isCustomOpen, setIsCustomOpen] = React.useState(filters.period === "custom");
-  const [customStart, setCustomStart] = React.useState(filters.startDate || "2026-10-01");
-  const [customEnd, setCustomEnd] = React.useState(filters.endDate || "2026-10-31");
-  const [dateError, setDateError] = React.useState<string | null>(null);
-
-  const handlePeriodClick = (preset: PeriodPreset) => {
-    if (preset === "custom") {
-      setIsCustomOpen(true);
-      onFilterChange({
-        ...filters,
-        period: "custom",
-        startDate: customStart,
-        endDate: customEnd,
-      });
-    } else {
-      setIsCustomOpen(false);
-      setDateError(null);
-      onFilterChange({
-        ...filters,
-        period: preset,
-        startDate: undefined,
-        endDate: undefined,
-      });
-    }
-  };
-
-  const handleApplyCustomDate = () => {
-    if (!customStart || !customEnd) {
-      setDateError("Both start and end dates are required");
-      return;
-    }
-    if (customStart > customEnd) {
-      setDateError("Start date cannot be after end date");
-      return;
-    }
-    setDateError(null);
-    onFilterChange({
-      ...filters,
-      period: "custom",
-      startDate: customStart,
-      endDate: customEnd,
-    });
-  };
-
-  const handleClearFilter = (key: keyof ReportFilterState) => {
-    const next = { ...filters };
-    delete next[key];
-    if (key === "period") {
-      next.period = "this_month";
-      setIsCustomOpen(false);
-    }
-    onFilterChange(next);
-  };
-
-  const handleResetAll = () => {
-    setIsCustomOpen(false);
-    setDateError(null);
-    onFilterChange({
-      period: "this_month",
-    });
-  };
-
-  const hasActiveFilters = Boolean(
-    filters.period !== "this_month" ||
-    filters.accountId ||
-    filters.category ||
-    filters.transactionType
+export function ReportFilterBar({
+  filters,
+  onFilterChange,
+}: {
+  filters: ReportParams;
+  onFilterChange: (v: ReportParams) => void;
+}) {
+  const accounts = useAccounts(),
+    categories = useCategories(),
+    contacts = useOwnedList<{ id: string; display_name: string }>("contacts", "/api/v1/contacts/");
+  const [values, setValues] = React.useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      Object.entries(filters).filter((e): e is [string, string] => typeof e[1] === "string")
+    )
   );
-
+  const [period, setPeriod] = React.useState(filters.period ?? "custom"),
+    [error, setError] = React.useState("");
+  const update = (key: string, value: string) => setValues((old) => ({ ...old, [key]: value }));
+  const apply = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    try {
+      const v = { ...values };
+      delete v.period;
+      delete v.date;
+      if (period !== "custom") {
+        delete v.date_from;
+        delete v.date_to;
+        v.period = period;
+      } else {
+        v.date_from = v.date_from || filters.date || todayInKolkata();
+        v.date_to = v.date_to || filters.date || todayInKolkata();
+      }
+      onFilterChange(cleanReportFilters(v));
+    } catch (failure) {
+      setError(
+        failure instanceof ZodError
+          ? failure.issues.map((i) => i.message).join(" ")
+          : financialError(failure)
+      );
+    }
+  };
+  const selectClass = "w-full min-w-0 rounded-md border bg-background px-2.5 py-2 text-xs";
   return (
-    <div
-      className={`rounded-xl border border-border/80 bg-card p-3 sm:p-4 shadow-2xs space-y-3 ${className || ""}`}
+    <form
+      onSubmit={apply}
+      noValidate
+      className="rounded-xl border border-border/80 bg-card p-3 sm:p-4 shadow-2xs space-y-4"
     >
-      {/* Top Row: Presets and Filters */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        {/* Preset Buttons */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 text-xs">
-          <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground mr-1">
-            <Calendar className="size-3.5 text-kivo-primary" />
-            <span className="font-semibold text-foreground text-[11px] uppercase tracking-wider">
-              Period:
-            </span>
-          </div>
-
-          {PERIOD_PRESETS.map((p) => (
-            <button
-              key={p.value}
-              type="button"
-              onClick={() => handlePeriodClick(p.value)}
-              className={`px-2.5 py-1 rounded-md font-medium transition-all shrink-0 ${
-                filters.period === p.value
-                  ? "bg-kivo-primary text-white shadow-2xs font-semibold"
-                  : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {p.label}
-            </button>
+      <div className="flex flex-wrap gap-1.5" aria-label="Reporting period">
+        {REPORT_PERIODS.map(([key, label]) => (
+          <Button
+            key={key}
+            type="button"
+            size="sm"
+            variant={period === key ? "default" : "outline"}
+            aria-pressed={period === key}
+            onClick={() => setPeriod(key)}
+          >
+            {label}
+          </Button>
+        ))}
+        <Button
+          type="button"
+          size="sm"
+          variant={period === "custom" ? "default" : "outline"}
+          onClick={() => setPeriod("custom")}
+        >
+          Custom Range
+        </Button>
+      </div>
+      {period === "custom" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {(["date_from", "date_to"] as const).map((key, i) => (
+            <div key={key}>
+              <Label htmlFor={"report-" + key}>{i ? "To Date" : "From Date"} (inclusive)</Label>
+              <Input
+                id={"report-" + key}
+                type="date"
+                value={values[key] ?? filters.date ?? todayInKolkata()}
+                onChange={(e) => update(key, e.target.value)}
+              />
+            </div>
           ))}
         </div>
-
-        {/* Secondary Filter Dropdowns */}
-        <div className="flex items-center gap-2 flex-wrap text-xs">
-          {/* Account Filter */}
+      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div>
+          <Label htmlFor="report-account">Account</Label>
           <select
-            value={filters.accountId || ""}
-            onChange={(e) =>
-              onFilterChange({
-                ...filters,
-                accountId: e.target.value || undefined,
-              })
-            }
-            className="rounded-md border border-input bg-background px-2.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            id="report-account"
+            value={values.account ?? ""}
+            onChange={(e) => update("account", e.target.value)}
+            className={selectClass}
           >
             <option value="">All Accounts</option>
-            <option value="acc-hdfc">HDFC Salary</option>
-            <option value="acc-icici">ICICI Wallet</option>
-            <option value="acc-cash">Cash Wallet</option>
+            {(accounts.data ?? []).map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
           </select>
-
-          {/* Category Filter */}
+        </div>
+        <div>
+          <Label htmlFor="report-category">Category</Label>
           <select
-            value={filters.category || ""}
-            onChange={(e) =>
-              onFilterChange({
-                ...filters,
-                category: e.target.value || undefined,
-              })
-            }
-            className="rounded-md border border-input bg-background px-2.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            id="report-category"
+            value={values.category ?? ""}
+            onChange={(e) => update("category", e.target.value)}
+            className={selectClass}
           >
             <option value="">All Categories</option>
-            <option value="Food & Groceries">Food & Groceries</option>
-            <option value="Living Expenses">Living Expenses</option>
-            <option value="Dining & Entertainment">Dining & Entertainment</option>
-            <option value="Utilities & Bills">Utilities & Bills</option>
-            <option value="Shopping & Personal">Shopping & Personal</option>
-            <option value="Transit & Fuel">Transit & Fuel</option>
+            {(categories.data ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
           </select>
-
-          {/* Reset All */}
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleResetAll}
-              className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1 px-2"
-            >
-              <RotateCcw className="size-3" />
-              <span>Reset</span>
-            </Button>
-          )}
         </div>
-      </div>
-
-      {/* Custom Date Range Panel (when period === 'custom') */}
-      {isCustomOpen && (
-        <div className="rounded-lg border border-border/80 bg-muted/20 p-3 flex flex-col sm:flex-row sm:items-center gap-3 text-xs">
-          <span className="font-medium text-foreground text-[11px] uppercase tracking-wider shrink-0">
-            Custom Date Range:
-          </span>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">From:</span>
-              <Input
-                type="date"
-                value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
-                className="h-7 text-xs w-36"
-              />
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">To:</span>
-              <Input
-                type="date"
-                value={customEnd}
-                onChange={(e) => setCustomEnd(e.target.value)}
-                className="h-7 text-xs w-36"
-              />
-            </div>
-
-            <Button
-              size="sm"
-              onClick={handleApplyCustomDate}
-              className="h-7 text-xs bg-kivo-primary hover:bg-kivo-brand-dark text-white px-3"
-            >
-              Apply Dates
-            </Button>
+        <div>
+          <Label htmlFor="report-kind">Transaction type</Label>
+          <select
+            id="report-kind"
+            value={values.kind ?? ""}
+            onChange={(e) => update("kind", e.target.value)}
+            className={selectClass}
+          >
+            <option value="">All Types</option>
+            {Object.entries(TRANSACTION_KIND_LABELS).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <Label htmlFor="report-contact">Contact / person</Label>
+          <select
+            id="report-contact"
+            value={values.contact ?? ""}
+            onChange={(e) => update("contact", e.target.value)}
+            className={selectClass}
+          >
+            <option value="">All Contacts</option>
+            {(contacts.data ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.display_name}
+              </option>
+            ))}
+          </select>
+        </div>
+        {(
+          [
+            ["merchant", "Merchant / place (exact)"],
+            ["payment_method", "Payment method (exact)"],
+            ["search", "Search"],
+            ["amount_min", "Minimum face amount (₹)"],
+            ["amount_max", "Maximum face amount (₹)"],
+          ] as const
+        ).map(([key, label]) => (
+          <div key={key}>
+            <Label htmlFor={"report-" + key}>{label}</Label>
+            <Input
+              id={"report-" + key}
+              value={values[key] ?? ""}
+              onChange={(e) => update(key, e.target.value)}
+              inputMode={key.startsWith("amount") ? "decimal" : undefined}
+            />
           </div>
-
-          {dateError && <span className="text-xs text-destructive font-medium">{dateError}</span>}
-        </div>
+        ))}
+      </div>
+      <QueryState query={accounts} />
+      <QueryState query={categories} />
+      <QueryState query={contacts} />
+      {error && (
+        <p role="alert" className="text-xs text-destructive">
+          {error}
+        </p>
       )}
-
-      {/* Active Filter Chips */}
-      {hasActiveFilters && (
-        <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-border/40 text-[11px]">
-          <span className="text-muted-foreground">Active filters:</span>
-
-          {filters.period !== "this_month" && (
-            <span className="inline-flex items-center gap-1 bg-muted px-2 py-0.5 rounded-md text-foreground">
-              <span>
-                Period:{" "}
-                {filters.period === "custom"
-                  ? `${filters.startDate} to ${filters.endDate}`
-                  : filters.period.replaceAll("_", " ")}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleClearFilter("period")}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <X className="size-3" />
-              </button>
-            </span>
-          )}
-
-          {filters.accountId && (
-            <span className="inline-flex items-center gap-1 bg-muted px-2 py-0.5 rounded-md text-foreground">
-              <span>Account: {filters.accountId}</span>
-              <button
-                type="button"
-                onClick={() => handleClearFilter("accountId")}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <X className="size-3" />
-              </button>
-            </span>
-          )}
-
-          {filters.category && (
-            <span className="inline-flex items-center gap-1 bg-muted px-2 py-0.5 rounded-md text-foreground">
-              <span>Category: {filters.category}</span>
-              <button
-                type="button"
-                onClick={() => handleClearFilter("category")}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <X className="size-3" />
-              </button>
-            </span>
-          )}
-        </div>
-      )}
-    </div>
+      <div className="flex gap-2 flex-wrap items-center">
+        <Button size="sm" type="submit">
+          Apply Filters
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          type="button"
+          onClick={() => onFilterChange({ period: "month" })}
+        >
+          Clear Filters
+        </Button>
+        <p className="text-[11px] text-muted-foreground">
+          Asia/Kolkata · This Week is Monday–Sunday; Last 7 Days is a rolling inclusive range.
+          Changes apply on submit.
+        </p>
+      </div>
+    </form>
   );
 }

@@ -6,8 +6,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useOwnedQuery, useOwnedList } from "@/features/finance/useOwnedQuery";
 import { QueryState } from "@/features/finance/QueryState";
 import { useAccounts, useCategories, invalidateFinance } from "@/features/finance/queries";
-import { decimalPaise } from "@/features/finance/api";
-import { MoneyAmount } from "@/features/shared-financial/MoneyAmount";
 import { TransactionPagination } from "@/features/transactions/components/TransactionPagination";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,13 +20,8 @@ import {
   type FundBreakdownDTO,
 } from "../api";
 
-export function ServerMoney({ value }: { value: string | null | undefined }) {
-  return value == null ? (
-    <span className="text-xs text-muted-foreground">Not computed</span>
-  ) : (
-    <MoneyAmount paise={decimalPaise(value)} size="sm" tabular />
-  );
-}
+import { ServerMoney } from "@/features/shared-financial/ServerMoney";
+export { ServerMoney } from "@/features/shared-financial/ServerMoney";
 function useSnapshot() {
   return useOwnedQuery<FundSummaryDTO>("funds", "/api/v1/funds/summary/");
 }

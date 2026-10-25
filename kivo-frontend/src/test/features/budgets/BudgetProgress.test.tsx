@@ -1,33 +1,20 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { BudgetProgress, getBudgetStatus } from "@/features/budgets/components/BudgetProgress";
-
-describe("getBudgetStatus helper", () => {
-  it("returns normal when spending is under 80%", () => {
-    expect(getBudgetStatus(500000, 1000000)).toBe("normal");
-    expect(getBudgetStatus(790000, 1000000)).toBe("normal");
-  });
-
-  it("returns warning when spending is between 80% and 99.9%", () => {
-    expect(getBudgetStatus(800000, 1000000)).toBe("warning");
-    expect(getBudgetStatus(950000, 1000000)).toBe("warning");
-  });
-
-  it("returns full when spending is exactly 100%", () => {
-    expect(getBudgetStatus(1000000, 1000000)).toBe("full");
-  });
-
-  it("returns exceeded when spending is over 100%", () => {
-    expect(getBudgetStatus(1050000, 1000000)).toBe("exceeded");
-  });
-});
-
-describe("BudgetProgress component", () => {
-  it("renders progressbar with aria attributes", () => {
-    render(<BudgetProgress spentPaise={600000} limitPaise={1000000} showLabel />);
-    const bar = screen.getByRole("progressbar");
-    expect(bar).toBeInTheDocument();
-    expect(bar).toHaveAttribute("aria-valuenow", "60");
-    expect(screen.getByText("60%")).toBeInTheDocument();
+import { BudgetProgress } from "@/features/budgets/components/BudgetProgress";
+describe("server budget utilization presentation", () => {
+  it.each(["0.00", "79.95", "150.01", "-20.00"])(
+    "retains the exact server percentage %s without recomputing spending",
+    (value) => {
+      render(<BudgetProgress utilization={value} showLabel />);
+      expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuetext", value + "%");
+      expect(screen.getByText("Utilization: " + value + "%")).toBeVisible();
+      const geometry = Math.min(100, Math.max(0, Number(value)));
+      expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", String(geometry));
+    }
+  );
+  it("does not manufacture a percentage for a zero limit", () => {
+    render(<BudgetProgress utilization={null} showLabel />);
+    expect(screen.getByRole("progressbar")).not.toHaveAttribute("aria-valuenow");
+    expect(screen.getByText(/Not defined for a zero limit/)).toBeVisible();
   });
 });

@@ -45,7 +45,7 @@ describe("same-origin API bridge (mocked upstream HTTP)", () => {
   });
   it("exposes no unapproved financial API operation", async () => {
     expect(
-      (await forwardDjango(new Request("http://localhost:3000/api/v1/reports/export/"))).status
+      (await forwardDjango(new Request("http://localhost:3000/api/v1/not-integrated/"))).status
     ).toBe(404);
     expect(fetch).not.toHaveBeenCalled();
   });

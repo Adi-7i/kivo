@@ -1,168 +1,148 @@
 "use client";
-
-import * as React from "react";
+import { useState } from "react";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { formatInr } from "@/lib/formatters/currency";
-import { MoneyAmount } from "@/features/shared-financial/MoneyAmount";
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
-import { PieChart as PieIcon, Layers } from "lucide-react";
-import type { CategorySpendingItem } from "../types";
-
-interface CategoryBreakdownChartProps {
-  data: CategorySpendingItem[];
-  className?: string;
-  onSelectCategory?: (category: CategorySpendingItem) => void;
-}
-
+import { chartInrTick } from "../chart-format";
+import { decimalPaise } from "@/features/finance/api";
+import { ServerMoney } from "@/features/shared-financial/ServerMoney";
+import type { BreakdownDTO, BreakdownRow } from "../api";
+const colors = ["#3A5A40", "#588157", "#A3B18A", "#2D6A4F", "#DAD7CD"];
 export function CategoryBreakdownChart({
   data,
-  className,
+  total,
   onSelectCategory,
-}: CategoryBreakdownChartProps) {
-  const [hoveredSlug, setHoveredSlug] = React.useState<string | null>(null);
-
-  const totalPaise = React.useMemo(() => {
-    return data.reduce((acc, curr) => acc + curr.amountPaise, 0);
-  }, [data]);
-
+}: {
+  data: BreakdownDTO;
+  total: string;
+  onSelectCategory: (row: BreakdownRow) => void;
+}) {
+  const [legendPage, setLegendPage] = useState(1);
+  const rows = data.results.map((r) => ({
+      ...r,
+      name: r.label || "Unassigned",
+      paise: decimalPaise(r.amount),
+    })),
+    signed = rows.some((r) => r.paise < 0);
   return (
-    <div
-      className={`rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs space-y-4 ${className || ""}`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="size-8 rounded-lg bg-kivo-primary/10 text-kivo-primary flex items-center justify-center">
-            <PieIcon className="size-4" />
-          </div>
-          <div>
-            <h3 className="font-heading font-bold text-base text-foreground tracking-tight">
-              Expense Allocation by Category
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Relative expenditure distribution across categorized personal spending
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {data.length === 0 ? (
-        <div className="h-64 w-full flex flex-col items-center justify-center text-center p-6 space-y-2 bg-muted/10 rounded-xl border border-dashed border-border">
-          <Layers className="size-6 text-muted-foreground" />
-          <span className="text-sm font-semibold text-foreground">
-            No category expenses recorded
-          </span>
-          <p className="text-xs text-muted-foreground max-w-xs">
-            Categorized personal expenses will appear here once transactions are recorded.
-          </p>
-        </div>
+    <section className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs space-y-4 min-w-0">
+      <h2 className="font-heading font-bold text-base">Expense Allocation by Category</h2>
+      <p className="text-xs text-muted-foreground">
+        Server net personal expense: <ServerMoney value={total} />. Percentage shares are not
+        exposed by this API.
+      </p>
+      {!rows.length ? (
+        <p className="h-56 grid place-items-center text-sm text-muted-foreground">
+          No category expenses recorded
+        </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-          {/* Donut Chart Canvas */}
-          <div className="md:col-span-5 h-56 relative flex items-center justify-center">
+        <>
+          <div
+            className="h-56 w-full min-w-0"
+            role="img"
+            aria-label={
+              signed
+                ? "Signed category expenses including refunds in INR"
+                : "Category expenses in INR"
+            }
+          >
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const item = payload[0].payload as CategorySpendingItem;
-                      return (
-                        <div className="rounded-lg border border-border bg-card p-2.5 shadow-md text-xs space-y-1">
-                          <div className="flex items-center gap-1.5 font-semibold text-foreground">
-                            <span
-                              className="size-2 rounded-full"
-                              style={{ backgroundColor: item.color }}
-                            />
-                            <span>{item.category}</span>
-                          </div>
-                          <div className="flex items-center justify-between gap-4">
-                            <span className="text-muted-foreground">Amount:</span>
-                            <span className="font-mono font-semibold text-destructive">
-                              {formatInr(item.amountPaise)}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between gap-4">
-                            <span className="text-muted-foreground">Share:</span>
-                            <span className="font-mono font-medium text-foreground">
-                              {item.percentage}%
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={85}
-                  paddingAngle={3}
-                  dataKey="amountPaise"
-                  nameKey="category"
-                  onMouseEnter={(_, index) => {
-                    if (data[index]) setHoveredSlug(data[index].slug);
-                  }}
-                  onMouseLeave={() => setHoveredSlug(null)}
-                >
-                  {data.map((entry) => (
-                    <Cell
-                      key={`cell-${entry.slug}`}
-                      fill={entry.color}
-                      stroke="var(--card)"
-                      strokeWidth={2}
-                      className="cursor-pointer transition-opacity"
-                      opacity={hoveredSlug && hoveredSlug !== entry.slug ? 0.6 : 1}
-                    />
-                  ))}
-                </Pie>
-              </PieChart>
+              {signed ? (
+                <BarChart data={rows.slice(0, 20)}>
+                  <XAxis dataKey="name" hide />
+                  <YAxis
+                    allowDecimals={false}
+                    tickFormatter={chartInrTick}
+                    width={75}
+                    tick={{ fontSize: 10 }}
+                  />
+                  <Tooltip formatter={(v) => formatInr(Number(v))} />
+                  <Bar
+                    dataKey="paise"
+                    name="Net expense"
+                    fill="#3A5A40"
+                    isAnimationActive={false}
+                  />
+                </BarChart>
+              ) : (
+                <PieChart>
+                  <Tooltip formatter={(v) => formatInr(Number(v))} />
+                  <Pie
+                    data={rows.slice(0, 20)}
+                    dataKey="paise"
+                    nameKey="name"
+                    innerRadius={55}
+                    outerRadius={85}
+                    isAnimationActive={false}
+                  >
+                    {rows.slice(0, 20).map((r, i) => (
+                      <Cell key={r.key ?? "unassigned"} fill={colors[i % colors.length]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              )}
             </ResponsiveContainer>
-
-            {/* Center Label in Donut Hole */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-              <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
-                Total Expenses
+          </div>
+          {rows.length > 20 && (
+            <p className="text-xs text-muted-foreground">
+              Chart shows the first 20 groups. All groups are available in the detailed table.
+            </p>
+          )}
+          <div className="max-h-48 overflow-auto space-y-1">
+            {rows.slice((legendPage - 1) * 20, legendPage * 20).map((r, i) => (
+              <button
+                key={r.key ?? "unassigned"}
+                type="button"
+                disabled={!r.key}
+                onClick={() => onSelectCategory(r)}
+                aria-label={"Filter category: " + r.name}
+                className="w-full flex gap-2 items-center justify-between text-left text-xs p-2 rounded-lg hover:bg-muted disabled:cursor-default"
+              >
+                <span className="flex gap-2 items-center min-w-0">
+                  <span
+                    className="size-2 rounded-full shrink-0"
+                    style={{ backgroundColor: colors[i % colors.length] }}
+                  />
+                  <span className="truncate">
+                    {r.name} · {r.transaction_count} transactions
+                  </span>
+                </span>
+                <ServerMoney value={r.amount} />
+              </button>
+            ))}
+          </div>
+          {rows.length > 20 && (
+            <div className="flex items-center gap-2 text-xs">
+              <button
+                type="button"
+                disabled={legendPage <= 1}
+                onClick={() => setLegendPage((p) => p - 1)}
+              >
+                Previous categories
+              </button>
+              <span>
+                Page {legendPage} of {Math.ceil(rows.length / 20)}
               </span>
-              <MoneyAmount paise={totalPaise} size="base" variant="expense" />
+              <button
+                type="button"
+                disabled={legendPage * 20 >= rows.length}
+                onClick={() => setLegendPage((p) => p + 1)}
+              >
+                Next categories
+              </button>
             </div>
-          </div>
-
-          {/* Category List & Legend */}
-          <div className="md:col-span-7 space-y-2">
-            <div className="max-h-56 overflow-y-auto pr-1 space-y-1.5 divide-y divide-border/40">
-              {data.map((item) => (
-                <div
-                  key={item.slug}
-                  onClick={() => onSelectCategory?.(item)}
-                  onMouseEnter={() => setHoveredSlug(item.slug)}
-                  onMouseLeave={() => setHoveredSlug(null)}
-                  className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all ${
-                    hoveredSlug === item.slug ? "bg-muted/80 shadow-2xs" : "hover:bg-muted/40"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className="size-3 rounded-full shrink-0 shadow-2xs"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <div className="min-w-0">
-                      <span className="text-xs font-medium text-foreground block truncate">
-                        {item.category}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground block truncate">
-                        {item.transactionCount} transactions • {item.percentage}% of total
-                      </span>
-                    </div>
-                  </div>
-
-                  <MoneyAmount paise={item.amountPaise} size="sm" variant="expense" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
-    </div>
+    </section>
   );
 }

@@ -18,7 +18,7 @@ import type { TransactionFilterState } from "@/features/transactions/types";
 import { accountEntity, transactionEntity } from "@/features/finance/api";
 import { useAccounts, useCategories, useHistory } from "@/features/finance/queries";
 import { QueryState } from "@/features/finance/QueryState";
-import { historyParams } from "@/features/transactions/history";
+import { historyParams, historyFiltersFromSearch } from "@/features/transactions/history";
 const DEFAULT_FILTERS: TransactionFilterState = {
   search: "",
   kind: "all",
@@ -29,9 +29,20 @@ const DEFAULT_FILTERS: TransactionFilterState = {
 };
 function HistoryContent() {
   const params = useSearchParams();
+  const initial = React.useMemo(() => {
+    try {
+      return { filters: historyFiltersFromSearch(params.toString()), error: "" };
+    } catch {
+      return {
+        filters: {},
+        error: "The transaction filters are invalid. Reset filters to continue.",
+      };
+    }
+  }, [params]);
+  const [filterError, setFilterError] = React.useState(initial.error);
   const [filters, setFilters] = React.useState<TransactionFilterState>({
     ...DEFAULT_FILTERS,
-    accountId: params.get("account") || params.get("accountId") || "all",
+    ...initial.filters,
   });
   const [page, setPage] = React.useState(1);
   const [quickAdd, setQuickAdd] = React.useState(false);
@@ -42,12 +53,16 @@ function HistoryContent() {
     const timer = setTimeout(() => setDeferredSearch(filters.search), 300);
     return () => clearTimeout(timer);
   }, [filters.search]);
-  const query = useHistory(historyParams({ ...filters, search: deferredSearch }, page));
+  const query = useHistory(
+    historyParams({ ...filters, search: deferredSearch }, page),
+    !filterError
+  );
   const update = (changes: Partial<TransactionFilterState>) => {
     setFilters((old) => ({ ...old, ...changes }));
     setPage(1);
   };
   const reset = () => {
+    setFilterError("");
     setFilters(DEFAULT_FILTERS);
     setPage(1);
   };
@@ -85,6 +100,34 @@ function HistoryContent() {
             onCustomDateChange={(startDate, endDate) => update({ startDate, endDate })}
           />
           <QueryState query={accounts} />
+          {filterError && (
+            <p role="alert" className="text-xs text-destructive">
+              {filterError}{" "}
+              <Button size="sm" variant="outline" onClick={reset}>
+                Reset Filters
+              </Button>
+            </p>
+          )}
+          {(filters.contact ||
+            filters.merchant ||
+            filters.paymentMethod ||
+            filters.amountMin ||
+            filters.amountMax ||
+            filters.destination) && (
+            <div className="rounded-lg border p-3 text-xs space-y-2">
+              <p>
+                Report filters: {filters.contact ? "Contact " + filters.contact + ". " : ""}
+                {filters.merchant ? "Merchant " + filters.merchant + ". " : ""}
+                {filters.paymentMethod ? "Payment method " + filters.paymentMethod + ". " : ""}
+                {filters.amountMin ? "Minimum INR " + filters.amountMin + ". " : ""}
+                {filters.amountMax ? "Maximum INR " + filters.amountMax + ". " : ""}
+                {filters.destination ? "Destination " + filters.destination : ""}
+              </p>
+              <Button size="sm" variant="outline" onClick={reset}>
+                Clear Report Filters
+              </Button>
+            </div>
+          )}
           <QueryState query={categories} />
           <QueryState query={query} />
           {query.isSuccess &&

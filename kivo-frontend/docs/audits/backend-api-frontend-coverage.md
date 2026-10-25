@@ -1,5 +1,13 @@
 # Backend API ↔ Frontend UI Feature Coverage Audit
 
+## 2026-10-25 Part 6 integration update
+
+**Part 6 IMPLEMENTED / PARTIALLY COMPLETE — full live verification BLOCKED / NO-GO.** The owner authorized budgets, reports and authenticated CSV after Parts 4–5. A fresh real Part 4 recovery/Part 5 rent gate passed 2/2 before source edits. Existing clean checkpoint is `INTIGRATION@611c9dc`; the previous work was committed, contrary to the historical uncommitted assumption.
+
+Actual coverage: owned budget list/detail/create/PATCH/archive with server progress and warning thresholds; summary/trends/six expense dimensions; pinned funding reports; URL filters and transaction drill-downs; authenticated UTF-8/BOM CSV with actual metadata, filter propagation and formula protection. CSV column headers/encoding are fixed by Django; no audit checksum, deletion, budget audit-history API, breakdown percentages, direct net cash-flow field or historical income series is invented. Earlier preview-only and “Part 6 has not begun” statements below are historical.
+
+See the [Part 6 verification report](../../../docs/integration/part-06-budgets-reports-export-verification.md) for executed checks, retained failures and limitations. Final checks: 393 frontend tests, 57 selected backend unit tests, TypeScript, lint and production build pass. Live financial verification failed on actual Django/database 503s (including registration and current-user); read-only browser selection was 6 passed / 4 failed / 28 unexecuted. Further mutations stopped. CSV code exists but real downloads/ownership and the complete Part 6 journeys are not verified. Production-release hardening has not begun.
+
 ## 2026-10-25 recovery and rent integration update
 
 **Parts 4 and 5 VERIFIED for the approved development scope.** [Part 4 recovery](../../../docs/integration/part-04-people-sharing-verification.md) records the complete uninterrupted financial/security journey, measured connection churn/deadline mismatch and bounded opt-in development pool. [Part 5 rent verification](../../../docs/integration/part-05-rent-reserves-verification.md) records exact contracts, all four real rent journeys and the approved friend-paid rent/reserve policy. Final checks: 335 unit tests, all 180 unique browser cases with passing evidence across full/focused runs (12 real Django-backed journeys), TypeScript, lint, cold/incremental build, Django checks and 24 selected backend unit tests. Failed attempts remain documented; no production certification is claimed.

@@ -25,6 +25,7 @@ describe("financial mutation recovery (mocked HTTP only)", () => {
     "loans",
     "settlements",
     "shared-bills",
+    "budgets",
     "rent/plans",
     "rent/reserves",
   ])(

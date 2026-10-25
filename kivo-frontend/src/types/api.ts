@@ -30,3 +30,8 @@ export interface RequestOptions extends Omit<RequestInit, "method" | "body"> {
   skipCsrf?: boolean;
   idempotencyKey?: string;
 }
+
+export interface ApiDownload {
+  blob: Blob;
+  headers: Headers;
+}

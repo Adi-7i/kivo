@@ -1,27 +1,26 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { FinancialComparison } from "@/features/reports/components/FinancialComparison";
-import { PREVIEW_PERIOD_COMPARISON } from "@/features/reports/data/previewAnalytics";
-
-describe("FinancialComparison", () => {
-  it("renders spending reduced state with decrease percentage", () => {
-    render(<FinancialComparison comparison={PREVIEW_PERIOD_COMPARISON} />);
-
-    expect(screen.getByText("Cycle-over-Cycle Comparison")).toBeInTheDocument();
-    expect(screen.getByText("Spending Reduced")).toBeInTheDocument();
-    expect(screen.getByText("(-7.8%)")).toBeInTheDocument();
+import { summary } from "./fixtures";
+describe("server period comparison", () => {
+  it("renders the exact authoritative percentage", () => {
+    render(<FinancialComparison summary={summary} />);
+    expect(screen.getByTestId("report-comparison")).toHaveTextContent("-50.00%");
   });
-
-  it("renders spending increased state when change is positive", () => {
-    const increasedComparison = {
-      ...PREVIEW_PERIOD_COMPARISON,
-      changePaise: 500000,
-      changePercent: 10.4,
-      trendDirection: "increased" as const,
-    };
-
-    render(<FinancialComparison comparison={increasedComparison} />);
-    expect(screen.getByText("Spending Increased")).toBeInTheDocument();
-    expect(screen.getByText("(+10.4%)")).toBeInTheDocument();
+  it("does not infer a percentage for an incomplete/nonpositive comparison", () => {
+    render(
+      <FinancialComparison
+        summary={{
+          ...summary,
+          comparison: { ...summary.comparison!, comparable: false, percentage_difference: null },
+        }}
+      />
+    );
+    expect(screen.getByText(/Percentage comparison is unavailable/)).toBeVisible();
+    expect(screen.queryByTestId("report-comparison")).not.toBeInTheDocument();
+  });
+  it("represents an uncomputable historical range honestly", () => {
+    render(<FinancialComparison summary={{ ...summary, comparison: null }} />);
+    expect(screen.getByText(/Comparison is unavailable/)).toBeVisible();
   });
 });

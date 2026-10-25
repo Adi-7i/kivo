@@ -15,8 +15,14 @@ import type {
 } from "../src/features/rent/api";
 
 /** Real owned Django fixtures/oracles; these never access financial SQL or retry POSTs. */
-export async function rentHarness(page: Page, context: BrowserContext, opening = "10.00") {
-  const run = "p5-" + Date.now() + "-" + randomUUID().slice(0, 5),
+export async function rentHarness(
+  page: Page,
+  context: BrowserContext,
+  opening = "10.00",
+  prefix = "p5",
+  openedOn?: string
+) {
+  const run = prefix + "-" + Date.now() + "-" + randomUUID().slice(0, 5),
     date = todayInKolkata();
   const email = "kivo-" + run + "@example.test",
     password = randomBytes(24).toString("base64url") + "!a7",
@@ -57,7 +63,7 @@ export async function rentHarness(page: Page, context: BrowserContext, opening =
   const account = await fixture<AccountDTO>("accounts/", {
     name: run + " Bank",
     kind: "bank",
-    opened_on: date,
+    opened_on: openedOn ?? date,
     opening_balance: opening,
   });
   const contact = await fixture<{ id: string; display_name: string }>("contacts/", {

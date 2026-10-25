@@ -11,6 +11,7 @@ describe("bounded remote operation deadlines (mocked transport)", () => {
     "loans",
     "settlements",
     "shared-bills",
+    "budgets",
   ])("allows %s audit/validation responses without a write retry", (domain) => {
     const path = `/api/v1/${domain}/`;
     expect(upstreamTimeoutMs(path, "POST")).toBe(30_000);
@@ -20,7 +21,7 @@ describe("bounded remote operation deadlines (mocked transport)", () => {
   });
   it("keeps authentication and unauthorized future modules on the original budget", () => {
     expect(clientTimeoutMs("/api/v1/auth/login/", "POST")).toBe(15_000);
-    expect(upstreamTimeoutMs("/api/v1/budgets/", "POST")).toBe(12_000);
+    expect(upstreamTimeoutMs("/api/v1/not-integrated/", "POST")).toBe(12_000);
   });
   it("preserves a real upstream 503 without retrying or manufacturing confirmation", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(

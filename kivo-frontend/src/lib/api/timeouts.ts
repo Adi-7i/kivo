@@ -5,7 +5,7 @@
 export function upstreamTimeoutMs(path: string, method: string): number {
   const write = method === "POST" || method === "PATCH";
   const financial =
-    /^\/api\/v1\/(accounts|categories|transactions|contacts|loans|settlements|shared-bills|rent)\//.test(
+    /^\/api\/v1\/(accounts|categories|transactions|contacts|loans|settlements|shared-bills|rent|budgets)\//.test(
       path
     );
   return write && financial ? 30_000 : 12_000;

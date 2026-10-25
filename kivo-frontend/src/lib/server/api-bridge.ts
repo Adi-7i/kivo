@@ -14,6 +14,9 @@ const OPERATIONS: Record<string, readonly string[]> = {
   "/api/v1/dashboard/": ["GET"],
   "/api/v1/accounts/summary/": ["GET"],
   "/api/v1/reports/trends/": ["GET"],
+  "/api/v1/reports/summary/": ["GET"],
+  "/api/v1/reports/export/": ["GET"],
+  "/api/v1/budgets/": ["GET", "POST"],
   "/api/v1/reports/breakdown/": ["GET"],
   "/api/v1/reports/funds/": ["GET"],
   "/api/v1/funds/summary/": ["GET"],
@@ -32,7 +35,7 @@ const OPERATIONS: Record<string, readonly string[]> = {
 };
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
-const RESOURCE = new RegExp(`^/api/v1/(accounts|categories|transactions)/${UUID}/$`, "i");
+const RESOURCE = new RegExp(`^/api/v1/(accounts|categories|transactions|budgets)/${UUID}/$`, "i");
 const ACTION = new RegExp(`^/api/v1/transactions/${UUID}/(reverse|void|correct)/$`, "i");
 const FUND_RESOURCE = new RegExp(`^/api/v1/funds/batches/${UUID}/(?:(journey|breakdown)/)?$`, "i");
 const RELATIONSHIP_RESOURCE = new RegExp(
@@ -130,7 +133,8 @@ export async function forwardDjango(request: Request): Promise<Response> {
                 : undefined);
   if (!methods) return failure(404, "API operation is not available in this integration.");
   if (!methods.includes(request.method)) return failure(405, "Method not allowed.");
-  const headers = new Headers({ Accept: "application/json" });
+  const csv = path === "/api/v1/reports/export/";
+  const headers = new Headers({ Accept: csv ? "text/csv" : "application/json" });
   headers.set("Cookie", djangoCookies(request.headers.get("cookie")));
   let body: string | undefined;
   if (request.method !== "GET") {
@@ -155,17 +159,23 @@ export async function forwardDjango(request: Request): Promise<Response> {
       if (value) headers.set(key, value);
     }
   } else if (url.search) {
-    const allowed =
-      path === "/api/v1/transactions/" || path === "/api/v1/dashboard/"
-        ? HISTORY_QUERY
-        : path === "/api/v1/reports/trends/"
-          ? new Set([...HISTORY_QUERY, "interval"])
-          : path === "/api/v1/reports/breakdown/"
-            ? new Set([...HISTORY_QUERY, "dimension"])
-            : path === "/api/v1/funds/allocations/"
-              ? new Set(["run", "transaction", "page"])
-              : path.startsWith("/api/v1/funds/") || path === "/api/v1/reports/funds/"
-                ? new Set(["run", "page"])
+    const allowed = [
+      "/api/v1/transactions/",
+      "/api/v1/dashboard/",
+      "/api/v1/reports/summary/",
+      "/api/v1/reports/export/",
+    ].includes(path)
+      ? HISTORY_QUERY
+      : path === "/api/v1/reports/trends/"
+        ? new Set([...HISTORY_QUERY, "interval"])
+        : path === "/api/v1/reports/breakdown/"
+          ? new Set([...HISTORY_QUERY, "dimension"])
+          : path === "/api/v1/funds/allocations/"
+            ? new Set(["run", "transaction", "page"])
+            : path.startsWith("/api/v1/funds/") || path === "/api/v1/reports/funds/"
+              ? new Set(["run", "page"])
+              : path === "/api/v1/budgets/"
+                ? new Set(["page", "archived"])
                 : [
                       "/api/v1/accounts/",
                       "/api/v1/categories/",
@@ -202,7 +212,10 @@ export async function forwardDjango(request: Request): Promise<Response> {
       body,
       cache: "no-store",
       redirect: "error",
-      signal: AbortSignal.timeout(upstreamTimeoutMs(path, request.method)),
+      signal: AbortSignal.any([
+        request.signal,
+        AbortSignal.timeout(upstreamTimeoutMs(path, request.method)),
+      ]),
     });
     const responseHeaders = privateHeaders();
     for (const name of ["Content-Type", "Retry-After", "WWW-Authenticate", "X-Request-ID"]) {
@@ -215,8 +228,27 @@ export async function forwardDjango(request: Request): Promise<Response> {
         return failure(502, "Django must issue host-only session cookies.");
       responseHeaders.append("Set-Cookie", cookie);
     }
+    if (csv && upstream.ok && upstream.status !== 200)
+      return failure(502, "The service returned an incomplete CSV response.");
     if (upstream.status === 204)
       return new Response(null, { status: 204, headers: responseHeaders });
+    if (csv && upstream.ok) {
+      responseHeaders.set("X-Content-Type-Options", "nosniff");
+      if (upstream.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "text/csv")
+        return failure(502, "The service returned an invalid CSV response.");
+      for (const name of [
+        "Content-Disposition",
+        "X-Kivo-Export-Timezone",
+        "X-Kivo-Export-Generated-At",
+        "X-Kivo-Export-Filters",
+        "X-Kivo-Export-Date-From",
+        "X-Kivo-Export-Date-To",
+      ]) {
+        const value = upstream.headers.get(name);
+        if (value) responseHeaders.set(name, value);
+      }
+      return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
+    }
     if (!upstream.headers.get("content-type")?.includes("application/json")) {
       return failure(502, "The service returned an invalid response.");
     }

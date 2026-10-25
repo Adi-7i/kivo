@@ -1,155 +1,80 @@
 "use client";
-
-import * as React from "react";
-import { MoneyAmount } from "@/features/shared-financial/MoneyAmount";
-import { CreditCard, Store, Wallet, Users } from "lucide-react";
-import type { SpendingDistribution } from "../types";
-
-interface SpendingDistributionChartProps {
-  distribution: SpendingDistribution;
-  className?: string;
-}
-
-type DistributionTab = "accounts" | "methods" | "merchants" | "people";
-
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { decimalPaise } from "@/features/finance/api";
+import { formatInr } from "@/lib/formatters/currency";
+import { chartInrTick } from "../chart-format";
+import type { BreakdownDTO, Dimension } from "../api";
 export function SpendingDistributionChart({
-  distribution,
-  className,
-}: SpendingDistributionChartProps) {
-  const [activeTab, setActiveTab] = React.useState<DistributionTab>("accounts");
-
-  const activeItems = React.useMemo(() => {
-    switch (activeTab) {
-      case "methods":
-        return distribution.byPaymentMethod;
-      case "merchants":
-        return distribution.byMerchant;
-      case "people":
-        return distribution.byPerson;
-      case "accounts":
-      default:
-        return distribution.byAccount;
-    }
-  }, [activeTab, distribution]);
-
+  data,
+  dimension,
+  onDimension,
+}: {
+  data?: BreakdownDTO;
+  dimension: Dimension;
+  onDimension: (value: Dimension) => void;
+}) {
+  const choices = [
+    ["account", "By Account"],
+    ["payment_method", "By Method"],
+    ["merchant", "By Merchant"],
+    ["contact", "By Person"],
+    ["kind", "By Type"],
+  ] as const;
+  const rows = (data?.results ?? [])
+    .slice(0, 20)
+    .map((r) => ({ name: r.label || "Unassigned", paise: decimalPaise(r.amount) }));
   return (
-    <div
-      className={`rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs space-y-4 ${className || ""}`}
-    >
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h3 className="font-heading font-bold text-base text-foreground tracking-tight">
-            Spending Channels & Distribution
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            Dissection by source account, payment method, merchant, or split partner
-          </p>
-        </div>
-
-        {/* Tab Controls */}
-        <div
-          className="flex items-center gap-1 rounded-lg bg-muted/60 p-1 text-xs border border-border/60 self-start sm:self-auto overflow-x-auto"
-          role="tablist"
-          aria-label="Distribution channel"
-        >
+    <section className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs space-y-4 min-w-0">
+      <h2 className="font-heading font-bold text-base">Spending Channels & Distribution</h2>
+      <div role="group" aria-label="Distribution channel" className="flex flex-wrap gap-1">
+        {choices.map(([key, label]) => (
           <button
             type="button"
-            role="tab"
-            onClick={() => setActiveTab("accounts")}
-            aria-selected={activeTab === "accounts"}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-all shrink-0 ${
-              activeTab === "accounts"
-                ? "bg-card text-foreground shadow-2xs font-semibold"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            key={key}
+            aria-pressed={key === dimension}
+            onClick={() => onDimension(key)}
+            className={`rounded-md px-2 py-1 text-xs ${key === dimension ? "bg-kivo-primary text-white" : "bg-muted"}`}
           >
-            <Wallet className="size-3" />
-            <span>By Account</span>
+            {label}
           </button>
-
-          <button
-            type="button"
-            role="tab"
-            onClick={() => setActiveTab("methods")}
-            aria-selected={activeTab === "methods"}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-all shrink-0 ${
-              activeTab === "methods"
-                ? "bg-card text-foreground shadow-2xs font-semibold"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <CreditCard className="size-3" />
-            <span>By Method</span>
-          </button>
-
-          <button
-            type="button"
-            role="tab"
-            onClick={() => setActiveTab("merchants")}
-            aria-selected={activeTab === "merchants"}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-all shrink-0 ${
-              activeTab === "merchants"
-                ? "bg-card text-foreground shadow-2xs font-semibold"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Store className="size-3" />
-            <span>By Merchant</span>
-          </button>
-
-          <button
-            type="button"
-            role="tab"
-            onClick={() => setActiveTab("people")}
-            aria-selected={activeTab === "people"}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-all shrink-0 ${
-              activeTab === "people"
-                ? "bg-card text-foreground shadow-2xs font-semibold"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Users className="size-3" />
-            <span>By Person</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Items List */}
-      <div className="space-y-3 pt-1">
-        {activeItems.map((item) => (
-          <div key={item.name} className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="font-medium text-foreground truncate">{item.name}</span>
-                <span className="text-[10px] text-muted-foreground font-mono">
-                  ({item.count} txns)
-                </span>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="font-mono text-xs font-semibold text-muted-foreground">
-                  {item.percentage}%
-                </span>
-                <MoneyAmount paise={item.amountPaise} size="sm" variant="expense" />
-              </div>
-            </div>
-
-            {/* Horizontal progress bar */}
-            <div
-              role="progressbar"
-              aria-valuenow={item.percentage}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={`${item.name}: ${item.percentage}%`}
-              className="h-1.5 w-full rounded-full bg-muted overflow-hidden"
-            >
-              <div
-                className="h-full rounded-full bg-kivo-primary transition-all duration-300"
-                style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%` }}
-              />
-            </div>
-          </div>
         ))}
       </div>
-    </div>
+      {!data ? (
+        <p className="text-xs text-muted-foreground">Loading selected breakdown…</p>
+      ) : !rows.length ? (
+        <p className="h-56 grid place-items-center text-sm text-muted-foreground">
+          No spending for this breakdown.
+        </p>
+      ) : (
+        <div
+          className="h-64 w-full min-w-0"
+          role="img"
+          aria-label={dimension + " expense amounts in INR"}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={rows} margin={{ left: 10, right: 10 }}>
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} minTickGap={25} />
+              <YAxis
+                allowDecimals={false}
+                tickFormatter={chartInrTick}
+                width={65}
+                tick={{ fontSize: 10 }}
+              />
+              <Tooltip formatter={(v) => formatInr(Number(v))} />
+              <Bar
+                dataKey="paise"
+                name="Net personal expense"
+                fill="#3A5A40"
+                isAnimationActive={false}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+      <p className="text-[11px] text-muted-foreground">
+        First 20 groups plotted; all server groups are in the detailed table. Unassigned people
+        remain unassigned. Participant-filtered reports must not be added across people.
+      </p>
+    </section>
   );
 }
