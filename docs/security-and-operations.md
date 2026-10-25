@@ -7,6 +7,32 @@ or restoration was executed. Current evidence and blockers are in
 
 ## Runtime and secrets
 
+### Development integration runtime (2026-10-25)
+
+For the owner-approved development database, enable the bounded process-local
+psycopg pool explicitly with `KIVO_DEV_DB_POOL=1`. This retains the configured
+database/credentials and TLS; it creates no infrastructure or schema. The pool
+leases at most four connections, checks their health and returns request-local
+leases at completion (`CONN_MAX_AGE=0`). Default/production parsing is unchanged.
+Use the bounded loopback WSGI adapter for controlled integration verification:
+
+```bash
+env KIVO_ALLOW_DEV_TEST_RECORDS=1 KIVO_DEV_DB_POOL=1 CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001 backend/.venv/bin/python kivo-frontend/e2e/django_server.py
+```
+
+It refuses a non-development/non-PostgreSQL target, serves four HTTP workers,
+releases each DB lease and closes the pool on shutdown. This is a development
+verification adapter, not a production-server or load-capacity certification.
+Keep the opt-in scoped to the intended process; do not copy development origins
+or settings into production. Controlled test data is retained, never reset.
+
+Measured remote audited writes exceeded the original 12-second transport budget.
+The web bridge now gives allowlisted financial/metadata writes a bounded
+30-second upstream and 35-second browser budget, while reads/auth keep 12/15
+seconds. Genuine upstream errors are preserved. No automatic financial POST
+retry is enabled; an ambiguous operation still requires original-key recovery.
+See the [Part 4 recovery evidence](integration/part-04-people-sharing-verification.md).
+
 Use the established `backend/.venv` and verify its interpreter and locked
 distributions before deployment. Do not recreate environments or install/change
 packages without approval. Phase 7 uses Python 3.14.4; no Python 3.13 rebuild is

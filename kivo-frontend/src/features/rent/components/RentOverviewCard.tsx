@@ -22,7 +22,7 @@ export function RentOverviewCard({
   onConfigurePlan,
   onSkipObligation,
 }: RentOverviewCardProps) {
-  const isOverdue = currentObligation?.status === "overdue";
+  const isOverdue = currentObligation?.overdue ?? false;
   const isPaid = currentObligation?.status === "paid";
   const isSkipped = currentObligation?.status === "skipped";
   const [generateModalOpen, setGenerateModalOpen] = React.useState(false);
@@ -31,11 +31,11 @@ export function RentOverviewCard({
     <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs space-y-5">
       {/* Top row: Plan info + settings button */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-        <div className="flex items-start gap-3.5">
+        <div className="flex items-start gap-3.5 min-w-0">
           <div className="size-10 rounded-xl bg-kivo-sage/20 border border-kivo-sage/40 text-kivo-brand-dark dark:text-kivo-sage flex items-center justify-center shrink-0">
             <Home className="size-5" />
           </div>
-          <div>
+          <div className="min-w-0 break-words">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl sm:text-2xl font-heading font-bold text-foreground tracking-tight">
                 {plan.title}
@@ -153,6 +153,13 @@ export function RentOverviewCard({
             </div>
           </div>
 
+          {currentObligation.friendPayablePaise > 0 && (
+            <p className="text-xs text-amber-800 dark:text-amber-300">
+              Landlord payment is recorded; your outstanding payable to a friend is{" "}
+              <MoneyAmount paise={currentObligation.friendPayablePaise} size="sm" />. Linked
+              reserves remain protected until settlement.
+            </p>
+          )}
           {/* Amounts Breakdown */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1 border-t border-border/40 text-xs">
             <div>
@@ -189,15 +196,18 @@ export function RentOverviewCard({
         <p className="text-[11px] text-muted-foreground leading-normal">
           <strong className="text-foreground">Rent Accounting Invariant:</strong> Generating or
           viewing a rent obligation does not initiate a bank payment or post an expense. Cash leaves
-          your account only when you record a confirmed payment.
+          your account only for an owner-funded payment or repayment to a friend. Friend-paid rent
+          recognizes your expense/payable without an immediate cash deduction.
         </p>
       </div>
 
-      <RentGenerateModal
-        open={generateModalOpen}
-        onOpenChange={setGenerateModalOpen}
-        plan={plan}
-      />
+      {generateModalOpen && (
+        <RentGenerateModal
+          open={generateModalOpen}
+          onOpenChange={setGenerateModalOpen}
+          plan={plan}
+        />
+      )}
     </div>
   );
 }

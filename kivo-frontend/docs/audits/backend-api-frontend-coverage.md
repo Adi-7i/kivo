@@ -1,5 +1,21 @@
 # Backend API ↔ Frontend UI Feature Coverage Audit
 
+## 2026-10-25 recovery and rent integration update
+
+**Parts 4 and 5 VERIFIED for the approved development scope.** [Part 4 recovery](../../../docs/integration/part-04-people-sharing-verification.md) records the complete uninterrupted financial/security journey, measured connection churn/deadline mismatch and bounded opt-in development pool. [Part 5 rent verification](../../../docs/integration/part-05-rent-reserves-verification.md) records exact contracts, all four real rent journeys and the approved friend-paid rent/reserve policy. Final checks: 335 unit tests, all 180 unique browser cases with passing evidence across full/focused runs (12 real Django-backed journeys), TypeScript, lint, cold/incremental build, Django checks and 24 selected backend unit tests. Failed attempts remain documented; no production certification is claimed.
+
+Actual rent coverage now includes plans with immutable terms/active-only PATCH, inclusive due-date generation, owned obligations, owner/friend-paid partial payments, auditable corrections/reversals, skip/reopen, reserves and history, and authoritative spending capacity. Existing claim settlements refresh rent/reserve/dashboard/funding queries. No client ledger, FIFO or safe-to-spend calculation was added. Unsupported fields/statuses/operations remain unavailable; schema remains 68 paths / 84 operations.
+
+The owner explicitly authorized Part 5 after the recovered Part 4 gate. Older statements below about Part 4 being blocked or Part 5 being unauthorized/previews are preserved historical checkpoints. **Part 6 budgets/general reports/CSV integration has not begun.** Existing deferred UI regression does not establish real Part 6 integration.
+
+## 2026-10-24 verified contract update — Parts 3 and 4
+
+**Part 3 VERIFIED for development; Part 4 IMPLEMENTED, final live verification PARTIALLY COMPLETE.** Actual schema validation still reports **68 paths / 84 operations**. [Part 3 evidence](../../../docs/integration/part-03-dashboard-funding-verification.md) and [Part 4 evidence](../../../docs/integration/part-04-people-sharing-verification.md) supersede the historical module-preview/integration-status claims below.
+
+Live coverage now includes dashboard/trends/category breakdown; funding summary, pinned batches, journey and breakdown; contact CRUD supported as GET/POST/PATCH (no DELETE), archival and history; read-only claims/history; loans and explicit settlements with audited correction/reversal; owner/friend-paid equal/custom shared bills and their corrections/reversals. Bill operations use the bill UUID; settlement claim references come from actual posting effects. Exact INR strings and owned UUIDs are required. Missing sharing-only totals and batch merchant aggregation are documented gaps, not frontend accounting. All new financial writes retain session/CSRF protection and original-key/manual-reconciliation behavior.
+
+Rent/reserve mutations, budgets and general analytics/export remain outside this task. The historical audit follows unchanged for provenance; current module status and test counts are governed by the two linked verification reports.
+
 **Document Reference:** `docs/audits/backend-api-frontend-coverage.md`  
 **Phase:** Kivo Frontend Phase 7 (Audit, UI Completion & Backend Coverage Review)  
 **Status:** ROUTE INVENTORY VERIFIED; PARTS 1–2 VERIFIED FOR DEVELOPMENT (2026-10-24)

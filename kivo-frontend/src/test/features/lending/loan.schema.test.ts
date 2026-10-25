@@ -6,8 +6,8 @@ describe("loanSchema", () => {
   it("validates valid lending form data", () => {
     const result = loanSchema.safeParse({
       kind: "lend",
-      contactId: "c-rohan-1",
-      accountId: "acc-bank-1",
+      contactId: "00000000-0000-4000-8000-000000000001",
+      accountId: "00000000-0000-4000-8000-000000000003",
       amount: "2500.00",
       effectiveDate: "2026-10-20",
       title: "Grocery advance",
@@ -24,8 +24,8 @@ describe("loanSchema", () => {
   it("validates valid borrowing form data", () => {
     const result = loanSchema.safeParse({
       kind: "borrow",
-      contactId: "c-priya-2",
-      accountId: "acc-bank-1",
+      contactId: "00000000-0000-4000-8000-000000000002",
+      accountId: "00000000-0000-4000-8000-000000000003",
       amount: "1200",
       effectiveDate: "2026-10-20",
       title: "Emergency cab assistance",
@@ -39,8 +39,8 @@ describe("loanSchema", () => {
   it("fails when amount is zero or negative", () => {
     const result = loanSchema.safeParse({
       kind: "lend",
-      contactId: "c-rohan-1",
-      accountId: "acc-bank-1",
+      contactId: "00000000-0000-4000-8000-000000000001",
+      accountId: "00000000-0000-4000-8000-000000000003",
       amount: "0",
       effectiveDate: "2026-10-20",
       title: "Advance",
@@ -52,7 +52,7 @@ describe("loanSchema", () => {
     const result = loanSchema.safeParse({
       kind: "lend",
       contactId: "",
-      accountId: "acc-bank-1",
+      accountId: "00000000-0000-4000-8000-000000000003",
       amount: "500",
       effectiveDate: "2026-10-20",
       title: "Advance",
@@ -67,8 +67,8 @@ describe("loanSchema", () => {
 describe("settlementSchema", () => {
   it("validates valid settlement form data", () => {
     const result = settlementSchema.safeParse({
-      claimId: "claim-1",
-      accountId: "acc-bank-1",
+      claimId: "00000000-0000-4000-8000-000000000004",
+      accountId: "00000000-0000-4000-8000-000000000003",
       amount: "1500.00",
       effectiveDate: "2026-10-20",
       title: "Repayment received from Rohan",
@@ -80,7 +80,7 @@ describe("settlementSchema", () => {
   it("fails when claimId is missing", () => {
     const result = settlementSchema.safeParse({
       claimId: "",
-      accountId: "acc-bank-1",
+      accountId: "00000000-0000-4000-8000-000000000003",
       amount: "1000",
       effectiveDate: "2026-10-20",
       title: "Repayment",

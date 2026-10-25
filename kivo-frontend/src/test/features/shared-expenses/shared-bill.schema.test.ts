@@ -5,12 +5,12 @@ describe("sharedBillSchema", () => {
   const validUserPaidData = {
     title: "Flat Groceries & Cleaning",
     amount: "2400.00",
-    category: "Groceries",
+    category: "00000000-0000-4000-8000-000000000005",
     effectiveDate: "2026-10-15",
     payerType: "user" as const,
-    accountId: "acc-hdfc-1",
+    accountId: "00000000-0000-4000-8000-000000000003",
     splitMethod: "equal" as const,
-    selectedParticipants: ["c-rohan-1"],
+    selectedParticipants: ["00000000-0000-4000-8000-000000000001"],
     merchant: "SuperMart",
     notes: "Monthly staples",
   };
@@ -18,12 +18,12 @@ describe("sharedBillSchema", () => {
   const validFriendPaidData = {
     title: "Dinner at Bistro",
     amount: "1850",
-    category: "Dining Out",
+    category: "00000000-0000-4000-8000-000000000005",
     effectiveDate: "2026-10-14",
     payerType: "friend" as const,
-    payerContactId: "c-priya-2",
+    payerContactId: "00000000-0000-4000-8000-000000000002",
     splitMethod: "equal" as const,
-    selectedParticipants: ["c-priya-2"],
+    selectedParticipants: ["00000000-0000-4000-8000-000000000002"],
     merchant: "The Bistro",
   };
 
@@ -42,7 +42,7 @@ describe("sharedBillSchema", () => {
     const result = sharedBillSchema.safeParse(invalid);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toMatch(/select the account used to pay/i);
+      expect(result.error.issues[0].message).toMatch(/owned payment account/i);
     }
   });
 
@@ -51,7 +51,7 @@ describe("sharedBillSchema", () => {
     const result = sharedBillSchema.safeParse(invalid);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toMatch(/select which friend paid/i);
+      expect(result.error.issues[0].message).toMatch(/selected participant/i);
     }
   });
 
@@ -82,11 +82,9 @@ describe("sharedBillSchema", () => {
     }
   });
 
-  it("fails if selectedParticipants list is empty", () => {
-    const result = sharedBillSchema.safeParse({ ...validUserPaidData, selectedParticipants: [] });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0].message).toMatch(/at least one friend/i);
-    }
+  it("permits owner-only participants as supported by Django", () => {
+    expect(
+      sharedBillSchema.safeParse({ ...validUserPaidData, selectedParticipants: [] }).success
+    ).toBe(true);
   });
 });

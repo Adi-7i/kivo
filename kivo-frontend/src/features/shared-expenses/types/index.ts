@@ -21,6 +21,6 @@ export interface SharedBillEntity {
   shares: ParticipantShare[];
   merchant?: string;
   notes?: string;
-  status: "all_settled" | "partially_settled" | "unsettled";
+  status: "all_settled" | "partially_settled" | "unsettled" | "reversed" | "voided" | "not_verified";
   createdAt: string;
 }

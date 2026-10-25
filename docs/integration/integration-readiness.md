@@ -1,5 +1,21 @@
 # Integration Readiness Checklist & Roadmap
 
+## 2026-10-25 recovery and rent integration update
+
+**Parts 4 and 5 VERIFIED for the approved development scope.** [Part 4 recovery](part-04-people-sharing-verification.md) records the complete uninterrupted financial/security journey, measured connection churn/deadline mismatch and bounded opt-in development pool. [Part 5 rent verification](part-05-rent-reserves-verification.md) records exact contracts, all four real rent journeys and the approved friend-paid rent/reserve policy. Final checks: 335 unit tests, all 180 unique browser cases with passing evidence across full/focused runs (12 real Django-backed journeys), TypeScript, lint, cold/incremental build, Django checks and 24 selected backend unit tests. Failed attempts remain documented; no production certification is claimed.
+
+Actual rent coverage now includes plans with immutable terms/active-only PATCH, inclusive due-date generation, owned obligations, owner/friend-paid partial payments, auditable corrections/reversals, skip/reopen, reserves and history, and authoritative spending capacity. Existing claim settlements refresh rent/reserve/dashboard/funding queries. No client ledger, FIFO or safe-to-spend calculation was added. Unsupported fields/statuses/operations remain unavailable; schema remains 68 paths / 84 operations.
+
+The owner explicitly authorized Part 5 after the recovered Part 4 gate. Older statements below about Part 4 being blocked or Part 5 being unauthorized/previews are preserved historical checkpoints. **Part 6 budgets/general reports/CSV integration has not begun.** Existing deferred UI regression does not establish real Part 6 integration.
+
+## 2026-10-24 Parts 3–4 integration update
+
+**Current status: Part 3 VERIFIED for development; Part 4 IMPLEMENTED, final live verification PARTIALLY COMPLETE.** See the [Part 3 report](part-03-dashboard-funding-verification.md) and [Part 4 report](part-04-people-sharing-verification.md) for executed evidence and retained failures. Dashboard, funding sources/journeys, contacts, loans, explicit claim repayments and shared bills now use actual Django contracts. Production certification remains NOT VERIFIED; Part 5 rent/reserve workflows have not begun.
+
+Current installed-contract validation remains **68 paths / 84 operations**. All authoritative amounts and FIFO/exhaustion results come from Django. Equal shared splits/remainders are assigned by Django; custom split input is validated exactly without implementing accounting. Relationship summaries are explicitly global because no sharing-only aggregate endpoint exists. Source/relationship search and sorting apply to complete downloaded owned lists where backend filters are absent. No missing percentages, merchant summaries or completion fields are invented.
+
+The following sections preserve the **historical Part 2 checkpoint and roadmap**. This dated update supersedes their older statements that Part 3 has not begun or that the newly integrated modules remain previews. Actual endpoint and verification limitations are detailed in the separate reports.
+
 Current recovery: the existing development database remains owner-approved; Part 0 is **GO** and Part 1 is **VERIFIED**. Accounts, categories and core transactions are **IMPLEMENTED / VERIFIED for the approved Part 2 development scope**. All 176 unique browser cases have passing evidence across retained and resumed runs; earlier outages remain documented. See the [Part 1 report](part-01-auth-onboarding-verification.md) for the retained authentication checkpoint.
 
 **Document Reference:** `docs/integration/integration-readiness.md`  

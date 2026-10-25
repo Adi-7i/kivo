@@ -32,8 +32,25 @@ export function useHistory(params: HistoryParams) {
 }
 export function invalidateFinance(client: QueryClient): Promise<void[]> {
   return Promise.all(
-    ["accounts", "transactions", "funds", "funding", "summary", "reports", "budgets"].map((key) =>
-      client.invalidateQueries({ queryKey: [key] })
-    )
+    [
+      "accounts",
+      "transactions",
+      "funds",
+      "funding",
+      "summary",
+      "reports",
+      "budgets",
+      "dashboard",
+      "contacts",
+      "claims",
+      "loans",
+      "settlements",
+      "shared-bills",
+      "rent-plans",
+      "rent-obligations",
+      "rent-payments",
+      "rent-reserves",
+      "spending-capacity",
+    ].map((key) => client.invalidateQueries({ queryKey: [key] }))
   );
 }

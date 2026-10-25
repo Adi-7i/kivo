@@ -94,7 +94,7 @@ export function ContactDetailHeader({
         {/* Receivable */}
         <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900/60 p-4 space-y-1">
           <div className="flex items-center justify-between text-xs font-medium text-emerald-800 dark:text-emerald-300">
-            <span>Money Lent (Receivable)</span>
+            <span>Money Owed to You (Receivable)</span>
             <ArrowDownLeft className="size-4 text-emerald-600" />
           </div>
           <MoneyAmount paise={contact.receivablePaise} size="xl" variant="income" />
@@ -108,7 +108,7 @@ export function ContactDetailHeader({
         {/* Payable */}
         <div className="rounded-xl border border-amber-200/80 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900/60 p-4 space-y-1">
           <div className="flex items-center justify-between text-xs font-medium text-amber-900 dark:text-amber-300">
-            <span>Money Borrowed (Payable)</span>
+            <span>Money You Owe (Payable)</span>
             <ArrowUpRight className="size-4 text-amber-700" />
           </div>
           <MoneyAmount paise={contact.payablePaise} size="xl" variant="reserved" />

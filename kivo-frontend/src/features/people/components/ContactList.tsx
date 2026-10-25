@@ -73,14 +73,6 @@ export function ContactList({ contacts, onAddContact }: ContactListProps) {
     });
   }, [filtered, sort]);
 
-  const totalReceivable = React.useMemo(() => {
-    return contacts.reduce((sum, c) => sum + c.receivablePaise, 0);
-  }, [contacts]);
-
-  const totalPayable = React.useMemo(() => {
-    return contacts.reduce((sum, c) => sum + c.payablePaise, 0);
-  }, [contacts]);
-
   return (
     <div className="space-y-4">
       {/* Search and Action Bar */}
@@ -252,6 +244,7 @@ export function ContactList({ contacts, onAddContact }: ContactListProps) {
 
                     <td className="py-3.5 px-4 text-right">
                       <Link
+                        prefetch={false}
                         href={`/people/${c.id}`}
                         className="inline-flex items-center gap-1 text-kivo-secondary hover:text-kivo-brand-dark dark:hover:text-kivo-sage font-medium"
                       >
@@ -283,16 +276,9 @@ export function ContactList({ contacts, onAddContact }: ContactListProps) {
           </p>
         </div>
 
-        <div className="flex items-center gap-4 shrink-0 font-medium">
-          <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground">Total Receivables:</span>
-            <MoneyAmount paise={totalReceivable} size="sm" variant="income" />
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground">Total Payables:</span>
-            <MoneyAmount paise={totalPayable} size="sm" variant="reserved" />
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Per-contact balances are authoritative Django responses. No automatic netting.
+        </p>
       </div>
     </div>
   );

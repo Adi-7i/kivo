@@ -27,7 +27,9 @@ supabase_url = os.environ.get("SUPABASE_DB_URL", "").strip()
 
 if supabase_url:
     DATABASES = {
-        "default": parse_supabase_db_url(supabase_url),
+        "default": parse_supabase_db_url(
+            supabase_url, use_pool=os.environ.get("KIVO_DEV_DB_POOL", "0") == "1"
+        ),
     }
 else:
     # Development stub when SUPABASE_DB_URL is pending user input.

@@ -8,6 +8,7 @@ interface TransactionPaginationProps {
   totalItems: number;
   pageSize: number;
   onPageChange: (page: number) => void;
+  itemLabel?: string;
 }
 
 export function TransactionPagination({
@@ -16,6 +17,7 @@ export function TransactionPagination({
   totalItems,
   pageSize,
   onPageChange,
+  itemLabel = "transactions",
 }: TransactionPaginationProps) {
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const endItem = Math.min(currentPage * pageSize, totalItems);
@@ -25,7 +27,7 @@ export function TransactionPagination({
       <div>
         Showing <span className="font-semibold text-foreground">{startItem}</span> to{" "}
         <span className="font-semibold text-foreground">{endItem}</span> of{" "}
-        <span className="font-semibold text-foreground">{totalItems}</span> transactions
+        <span className="font-semibold text-foreground">{totalItems}</span> {itemLabel}
       </div>
 
       <div className="flex items-center gap-1.5 self-end sm:self-auto">

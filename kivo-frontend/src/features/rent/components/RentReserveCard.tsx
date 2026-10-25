@@ -11,7 +11,10 @@ interface RentReserveCardProps {
 
 export function RentReserveCard({ reserve, onAdjust }: RentReserveCardProps) {
   return (
-    <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 dark:bg-amber-950/20 dark:border-amber-900/60 p-4 transition-all duration-200 space-y-3">
+    <div
+      data-testid={"rent-reserve-" + reserve.id}
+      className="rounded-xl border border-amber-200/80 bg-amber-50/40 dark:bg-amber-950/20 dark:border-amber-900/60 p-4 transition-all duration-200 space-y-3"
+    >
       {/* Top: Label + Adjust Action */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5">
@@ -20,9 +23,14 @@ export function RentReserveCard({ reserve, onAdjust }: RentReserveCardProps) {
           </div>
           <div>
             <span className="font-semibold text-sm text-foreground block">{reserve.label}</span>
+            {reserve.reservedPaise === 0 && (
+              <p className="text-xs text-muted-foreground">Released — no active earmark</p>
+            )}
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Calendar className="size-3 text-muted-foreground" />
-              <span>Obligation Cycle: {reserve.obligationMonth.substring(0, 7)}</span>
+              <span>
+                Obligation Cycle: {reserve.obligationMonth?.substring(0, 7) ?? "Unavailable"}
+              </span>
             </div>
           </div>
         </div>

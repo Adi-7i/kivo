@@ -44,8 +44,8 @@ describe("ClaimCard", () => {
     expect(screen.getByText("Weekend Trip Cab Fare")).toBeInTheDocument();
     expect(screen.getByText(/Receivable from Rohan Sharma/i)).toBeInTheDocument();
     expect(screen.getByText("Partially Paid")).toBeInTheDocument();
-    expect(screen.getByText(/Recovered:/i)).toBeInTheDocument();
-    expect(screen.getByText("₹1,000.00")).toBeInTheDocument();
+    expect(screen.getByText(/Principal:/i)).toBeInTheDocument();
+    expect(screen.queryByText("₹1,000.00")).not.toBeInTheDocument();
     expect(screen.getByText("₹1,500.00")).toBeInTheDocument();
     expect(screen.getByText("₹500.00")).toBeInTheDocument();
     expect(screen.getByText("Split Uber ride to airport")).toBeInTheDocument();
@@ -57,17 +57,14 @@ describe("ClaimCard", () => {
     expect(screen.getByText("Concert Ticket Advance")).toBeInTheDocument();
     expect(screen.getByText(/Payable to Priya Patel/i)).toBeInTheDocument();
     expect(screen.getByText("Active Claim")).toBeInTheDocument();
-    expect(screen.getByText(/Repaid:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Outstanding:/i)).toBeInTheDocument();
   });
 
-  it("calculates and sets correct progress bar aria values", () => {
+  it("does not fabricate a recovered amount or a financial progress percentage", () => {
     render(<ClaimCard claim={receivableClaim} />);
-
-    const progressBar = screen.getByRole("progressbar");
-    // 1000 / 1500 = 67%
-    expect(progressBar).toHaveAttribute("aria-valuenow", "67");
-    expect(progressBar).toHaveAttribute("aria-valuemin", "0");
-    expect(progressBar).toHaveAttribute("aria-valuemax", "100");
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Recovered:/i)).not.toBeInTheDocument();
+    expect(screen.getByText("₹500.00")).toBeInTheDocument();
   });
 
   it("calls onSettle with claim entity when settle button is clicked", () => {

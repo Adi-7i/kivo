@@ -16,9 +16,10 @@ describe("Rent Schemas", () => {
       dueDayRule: "fixed_day" as const,
       dueDay: 5,
       amount: "28000.00",
+      category: "00000000-0000-4000-8000-000000000001",
       isShared: true,
       splitMethod: "equal" as const,
-      roommateContactIds: ["c-rohan-1"],
+      roommateContactIds: ["00000000-0000-4000-8000-000000000002"],
       active: true,
     };
 
@@ -45,9 +46,9 @@ describe("Rent Schemas", () => {
 
   describe("rentPaymentSchema", () => {
     const validOwnerPayment = {
-      obligationId: "ro-2026-10",
+      obligationId: "00000000-0000-4000-8000-000000000003",
       payerType: "owner" as const,
-      accountId: "acc-hdfc-1",
+      accountId: "00000000-0000-4000-8000-000000000004",
       amount: "14000.00",
       effectiveDate: "2026-10-04",
       title: "October Rent Share",
@@ -55,9 +56,9 @@ describe("Rent Schemas", () => {
     };
 
     const validFriendPayment = {
-      obligationId: "ro-2026-10",
+      obligationId: "00000000-0000-4000-8000-000000000003",
       payerType: "friend" as const,
-      payerContactId: "c-rohan-1",
+      payerContactId: "00000000-0000-4000-8000-000000000002",
       amount: "28000.00",
       effectiveDate: "2026-10-04",
       title: "October Rent (Rohan paid full)",
@@ -98,7 +99,7 @@ describe("Rent Schemas", () => {
   describe("rentReserveSchemas", () => {
     it("validates createReserveSchema with positive amount and reason", () => {
       const result = createReserveSchema.safeParse({
-        obligationId: "ro-2026-11",
+        obligationId: "00000000-0000-4000-8000-000000000003",
         label: "Rent Safeguard Nov 2026",
         amount: "14000.00",
         reason: "Lock cash early before month-end shopping",
@@ -108,7 +109,7 @@ describe("Rent Schemas", () => {
 
     it("rejects createReserveSchema when amount is 0", () => {
       const result = createReserveSchema.safeParse({
-        obligationId: "ro-2026-11",
+        obligationId: "00000000-0000-4000-8000-000000000003",
         label: "Rent Safeguard",
         amount: "0",
         reason: "Test",

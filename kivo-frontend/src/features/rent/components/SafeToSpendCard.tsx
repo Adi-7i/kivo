@@ -47,7 +47,10 @@ export function SafeToSpendCard({ capacity, onAddReserve }: SafeToSpendCardProps
       {/* 3 Metrics Grid: Liquid Cash, Active Reserves, Safe-to-Spend */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* 1. Liquid Balance */}
-        <div className="rounded-xl border border-border/80 bg-card p-4 space-y-1">
+        <div
+          data-testid="rent-liquid"
+          className="rounded-xl border border-border/80 bg-card p-4 space-y-1"
+        >
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
             Actual Liquid Cash
           </span>
@@ -58,7 +61,10 @@ export function SafeToSpendCard({ capacity, onAddReserve }: SafeToSpendCardProps
         </div>
 
         {/* 2. Active Reserves */}
-        <div className="rounded-xl border border-amber-200/80 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900/60 p-4 space-y-1">
+        <div
+          data-testid="rent-reserved"
+          className="rounded-xl border border-amber-200/80 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900/60 p-4 space-y-1"
+        >
           <span className="text-xs font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
             Active Rent Reserves
           </span>
@@ -70,6 +76,7 @@ export function SafeToSpendCard({ capacity, onAddReserve }: SafeToSpendCardProps
 
         {/* 3. Safe-to-Spend */}
         <div
+          data-testid="rent-safe"
           className={`rounded-xl border p-4 space-y-1 ${
             isShortfall
               ? "border-destructive/40 bg-destructive/5 dark:bg-destructive/10"

@@ -23,7 +23,7 @@ export function FieldError({ error, message, className, id, ...props }: FieldErr
       {...props}
     >
       <AlertCircle className="size-3.5 shrink-0" />
-      <span>{error}</span>
+      <span>{text}</span>
     </p>
   );
 }

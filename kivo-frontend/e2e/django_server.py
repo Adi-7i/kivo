@@ -1,9 +1,9 @@
 """Loopback-only development verification runner; no backend settings/schema changes.
 
 A bounded HTTP worker pool avoids single-thread request queue starvation. Every
-request closes its thread-local Django connections, preventing the unbounded
-idle connections observed with the stock threaded development runner. Django's
-WSGI handler, session/CSRF middleware and financial services are unchanged.
+request releases its thread-local Django connection. With the opt-in development
+pool, release returns the healthy socket for reuse, avoiding a TLS handshake on
+every request. Django's session/CSRF middleware and financial services are unchanged.
 """
 
 from __future__ import annotations
@@ -54,6 +54,8 @@ class VerificationServer(WSGIServer):
 
     def server_close(self) -> None:
         self.workers.shutdown(wait=True)
+        for connection in connections.all():
+            connection.close_pool()
         super().server_close()
 
 
@@ -76,7 +78,11 @@ def main() -> None:
 
     with VerificationServer(("127.0.0.1", 8000), WSGIRequestHandler) as server:
         server.set_app(application)
-        print("Kivo verification: loopback HTTP, four workers, per-request DB cleanup.", flush=True)
+        print(
+            "Kivo verification: loopback HTTP, four workers, per-request DB release; "
+            f"bounded pool={bool(settings.DATABASES['default']['OPTIONS'].get('pool'))}.",
+            flush=True,
+        )
         with suppress(KeyboardInterrupt):
             server.serve_forever()
 

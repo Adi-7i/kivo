@@ -9,9 +9,6 @@ interface SharedBillDetailHeaderProps {
 }
 
 export function SharedBillDetailHeader({ bill }: SharedBillDetailHeaderProps) {
-  const isUserPayer = bill.payerContactId === null;
-  const friendSharesTotal = bill.amountPaise - bill.userSharePaise;
-
   return (
     <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs space-y-5">
       {/* Top row: Title + badges */}
@@ -53,7 +50,13 @@ export function SharedBillDetailHeader({ bill }: SharedBillDetailHeaderProps) {
 
         {/* Status Badge */}
         <div>
-          {bill.status === "all_settled" ? (
+          {bill.status === "reversed" ||
+          bill.status === "voided" ||
+          bill.status === "not_verified" ? (
+            <Badge variant="outline">
+              {bill.status === "not_verified" ? "Checking claims" : bill.status}
+            </Badge>
+          ) : bill.status === "all_settled" ? (
             <Badge
               variant="outline"
               className="gap-1 border-emerald-300 text-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-xs py-1 px-2.5"
@@ -99,28 +102,23 @@ export function SharedBillDetailHeader({ bill }: SharedBillDetailHeaderProps) {
         {/* User's Personal Share */}
         <div className="rounded-xl border border-destructive/20 bg-destructive/5 dark:bg-destructive/10 p-4 space-y-1">
           <span className="text-xs font-medium text-destructive dark:text-destructive-foreground block">
-            Your Personal Expense Share
+            Original Personal Expense Share
           </span>
           <MoneyAmount paise={bill.userSharePaise} size="xl" variant="expense" />
           <p className="text-[11px] text-muted-foreground">
-            Actual personal expenditure allocated to your budget
+            Server-recognized share of this immutable bill revision
           </p>
         </div>
 
         {/* Friends' Total */}
         <div className="rounded-xl border border-border/80 bg-card p-4 space-y-1">
           <span className="text-xs font-medium text-muted-foreground block">
-            {isUserPayer ? "Receivables from Friends" : "Your Debt to Payer"}
+            Participants & Claims
           </span>
-          <MoneyAmount
-            paise={isUserPayer ? friendSharesTotal : bill.userSharePaise}
-            size="xl"
-            variant={isUserPayer ? "income" : "reserved"}
-          />
+          <p className="text-xl font-bold">{bill.shares.length} participants</p>
           <p className="text-[11px] text-muted-foreground">
-            {isUserPayer
-              ? "Recoverable asset advancing friends' shares"
-              : "Payable liability owed to " + bill.payerName}
+            Outstanding liabilities and assets are shown individually below, never inferred from
+            gross minus owner share.
           </p>
         </div>
       </div>

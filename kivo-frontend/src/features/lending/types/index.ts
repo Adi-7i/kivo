@@ -12,7 +12,7 @@ export interface ClaimEntity {
   outstandingPaise: number;
   status: ClaimStatus;
   createdAt: string;
-  effectiveDate: string;
+  effectiveDate?: string;
   sourceEventId?: string;
   notes?: string;
 }

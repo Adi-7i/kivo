@@ -15,7 +15,7 @@ export interface RentPlanEntity {
   amountPaise: number; // Gross monthly landlord rent
   category: string;
   active: boolean;
-  splitMethod: "equal" | "custom";
+  splitMethod?: "equal" | "custom";
   shares: RentShareEntity[];
   userSharePaise: number;
   createdAt: string;
@@ -51,7 +51,7 @@ export interface RentPaymentEntity {
 export interface RentReserveEntity {
   id: string;
   obligationId: string;
-  obligationMonth: string;
+  obligationMonth?: string;
   label: string;
   reservedPaise: number;
   createdAt: string;

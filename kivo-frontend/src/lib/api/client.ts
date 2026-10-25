@@ -2,6 +2,7 @@ import { API_BASE_URL } from "../config/env";
 import { getCsrfToken } from "./csrf";
 import { normalizeHttpError, normalizeError } from "./errors";
 import type { RequestOptions } from "@/types/api";
+import { clientTimeoutMs } from "./timeouts";
 
 let csrfBootstrap: Promise<unknown> | null = null;
 
@@ -24,7 +25,7 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     method = "GET",
     body,
     params,
-    timeoutMs = 15000,
+    timeoutMs,
     skipCsrf = false,
     idempotencyKey,
     headers: customHeaders,
@@ -69,7 +70,10 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    timeoutMs ?? clientTimeoutMs(endpoint, method.toUpperCase())
+  );
 
   try {
     const response = await fetch(url, {

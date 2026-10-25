@@ -29,21 +29,25 @@ export function CategoryBreakdownCard({ categories, className }: CategoryBreakdo
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-foreground">{cat.categoryName}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-muted-foreground">{cat.percentage}%</span>
+                  {cat.percentage !== undefined && (
+                    <span className="text-[11px] text-muted-foreground">{cat.percentage}%</span>
+                  )}
                   <MoneyAmount paise={cat.amountPaise} size="xs" tabular />
                 </div>
               </div>
 
               {/* Visual progress bar */}
-              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-300"
-                  style={{
-                    width: `${Math.min(100, Math.max(0, cat.percentage))}%`,
-                    backgroundColor: cat.color || "var(--color-kivo-primary)",
-                  }}
-                />
-              </div>
+              {cat.percentage !== undefined && (
+                <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${Math.min(100, Math.max(0, cat.percentage))}%`,
+                      backgroundColor: cat.color || "var(--color-kivo-primary)",
+                    }}
+                  />
+                </div>
+              )}
             </div>
           ))
         )}

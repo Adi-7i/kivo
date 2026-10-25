@@ -69,15 +69,6 @@ export function SharedBillList({ bills, onCreateBill }: SharedBillListProps) {
     });
   }, [filtered, sort]);
 
-  // Aggregates
-  const totalGrossPaise = React.useMemo(() => {
-    return bills.reduce((sum, b) => sum + b.amountPaise, 0);
-  }, [bills]);
-
-  const totalUserSharePaise = React.useMemo(() => {
-    return bills.reduce((sum, b) => sum + b.userSharePaise, 0);
-  }, [bills]);
-
   return (
     <div className="space-y-4">
       {/* Search and Action Bar */}
@@ -240,6 +231,7 @@ export function SharedBillList({ bills, onCreateBill }: SharedBillListProps) {
 
                     <td className="py-3.5 px-4 text-right">
                       <Link
+                        prefetch={false}
                         href={`/shared-expenses/${bill.id}`}
                         className="inline-flex items-center gap-1 text-kivo-secondary hover:text-kivo-brand-dark dark:hover:text-kivo-sage font-medium"
                       >
@@ -272,16 +264,10 @@ export function SharedBillList({ bills, onCreateBill }: SharedBillListProps) {
           </p>
         </div>
 
-        <div className="flex items-center gap-4 shrink-0 font-medium">
-          <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground">Cumulative Gross Bills:</span>
-            <MoneyAmount paise={totalGrossPaise} size="sm" variant="default" />
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground">Your Expense Shares:</span>
-            <MoneyAmount paise={totalUserSharePaise} size="sm" variant="expense" />
-          </div>
-        </div>
+        <p className="text-muted-foreground">
+          Amounts are supplied per bill/share by Django. Outstanding balances come from linked
+          claims.
+        </p>
       </div>
     </div>
   );

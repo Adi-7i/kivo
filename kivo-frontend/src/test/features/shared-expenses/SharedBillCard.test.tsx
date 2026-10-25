@@ -77,7 +77,9 @@ describe("SharedBillCard", () => {
     expect(screen.getByText("You")).toBeInTheDocument();
     expect(screen.getByText("₹3,000.00")).toBeInTheDocument(); // Gross
     expect(screen.getByText("₹1,500.00")).toBeInTheDocument(); // User share
-    expect(screen.getByText("Friends owe: ₹1500.00")).toBeInTheDocument();
+    expect(
+      screen.getByText("Friends\' outstanding amounts are tracked per claim")
+    ).toBeInTheDocument();
     expect(screen.getByText("Unsettled")).toBeInTheDocument();
   });
 
@@ -87,7 +89,7 @@ describe("SharedBillCard", () => {
     expect(screen.getByText("Priya Patel")).toBeInTheDocument();
     expect(screen.getByText("₹4,000.00")).toBeInTheDocument();
     expect(screen.getByText("₹2,000.00")).toBeInTheDocument();
-    expect(screen.getByText("You owe: ₹2000.00")).toBeInTheDocument();
+    expect(screen.getByText("Payable and settlements are tracked per claim")).toBeInTheDocument();
     expect(screen.getByText("Settled")).toBeInTheDocument();
   });
 

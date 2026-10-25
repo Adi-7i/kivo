@@ -18,7 +18,9 @@ export async function openResource(page: Page, path: string, resource: string): 
       new URL(response.url()).pathname.replace(/\/$/, "") === resource.replace(/\/$/, "") &&
       response.request().method() === "GET" &&
       response.status() !== 308,
-    { timeout: 20_000 }
+    // Navigation first verifies the Django session, then hydrates the owned query.
+    // Observe both bounded requests; application HTTP deadlines stay unchanged.
+    { timeout: 40_000 }
   );
   await page.goto(path);
   expect((await loaded).status()).toBe(200);

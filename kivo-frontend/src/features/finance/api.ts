@@ -63,10 +63,17 @@ export function transactionEntity(
 }
 
 /** Follow page numbers locally, never a response's absolute next URL. */
-async function allPages<T>(path: string, signal?: AbortSignal): Promise<T[]> {
+export async function allPages<T>(
+  path: string,
+  signal?: AbortSignal,
+  params: HistoryParams = {}
+): Promise<T[]> {
   const rows: T[] = [];
   for (let page = 1; ; page++) {
-    const result = await apiClient<PaginatedResponse<T>>(path, { params: { page }, signal });
+    const result = await apiClient<PaginatedResponse<T>>(path, {
+      params: { ...params, page },
+      signal,
+    });
     rows.push(...result.results);
     if (!result.next) return rows;
   }

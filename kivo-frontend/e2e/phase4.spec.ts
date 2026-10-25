@@ -1,167 +1,99 @@
 import { test, expect } from "@playwright/test";
+import { openResource } from "./live-api";
 
-test.describe("Frontend Phase 4 — Money Sources & Fund Journey Tracking E2E", () => {
-  test.describe("Money Sources Overview (/money/sources)", () => {
-    test("loads money sources page, renders aggregate overview cards and sub-navigation", async ({
-      page,
-    }) => {
-      const response = await page.goto("/money/sources");
-      expect(response?.status()).toBe(200);
-
-      // Page Title & Header
-      await expect(page).toHaveTitle(/Kivo/i);
-      await expect(
-        page.getByRole("heading", { name: "Money Sources & Fund Journey" })
-      ).toBeVisible();
-
-      // Sub-navigation between Accounts and Sources
-      await expect(page.getByRole("link", { name: /Money Accounts/i })).toBeVisible();
-      await expect(page.getByRole("link", { name: /Money Sources & Journeys/i })).toBeVisible();
-
-      // 4 Aggregate Financial Overview Cards
-      await expect(page.getByText("Total Inflow Batches")).toBeVisible();
-      await expect(page.getByText("Attributed Personal Spent")).toBeVisible();
-      await expect(page.getByText("Attributed Lent (Asset)")).toBeVisible();
-      await expect(page.getByText("Remaining Liquid Allocation")).toBeVisible();
-
-      // Sources List rows/cards
-      await expect(
-        page.getByText("October Allowance from Parents").filter({ visible: true }).first()
-      ).toBeVisible();
-      await expect(
-        page.getByText("September Freelance Design Retainer").filter({ visible: true }).first()
-      ).toBeVisible();
-    });
-
-    test("filters sources by search keyword and resets filters", async ({ page }) => {
-      await page.goto("/money/sources");
-
-      const searchInput = page.getByPlaceholder(/Search source name, person, notes/i);
-      await expect(searchInput).toBeVisible();
-
-      // Filter by "Freelance"
-      await searchInput.fill("Freelance");
-      await expect(
-        page.getByText("September Freelance Design Retainer").filter({ visible: true }).first()
-      ).toBeVisible();
-      await expect(
-        page.getByText("October Allowance from Parents").filter({ visible: true })
-      ).not.toBeVisible();
-
-      // Reset filters
-      await page.getByRole("button", { name: /Reset/i }).click();
-      await expect(
-        page.getByText("October Allowance from Parents").filter({ visible: true }).first()
-      ).toBeVisible();
-    });
-
-    test("filters sources by status pill", async ({ page }) => {
-      await page.goto("/money/sources");
-
-      // Click Exhausted status pill
-      await page.getByRole("button", { name: "Exhausted" }).click();
-      await expect(
-        page.getByText("September Freelance Design Retainer").filter({ visible: true }).first()
-      ).toBeVisible();
-      await expect(
-        page.getByText("October Allowance from Parents").filter({ visible: true })
-      ).not.toBeVisible();
-    });
-
-    test("switches between view states (Empty State and Skeletons)", async ({ page }) => {
-      await page.goto("/money/sources");
-
-      // Switch to Empty State
-      await page.getByRole("button", { name: /Empty State/i }).click();
-      await expect(page.getByText("No Money Sources Recorded")).toBeVisible();
-
-      // Switch to Loading Skeletons
-      await page.getByRole("button", { name: /Loading Skeletons/i }).click();
-      await expect(page.getByText("No Money Sources Recorded")).not.toBeVisible();
-    });
+test.describe("Real funding source screens (Django-backed; not preview fixtures)", () => {
+  test("lists actual owned opening equity and never labels capacity as cash", async ({ page }) => {
+    await page.goto("/money/sources");
+    await expect(page.getByRole("heading", { name: "Money Sources & Fund Journey" })).toBeVisible();
+    await expect(
+      page
+        .getByText(process.env.KIVO_E2E_FUND_NAME_A!, { exact: true })
+        .filter({ visible: true })
+        .first()
+    ).toBeVisible();
+    await expect(
+      page.getByText("FIFO is Django accounting attribution", { exact: false })
+    ).toBeVisible();
+    await expect(
+      page.getByText("₹123.45", { exact: true }).filter({ visible: true }).first()
+    ).toBeVisible();
   });
-
-  test.describe("Fund Detail & Journey (/money/sources/[id])", () => {
-    test("loads active source detail and renders overview, timeline, and allocation composition", async ({
-      page,
-    }) => {
-      await page.goto("/money/sources/src-1");
-
-      // Back Link
-      await expect(page.getByRole("link", { name: /Back to Money Sources/i })).toBeVisible();
-
-      // Overview Card
-      await expect(
-        page.getByRole("heading", { name: "October Allowance from Parents" })
-      ).toBeVisible();
-      await expect(page.getByText("Original Inflow Amount")).toBeVisible();
-      await expect(page.getByText("Personal Expenses", { exact: true }).first()).toBeVisible();
-      await expect(page.getByText("Lent to Friends (Asset)")).toBeVisible();
-      await expect(page.getByText("Remaining Liquid Allocation")).toBeVisible();
-
-      // Financial Accounting Invariant Notice
-      await expect(page.getByText(/Spending ≠ Lending ≠ Remaining Funds/i)).toBeVisible();
-
-      // Timeline events
-      await expect(page.getByText("Visual Fund Journey")).toBeVisible();
-      await expect(page.getByText("Funds Inflow Established")).toBeVisible();
-      await expect(page.getByText("House Rent & Maintenance")).toBeVisible();
-      await expect(page.getByText("Emergency Loan to Friend")).toBeVisible();
-
-      // Filter timeline events by Lending
-      await page.getByRole("button", { name: "Lending" }).click();
-      await expect(page.getByText("Emergency Loan to Friend")).toBeVisible();
-      await expect(page.getByText("House Rent & Maintenance")).not.toBeVisible();
-
-      // Allocation Composition Card
-      await expect(page.getByText("Allocation Composition")).toBeVisible();
-      await expect(page.getByText("Personal Spent")).toBeVisible();
-
-      // Attributed Expense Categories Card
-      await expect(page.getByText("Attributed Expense Categories")).toBeVisible();
-      await expect(page.getByText("Housing & Rent")).toBeVisible();
-    });
-
-    test("renders exhausted source with duration and exhaustion banner", async ({ page }) => {
-      await page.goto("/money/sources/src-2");
-
-      await expect(
-        page.getByRole("heading", { name: "September Freelance Design Retainer" })
-      ).toBeVisible();
-      await expect(page.getByText("Funding Batch Fully Exhausted").first()).toBeVisible();
-      await expect(page.getByText(/Lasted 24 calendar days/i)).toBeVisible();
-    });
-
-    test("handles non-existent source identifier with honest empty state", async ({ page }) => {
-      await page.goto("/money/sources/non-existent-id");
-
-      await expect(page.getByText("Money Source Not Found")).toBeVisible();
-      await expect(page.getByRole("link", { name: /Return to Money Sources/i })).toBeVisible();
-    });
+  test("searches the complete pinned source collection and presents honest no-match state", async ({
+    page,
+  }) => {
+    await page.goto("/money/sources");
+    await page.getByLabel("Search money sources").fill("NoSuchSourceUnique");
+    await expect(page.getByText("No Funding Sources Found", { exact: true })).toBeVisible();
+    await page.getByLabel("Search money sources").fill("Opening");
+    await expect(
+      page
+        .getByText(process.env.KIVO_E2E_FUND_NAME_A!, { exact: true })
+        .filter({ visible: true })
+        .first()
+    ).toBeVisible();
   });
-
-  test.describe("Responsive Viewports Check (Zero Horizontal Scroll)", () => {
-    const viewports = [
-      { name: "mobile (375px)", width: 375, height: 667 },
-      { name: "tablet (768px)", width: 768, height: 1024 },
-      { name: "desktop (1440px)", width: 1440, height: 900 },
-    ];
-
-    const routes = ["/money/sources", "/money/sources/src-1", "/money/sources/src-2"];
-
-    for (const vp of viewports) {
-      for (const route of routes) {
-        test(`renders ${route} cleanly on ${vp.name} without horizontal overflow`, async ({
-          page,
-        }) => {
-          await page.setViewportSize({ width: vp.width, height: vp.height });
-          await page.goto(route);
-
-          const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-          const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
-          expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
-        });
-      }
+  test("filters actual attribution state without invented exhaustion", async ({ page }) => {
+    await page.goto("/money/sources");
+    await page.getByLabel("Filter attribution state").selectOption("exhausted");
+    await expect(page.getByText("No Funding Sources Found", { exact: true })).toBeVisible();
+    await page.getByLabel("Filter attribution state").selectOption("active");
+    await expect(
+      page
+        .getByText(process.env.KIVO_E2E_FUND_NAME_A!, { exact: true })
+        .filter({ visible: true })
+        .first()
+    ).toBeVisible();
+  });
+  test("sorts actual owned funding rows without making a financial total", async ({ page }) => {
+    await page.goto("/money/sources");
+    await page.getByLabel("Sort money sources").selectOption("highest");
+    await expect(
+      page
+        .getByText(process.env.KIVO_E2E_FUND_NAME_A!, { exact: true })
+        .filter({ visible: true })
+        .first()
+    ).toBeVisible();
+  });
+  test("loads an actual batch UUID and its pinned positions/journey", async ({ page }) => {
+    await openResource(
+      page,
+      `/money/sources/${process.env.KIVO_E2E_FUND_A}`,
+      `/api/v1/funds/batches/${process.env.KIVO_E2E_FUND_A}/`
+    );
+    await expect(page.getByText("Chronological Fund Journey", { exact: true })).toBeVisible();
+    await expect(page.getByText("Attributed Holdings", { exact: true })).toBeVisible();
+    await expect(page.getByText(/Snapshot:/)).toBeVisible();
+    await expect(page.getByText(/inclusive calendar days/)).not.toBeVisible();
+  });
+  test("missing owned UUID produces the actual API error, never a preview fallback", async ({
+    page,
+  }) => {
+    await page.goto("/money/sources/00000000-0000-4000-8000-000000000099");
+    await expect(page.getByRole("alert").last()).toBeVisible();
+    await expect(page.getByText("Attributed Holdings", { exact: true })).not.toBeVisible();
+  });
+  for (const width of [375, 768, 1440]) {
+    for (const detail of [false, true]) {
+      test(`real ${detail ? "detail" : "list"} has no horizontal overflow at ${width}px`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(
+          detail ? `/money/sources/${process.env.KIVO_E2E_FUND_A}` : "/money/sources"
+        );
+        await expect(
+          page
+            .getByText(detail ? "Attributed Holdings" : "Money Sources & Fund Journey", {
+              exact: true,
+            })
+            .first()
+        ).toBeVisible();
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+          )
+        ).toBeLessThanOrEqual(1);
+      });
     }
-  });
+  }
 });

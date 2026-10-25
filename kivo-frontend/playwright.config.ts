@@ -28,7 +28,15 @@ export default defineConfig({
     },
     {
       name: "Mobile Chrome",
-      testIgnore: ["**/part1-live.spec.ts", "**/part2-live.spec.ts"],
+      testIgnore: [
+        "**/part1-live.spec.ts",
+        "**/part2-live.spec.ts",
+        "**/part3-live.spec.ts",
+        "**/part4-live.spec.ts",
+        "**/part4-recovery.spec.ts",
+        "**/part4-isolated.spec.ts",
+        "**/part5-live.spec.ts",
+      ],
       use: { ...devices["Pixel 5"] },
     },
   ],

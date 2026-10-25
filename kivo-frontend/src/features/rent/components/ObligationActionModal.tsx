@@ -14,7 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/features/auth/components/FieldError";
-import { IntegrationPendingBadge } from "@/components/shared/IntegrationPendingBadge";
+import { FinancialWriteStatus, useFinancialWrite } from "@/features/finance/useFinancialWrite";
+import type { ObligationDTO } from "../api";
 import {
   obligationActionSchema,
   type ObligationActionFormData,
@@ -38,7 +39,7 @@ export function ObligationActionModal({
   onSuccess,
 }: ObligationActionModalProps) {
   const isSkip = action === "skip";
-  const [pendingNotice, setPendingNotice] = React.useState<string | null>(null);
+  const write = useFinancialWrite("rent-obligation:" + obligation?.id + ":status", true);
 
   const {
     register,
@@ -55,20 +56,19 @@ export function ObligationActionModal({
     },
   });
 
-  const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {
-      setPendingNotice(null);
-    }
-    onOpenChange(isOpen);
-  };
-
+  const handleOpenChange = onOpenChange;
   const onSubmit = async (data: ObligationActionFormData) => {
-    setPendingNotice(
-      `Obligation ${obligation?.month.substring(0, 7)} ${isSkip ? "skip" : "reopen"} validated with reason: "${data.reason}". In Phase 7 integration, this posts to Django /api/v1/rent/obligations/{id}/change/.`
-    );
-    if (onSuccess) onSuccess();
+    if (!obligation) return;
+    if (
+      await write.run<ObligationDTO>(
+        "/api/v1/rent/obligations/" + obligation.id + "/change-status/",
+        data
+      )
+    ) {
+      onSuccess?.();
+      onOpenChange(false);
+    }
   };
-
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[460px]">
@@ -94,52 +94,46 @@ export function ObligationActionModal({
           </div>
         )}
 
-        {pendingNotice && (
-          <div className="rounded-lg border border-kivo-sage/50 bg-kivo-sage/15 p-3 text-xs text-kivo-brand-dark dark:text-kivo-sage space-y-1">
-            <div className="flex items-center gap-1.5 font-medium">
-              <IntegrationPendingBadge />
-              <span>Action Recorded in Frontend</span>
-            </div>
-            <p className="text-[11px] opacity-90">{pendingNotice}</p>
-          </div>
-        )}
+        <FinancialWriteStatus write={write} onConfirmed={() => onOpenChange(false)} />
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5 py-1">
-          <div className="space-y-1.5">
-            <Label htmlFor="obligation-reason" className="text-xs font-medium">
-              Auditable Reason <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="obligation-reason"
-              placeholder={
-                isSkip
-                  ? "e.g. Deposit adjusted with landlord / Tenant travelled away"
-                  : "e.g. Skipped by mistake; payment due this month"
-              }
-              {...register("reason")}
-              className="text-sm"
-              autoFocus
-            />
-            {errors.reason && <FieldError message={errors.reason.message} />}
-          </div>
+          <fieldset disabled={write.pending || write.busy} className="space-y-3.5 min-w-0">
+            <div className="space-y-1.5">
+              <Label htmlFor="obligation-reason" className="text-xs font-medium">
+                Auditable Reason <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="obligation-reason"
+                placeholder={
+                  isSkip
+                    ? "e.g. Deposit adjusted with landlord / Tenant travelled away"
+                    : "e.g. Skipped by mistake; payment due this month"
+                }
+                {...register("reason")}
+                className="text-sm"
+                autoFocus
+              />
+              {errors.reason && <FieldError message={errors.reason.message} />}
+            </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/50">
-            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={isSubmitting}
-              className={`text-white font-medium ${
-                isSkip
-                  ? "bg-amber-700 hover:bg-amber-800"
-                  : "bg-kivo-primary hover:bg-kivo-brand-dark"
-              }`}
-            >
-              {isSkip ? "Confirm Skip" : "Confirm Reopen"}
-            </Button>
-          </div>
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/50">
+              <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isSubmitting}
+                className={`text-white font-medium ${
+                  isSkip
+                    ? "bg-amber-700 hover:bg-amber-800"
+                    : "bg-kivo-primary hover:bg-kivo-brand-dark"
+                }`}
+              >
+                {isSkip ? "Confirm Skip" : "Confirm Reopen"}
+              </Button>
+            </div>
+          </fieldset>
         </form>
       </DialogContent>
     </Dialog>

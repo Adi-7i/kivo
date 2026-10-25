@@ -89,7 +89,7 @@ export function FinancialSummaryGrid({ metrics, isLoading = false }: FinancialSu
         <FinancialSummaryCard
           title="Money Received"
           amountPaise={metrics.monthReceivedPaise}
-          subtitle="Income & external inflows this month"
+          subtitle="External income this month; excludes borrowing and repayments"
           icon={<ArrowDownLeft className="size-4 text-finance-income" />}
           variant="income"
         />
@@ -98,7 +98,7 @@ export function FinancialSummaryGrid({ metrics, isLoading = false }: FinancialSu
         <FinancialSummaryCard
           title="Owed to You (Asset)"
           amountPaise={metrics.moneyOwedToUserPaise}
-          subtitle="Receivables from loans given to friends"
+          subtitle="Outstanding receivables from lending and shared advances"
           icon={<HandCoins className="size-4 text-blue-600" />}
           variant="default"
         />

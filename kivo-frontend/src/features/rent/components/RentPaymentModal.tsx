@@ -14,7 +14,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/features/auth/components/FieldError";
-import { IntegrationPendingBadge } from "@/components/shared/IntegrationPendingBadge";
+import { FinancialWriteStatus, useFinancialWrite } from "@/features/finance/useFinancialWrite";
+import { QueryState } from "@/features/finance/QueryState";
+import { useAccounts } from "@/features/finance/queries";
+import { useContacts } from "@/features/relationships/queries";
+import { contactEntity } from "@/features/relationships/api";
+import { useTodayInKolkata } from "@/features/relationships/useToday";
+import { normalizeOpeningBalance } from "@/features/onboarding/money";
+import type { PaymentDTO, PaymentInput } from "../api";
 import { rentPaymentSchema, type RentPaymentFormData } from "../schemas/rent-payment.schema";
 import { MoneyAmount } from "@/features/shared-financial/MoneyAmount";
 import { paiseToDecimalString } from "@/lib/formatters/currency";
@@ -33,82 +40,109 @@ interface RentPaymentModalProps {
   obligation?: RentObligationEntity | null;
   roommates?: ContactEntity[];
   accounts?: AccountOption[];
+  initialPayment?: PaymentDTO;
   onSuccess?: (data: RentPaymentFormData) => void;
 }
-
-const DEFAULT_ACCOUNTS: AccountOption[] = [
-  { id: "acc-bank-1", name: "HDFC Primary Bank Account" },
-  { id: "acc-cash-1", name: "Physical Cash Wallet" },
-  { id: "acc-wallet-1", name: "Digital Wallet" },
-];
 
 export function RentPaymentModal({
   open,
   onOpenChange,
   obligation,
-  roommates = [],
-  accounts = DEFAULT_ACCOUNTS,
+  initialPayment,
   onSuccess,
 }: RentPaymentModalProps) {
-  const [payerType, setPayerType] = React.useState<"owner" | "friend">("owner");
-  const [pendingNotice, setPendingNotice] = React.useState<string | null>(null);
+  const accountQuery = useAccounts(open),
+    contactQuery = useContacts(open);
+  const accounts = (accountQuery.data ?? []).filter(
+    (a) => !a.archived || a.id === initialPayment?.event.account
+  );
+  const roommates = (contactQuery.data ?? [])
+    .filter((c) => !c.archived || c.id === initialPayment?.event.contact)
+    .map(contactEntity);
+  const [payerType, setPayerType] = React.useState<"owner" | "friend">(
+    initialPayment?.event.kind === "shared_due" ? "friend" : "owner"
+  );
+  const today = useTodayInKolkata();
+  const write = useFinancialWrite(
+    initialPayment
+      ? "rent-payment:" + initialPayment.id + ":correct"
+      : "rent-payment:" + obligation?.id + ":create",
+    true
+  );
 
   const {
     register,
     handleSubmit,
     setValue,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<RentPaymentFormData>({
     resolver: zodResolver(rentPaymentSchema),
     values: {
-      obligationId: obligation?.id || "",
+      obligationId: initialPayment?.obligation ?? obligation?.id ?? "",
       payerType,
-      accountId: accounts[0]?.id || "",
-      payerContactId: "",
-      amount: obligation ? paiseToDecimalString(obligation.outstandingPaise) : "",
-      effectiveDate: "2026-10-20",
-      title: obligation
-        ? `Rent Payment for ${obligation.month.substring(0, 7)}`
-        : "Monthly Rent Payment",
-      notes: "",
-      paymentMethod: "UPI",
+      accountId: initialPayment?.event.account ?? accounts[0]?.id ?? "",
+      payerContactId: initialPayment?.event.contact ?? "",
+      amount:
+        initialPayment?.event.amount ??
+        (obligation ? paiseToDecimalString(obligation.outstandingPaise) : ""),
+      effectiveDate: initialPayment?.event.effective_date ?? today,
+      title:
+        initialPayment?.event.title ??
+        (obligation
+          ? `Rent Payment for ${obligation.month.substring(0, 7)}`
+          : "Monthly Rent Payment"),
+      notes: initialPayment?.event.notes ?? "",
+      paymentMethod: initialPayment?.event.payment_method || "UPI",
+      reason: "",
     },
     resetOptions: {
       keepDirtyValues: true,
     },
   });
 
-  const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {
-      setPendingNotice(null);
-      setPayerType("owner");
-    }
-    onOpenChange(isOpen);
-  };
+  const handleOpenChange = onOpenChange;
 
   const handlePayerTypeChange = (type: "owner" | "friend") => {
+    if (initialPayment || write.busy || write.pending) return;
     setPayerType(type);
     setValue("payerType", type);
   };
 
   const onSubmit = async (data: RentPaymentFormData) => {
-    const payerLabel = data.payerType === "owner" ? "Owner (You)" : "Roommate/Friend";
-    setPendingNotice(
-      `Rent payment of ₹${data.amount} paid by ${payerLabel} validated. In Phase 7 integration, this will post to Django /api/v1/rent/payments/.`
+    if (initialPayment && data.reason.trim().length < 5) {
+      setError("reason", { message: "An audit reason of at least 5 characters is required" });
+      return;
+    }
+    const body: PaymentInput = {
+      ...(data.payerType === "owner"
+        ? { account: data.accountId }
+        : { payer: data.payerContactId }),
+      amount: normalizeOpeningBalance(data.amount),
+      effective_date: data.effectiveDate,
+      title: data.title,
+      notes: data.notes,
+      payment_method: data.paymentMethod,
+    };
+    const result = await write.run<PaymentDTO>(
+      initialPayment
+        ? "/api/v1/rent/payments/" + initialPayment.id + "/correct/"
+        : "/api/v1/rent/obligations/" + data.obligationId + "/payments/",
+      initialPayment ? { ...body, reason: data.reason } : body
     );
-
-    if (onSuccess) {
-      onSuccess(data);
+    if (result) {
+      onSuccess?.(data);
+      onOpenChange(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[480px] max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-heading font-semibold text-foreground flex items-center gap-2">
             <CreditCard className="size-5 text-kivo-primary" />
-            <span>Record Rent Payment</span>
+            <span>{initialPayment ? "Correct Rent Payment" : "Record Rent Payment"}</span>
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             Confirm payment made to the landlord. Kivo accurately records whether funds left your
@@ -137,6 +171,7 @@ export function RentPaymentModal({
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
+              disabled={!!initialPayment || write.busy || write.pending}
               onClick={() => handlePayerTypeChange("owner")}
               className={`py-2 px-3 rounded-lg border text-xs font-medium text-center transition-all ${
                 payerType === "owner"
@@ -149,6 +184,7 @@ export function RentPaymentModal({
 
             <button
               type="button"
+              disabled={!!initialPayment || write.busy || write.pending}
               onClick={() => handlePayerTypeChange("friend")}
               className={`py-2 px-3 rounded-lg border text-xs font-medium text-center transition-all ${
                 payerType === "friend"
@@ -175,137 +211,140 @@ export function RentPaymentModal({
               <span>
                 <strong className="text-foreground">Friend Payment:</strong> Recognizes your
                 personal rent expense and records a payable debt to your roommate without deducting
-                cash from your bank today.
+                cash from your bank today. Applicable reserves stay protected until repayment.
               </span>
             )}
           </p>
         </div>
 
-        {pendingNotice && (
-          <div className="rounded-lg border border-kivo-sage/50 bg-kivo-sage/15 p-3 text-xs text-kivo-brand-dark dark:text-kivo-sage space-y-1">
-            <div className="flex items-center gap-1.5 font-medium">
-              <IntegrationPendingBadge />
-              <span>Rent Payment Validated in Frontend</span>
-            </div>
-            <p className="text-[11px] opacity-90">{pendingNotice}</p>
-          </div>
-        )}
+        <FinancialWriteStatus write={write} onConfirmed={() => onOpenChange(false)} />
+        <QueryState query={accountQuery} />
+        <QueryState query={contactQuery} />
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5 py-1">
-          {/* Payer Account or Payer Contact */}
-          {payerType === "owner" ? (
-            <div className="space-y-1.5">
-              <Label htmlFor="payment-account" className="text-xs font-medium">
-                Paying Account <span className="text-destructive">*</span>
-              </Label>
-              <select
-                id="payment-account"
-                {...register("accountId")}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden"
+          <fieldset disabled={write.pending || write.busy} className="space-y-3.5 min-w-0">
+            {initialPayment && (
+              <div className="space-y-1.5">
+                <Label htmlFor="rent-payment-reason">Audit Reason</Label>
+                <Input id="rent-payment-reason" {...register("reason")} />
+                {errors.reason && <FieldError message={errors.reason.message} />}
+              </div>
+            )}
+            {/* Payer Account or Payer Contact */}
+            {payerType === "owner" ? (
+              <div className="space-y-1.5">
+                <Label htmlFor="payment-account" className="text-xs font-medium">
+                  Paying Account <span className="text-destructive">*</span>
+                </Label>
+                <select
+                  id="payment-account"
+                  {...register("accountId")}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden"
+                >
+                  {accounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.accountId && <FieldError message={errors.accountId.message} />}
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Label htmlFor="payment-friend" className="text-xs font-medium">
+                  Select Roommate who Paid <span className="text-destructive">*</span>
+                </Label>
+                <select
+                  id="payment-friend"
+                  {...register("payerContactId")}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden"
+                >
+                  <option value="">-- Choose roommate/friend --</option>
+                  {roommates.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.displayName} {r.isRoommate ? "(Roommate)" : ""}
+                    </option>
+                  ))}
+                </select>
+                {errors.payerContactId && <FieldError message={errors.payerContactId.message} />}
+              </div>
+            )}
+
+            {/* Amount & Date */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="payment-amount" className="text-xs font-medium">
+                  Amount Paid (₹) <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="payment-amount"
+                  type="text"
+                  placeholder="e.g. 30000"
+                  {...register("amount")}
+                  className="text-sm font-mono"
+                />
+                {errors.amount && <FieldError message={errors.amount.message} />}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="payment-date" className="text-xs font-medium">
+                  Payment Date <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="payment-date"
+                  type="date"
+                  {...register("effectiveDate")}
+                  className="text-sm"
+                />
+                {errors.effectiveDate && <FieldError message={errors.effectiveDate.message} />}
+              </div>
+            </div>
+
+            {/* Method & Notes */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="payment-method" className="text-xs font-medium">
+                  Payment Method
+                </Label>
+                <select
+                  id="payment-method"
+                  {...register("paymentMethod")}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden"
+                >
+                  <option value="UPI">UPI (GPay / PhonePe / Paytm)</option>
+                  <option value="NetBanking">Net Banking (IMPS / NEFT)</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="Cash">Cash</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="payment-notes" className="text-xs font-medium">
+                  Notes / Reference
+                </Label>
+                <Input
+                  id="payment-notes"
+                  placeholder="e.g. Landlord receipt #104"
+                  {...register("notes")}
+                  className="text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/50">
+              <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isSubmitting}
+                className="bg-kivo-primary hover:bg-kivo-brand-dark text-white font-medium"
               >
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.name}
-                  </option>
-                ))}
-              </select>
-              {errors.accountId && <FieldError message={errors.accountId.message} />}
+                {initialPayment ? "Save Rent Payment Correction" : "Record Payment"}
+              </Button>
             </div>
-          ) : (
-            <div className="space-y-1.5">
-              <Label htmlFor="payment-friend" className="text-xs font-medium">
-                Select Roommate who Paid <span className="text-destructive">*</span>
-              </Label>
-              <select
-                id="payment-friend"
-                {...register("payerContactId")}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden"
-              >
-                <option value="">-- Choose roommate/friend --</option>
-                {roommates.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.displayName} {r.isRoommate ? "(Roommate)" : ""}
-                  </option>
-                ))}
-              </select>
-              {errors.payerContactId && <FieldError message={errors.payerContactId.message} />}
-            </div>
-          )}
-
-          {/* Amount & Date */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="payment-amount" className="text-xs font-medium">
-                Amount Paid (₹) <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="payment-amount"
-                type="text"
-                placeholder="e.g. 30000"
-                {...register("amount")}
-                className="text-sm font-mono"
-              />
-              {errors.amount && <FieldError message={errors.amount.message} />}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="payment-date" className="text-xs font-medium">
-                Payment Date <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="payment-date"
-                type="date"
-                {...register("effectiveDate")}
-                className="text-sm"
-              />
-              {errors.effectiveDate && <FieldError message={errors.effectiveDate.message} />}
-            </div>
-          </div>
-
-          {/* Method & Notes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="payment-method" className="text-xs font-medium">
-                Payment Method
-              </Label>
-              <select
-                id="payment-method"
-                {...register("paymentMethod")}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden"
-              >
-                <option value="UPI">UPI (GPay / PhonePe / Paytm)</option>
-                <option value="NetBanking">Net Banking (IMPS / NEFT)</option>
-                <option value="Cheque">Cheque</option>
-                <option value="Cash">Cash</option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="payment-notes" className="text-xs font-medium">
-                Notes / Reference
-              </Label>
-              <Input
-                id="payment-notes"
-                placeholder="e.g. Landlord receipt #104"
-                {...register("notes")}
-                className="text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/50">
-            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={isSubmitting}
-              className="bg-kivo-primary hover:bg-kivo-brand-dark text-white font-medium"
-            >
-              Record Payment
-            </Button>
-          </div>
+          </fieldset>
         </form>
       </DialogContent>
     </Dialog>

@@ -12,13 +12,13 @@ interface SharedBillCardProps {
 
 export function SharedBillCard({ bill }: SharedBillCardProps) {
   const isUserPayer = bill.payerContactId === null;
-  const friendSharesTotal = bill.amountPaise - bill.userSharePaise;
 
   return (
     <div className="group rounded-xl border border-border/80 bg-card p-4 transition-all duration-200 hover:border-kivo-sage hover:shadow-xs space-y-3">
       {/* Top: Title, Date, Chevron */}
       <div className="flex items-start justify-between gap-3">
         <Link
+          prefetch={false}
           href={`/shared-expenses/${bill.id}`}
           className="space-y-0.5 flex-1 min-w-0 group-hover:text-foreground"
         >
@@ -46,6 +46,7 @@ export function SharedBillCard({ bill }: SharedBillCardProps) {
         </Link>
 
         <Link
+          prefetch={false}
           href={`/shared-expenses/${bill.id}`}
           aria-label={`View bill details for ${bill.title}`}
           className="text-muted-foreground group-hover:text-foreground p-1 transition-colors"
@@ -69,8 +70,8 @@ export function SharedBillCard({ bill }: SharedBillCardProps) {
           <MoneyAmount paise={bill.userSharePaise} size="sm" variant="expense" />
           <span className="text-[10px] text-muted-foreground block">
             {isUserPayer
-              ? `Friends owe: ₹${(friendSharesTotal / 100).toFixed(2)}`
-              : `You owe: ₹${(bill.userSharePaise / 100).toFixed(2)}`}
+              ? "Friends' outstanding amounts are tracked per claim"
+              : "Payable and settlements are tracked per claim"}
           </span>
         </div>
       </div>
@@ -96,7 +97,11 @@ export function SharedBillCard({ bill }: SharedBillCardProps) {
 
         {/* Status indicator */}
         <div>
-          {bill.status === "all_settled" ? (
+          {bill.status === "not_verified" ? (
+            <span>Checking claims</span>
+          ) : bill.status === "reversed" || bill.status === "voided" ? (
+            <span>{bill.status}</span>
+          ) : bill.status === "all_settled" ? (
             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
               <CheckCircle2 className="size-3 text-emerald-600" /> Settled
             </span>

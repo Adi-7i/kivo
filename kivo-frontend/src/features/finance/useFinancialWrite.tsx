@@ -45,7 +45,7 @@ export function usePendingFinancialWrite(slot: string): boolean {
 }
 
 /** Persist intent before sending. Never automatically repeat a financial write. */
-export function useFinancialWrite(slot: string) {
+export function useFinancialWrite(slot: string, singleUse = false) {
   const { user, storageKey, raw } = useStoredAttempt(slot);
   const client = useQueryClient();
   const attempt: Attempt | null = React.useMemo(() => {
@@ -54,7 +54,9 @@ export function useFinancialWrite(slot: string) {
       const parsed = JSON.parse(raw) as Attempt;
       if (
         typeof parsed.key !== "string" ||
-        !/^\/api\/v1\/(accounts|transactions)\//.test(parsed.endpoint) ||
+        !/^\/api\/v1\/(accounts|transactions|contacts|loans|settlements|shared-bills|rent\/(?:plans|obligations|payments|reserves))\//.test(
+          parsed.endpoint
+        ) ||
         !["POST", "PATCH"].includes(parsed.method)
       )
         throw new Error();
@@ -64,6 +66,7 @@ export function useFinancialWrite(slot: string) {
     }
   }, [raw]);
   const lock = React.useRef(false);
+  const confirmed = React.useRef(false);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState("");
   const [checked, setChecked] = React.useState(false);
@@ -90,6 +93,7 @@ export function useFinancialWrite(slot: string) {
       )
         throw new Error("The server did not confirm a valid financial resource identifier.");
       persist(null);
+      confirmed.current = true;
       // Cache refresh errors must not turn a confirmed write into a retryable write.
       void invalidateFinance(client);
       return result;
@@ -114,7 +118,7 @@ export function useFinancialWrite(slot: string) {
     body: unknown,
     method: "POST" | "PATCH" = "POST"
   ): Promise<T | null> => {
-    if (!user || lock.current) return null;
+    if (!user || lock.current || (singleUse && confirmed.current)) return null;
     // Synchronous storage check also prevents a second mounted form replacing a pending intent.
     try {
       if (sessionStorage.getItem(storageKey)) {
@@ -138,13 +142,13 @@ export function useFinancialWrite(slot: string) {
     try {
       // A matching amount/title is not proof of this operation. Only an idempotent replay can confirm it.
       const resource = attempt.endpoint.match(
-        /^(\/api\/v1\/(?:accounts|transactions)\/[^/]+\/)/
+        /^(\/api\/v1\/(?:accounts|transactions|contacts|loans|settlements|shared-bills|rent\/(?:plans|obligations|payments|reserves))\/[^/]+\/)/
       )?.[1];
       await apiClient(
         resource ||
-          (attempt.endpoint.startsWith("/api/v1/accounts/")
-            ? "/api/v1/accounts/"
-            : "/api/v1/transactions/")
+          attempt.endpoint.match(
+            /^\/api\/v1\/(?:accounts|transactions|contacts|loans|settlements|shared-bills|rent\/(?:plans|obligations|payments|reserves))\//
+          )![0]
       );
       await invalidateFinance(client);
       setChecked(true);

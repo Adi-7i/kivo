@@ -11,7 +11,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { IntegrationPendingBadge } from "@/components/shared/IntegrationPendingBadge";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@/lib/utils/zodResolver";
+import { calendarDate } from "@/features/finance/validation";
+import { useTodayInKolkata } from "@/features/relationships/useToday";
+import { FinancialWriteStatus, useFinancialWrite } from "@/features/finance/useFinancialWrite";
+import { FieldError } from "@/features/auth/components/FieldError";
+import type { PlanDTO } from "../api";
 import { Calendar, Sparkles } from "lucide-react";
 import type { RentPlanEntity } from "../types";
 
@@ -22,30 +29,25 @@ interface RentGenerateModalProps {
   onSuccess?: () => void;
 }
 
-export function RentGenerateModal({
-  open,
-  onOpenChange,
-  plan,
-  onSuccess,
-}: RentGenerateModalProps) {
-  const [throughDate, setThroughDate] = React.useState("2026-12-31");
-  const [pendingNotice, setPendingNotice] = React.useState<string | null>(null);
-
-  const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {
-      setPendingNotice(null);
+export function RentGenerateModal({ open, onOpenChange, plan, onSuccess }: RentGenerateModalProps) {
+  const today = useTodayInKolkata();
+  const write = useFinancialWrite("rent-plan:" + plan.id + ":generate", true);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<{ through: string }>({
+    resolver: zodResolver(z.object({ through: calendarDate })),
+    values: { through: today },
+    resetOptions: { keepDirtyValues: true },
+  });
+  const handleOpenChange = onOpenChange;
+  const handleGenerate = async (data: { through: string }) => {
+    if (await write.run<PlanDTO>("/api/v1/rent/plans/" + plan.id + "/generate/", data)) {
+      onSuccess?.();
+      onOpenChange(false);
     }
-    onOpenChange(isOpen);
   };
-
-  const handleGenerate = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPendingNotice(
-      `Backend integration pending: POST /api/v1/rent/plans/${plan.id}/generate/ with through="${throughDate}". Will generate recurring monthly obligations in remote Django database.`
-    );
-    onSuccess?.();
-  };
-
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md w-full border-border bg-card">
@@ -64,49 +66,51 @@ export function RentGenerateModal({
           </DialogDescription>
         </DialogHeader>
 
-        {pendingNotice && (
-          <IntegrationPendingBadge variant="banner" message={pendingNotice} />
-        )}
+        <FinancialWriteStatus write={write} onConfirmed={() => onOpenChange(false)} />
 
-        <form onSubmit={handleGenerate} className="space-y-4 pt-1 text-left">
-          <div className="space-y-1.5">
-            <Label htmlFor="through-date" className="text-xs font-semibold text-foreground">
-              Generate Obligations Through
-            </Label>
-            <div className="relative">
-              <Input
-                id="through-date"
-                type="date"
-                value={throughDate}
-                onChange={(e) => setThroughDate(e.target.value)}
-                required
-                className="text-xs bg-muted/20"
-              />
+        <form onSubmit={handleSubmit(handleGenerate)} className="space-y-4 pt-1 text-left">
+          <fieldset disabled={write.pending || write.busy} className="space-y-4 min-w-0">
+            <div className="space-y-1.5">
+              <Label htmlFor="through-date" className="text-xs font-semibold text-foreground">
+                Generate Obligations Through
+              </Label>
+              <div className="relative">
+                <Input
+                  id="through-date"
+                  type="date"
+                  {...register("through")}
+                  required
+                  className="text-xs bg-muted/20"
+                />
+              </div>
+              {errors.through && <FieldError message={errors.through.message} />}
+              <p className="text-[10px] text-muted-foreground">
+                Kivo generates obligations whose due dates fall between the plan start and the
+                selected date, inclusive. Choose a future cutoff to include upcoming dues. Existing
+                months are preserved. Generation does not withdraw cash or recognize expense.
+              </p>
             </div>
-            <p className="text-[10px] text-muted-foreground">
-              The backend rent engine will create obligations for each month up to this date based on the plan&apos;s due-day rule.
-            </p>
-          </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/60">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleOpenChange(false)}
-              className="text-xs"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              className="text-xs bg-kivo-primary hover:bg-kivo-brand-dark text-white gap-1.5"
-            >
-              <Calendar className="size-3.5" />
-              <span>Generate Obligations</span>
-            </Button>
-          </div>
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/60">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleOpenChange(false)}
+                className="text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="text-xs bg-kivo-primary hover:bg-kivo-brand-dark text-white gap-1.5"
+              >
+                <Calendar className="size-3.5" />
+                <span>Generate Obligations</span>
+              </Button>
+            </div>
+          </fieldset>
         </form>
       </DialogContent>
     </Dialog>

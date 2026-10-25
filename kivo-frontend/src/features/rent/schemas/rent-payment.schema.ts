@@ -1,51 +1,28 @@
 import { z } from "zod";
-
+import { calendarDate, moneyInput } from "@/features/finance/validation";
 export const rentPaymentSchema = z
   .object({
-    obligationId: z.string().trim().min(1, "Please select an obligation"),
+    obligationId: z.uuid("Please select an obligation"),
     payerType: z.enum(["owner", "friend"]),
     accountId: z.string().optional().default(""),
     payerContactId: z.string().optional().default(""),
-    amount: z
-      .string()
-      .trim()
-      .min(1, "Payment amount is required")
-      .regex(/^\d+(\.\d{1,2})?$/, "Enter a valid amount (e.g. 10000 or 10000.00)")
-      .refine((val) => parseFloat(val) > 0, {
-        message: "Payment amount must be greater than zero",
-      }),
-    effectiveDate: z
-      .string()
-      .trim()
-      .min(1, "Payment date is required")
-      .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
-    title: z.string().trim().max(200).optional().default("Rent Payment"),
-    notes: z.string().trim().max(4000).optional().default(""),
-    paymentMethod: z.string().trim().max(50).optional().default("UPI"),
+    amount: moneyInput(),
+    effectiveDate: calendarDate,
+    title: z.string().trim().min(1).max(200).optional().default("Rent Payment"),
+    notes: z.string().max(4000).optional().default(""),
+    paymentMethod: z.string().max(50).optional().default("UPI"),
+    reason: z.string().trim().max(500).optional().default(""),
   })
-  .refine(
-    (data) => {
-      if (data.payerType === "owner") {
-        return Boolean(data.accountId && data.accountId.trim().length > 0);
-      }
-      return true;
-    },
-    {
-      message: "Please select the paying bank/wallet account",
-      path: ["accountId"],
-    }
-  )
-  .refine(
-    (data) => {
-      if (data.payerType === "friend") {
-        return Boolean(data.payerContactId && data.payerContactId.trim().length > 0);
-      }
-      return true;
-    },
-    {
-      message: "Please select which roommate/friend paid the landlord",
-      path: ["payerContactId"],
-    }
-  );
-
+  .superRefine((data, ctx) => {
+    const field = data.payerType === "owner" ? "accountId" : "payerContactId";
+    if (!z.uuid().safeParse(data[field]).success)
+      ctx.addIssue({
+        code: "custom",
+        path: [field],
+        message:
+          data.payerType === "owner"
+            ? "Please select the paying bank/wallet account"
+            : "Please select which roommate/friend paid the landlord",
+      });
+  });
 export type RentPaymentFormData = z.infer<typeof rentPaymentSchema>;

@@ -27,7 +27,7 @@ def mask_db_url(url_str: str) -> str:
         return "<invalid-url-format>"
 
 
-def parse_supabase_db_url(url_str: str | None = None) -> dict[str, Any]:
+def parse_supabase_db_url(url_str: str | None = None, *, use_pool: bool = False) -> dict[str, Any]:
     """Parse SUPABASE_DB_URL into a Django DATABASES configuration dictionary.
 
     Requires an encrypted TLS connection ('sslmode=require').
@@ -66,7 +66,7 @@ def parse_supabase_db_url(url_str: str | None = None) -> dict[str, Any]:
     # Default to port 5432 if unspecified
     port = parsed.port if parsed.port is not None else 5432
 
-    return {
+    config = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": db_name,
         "USER": unquote(parsed.username) if parsed.username else "postgres",
@@ -88,3 +88,16 @@ def parse_supabase_db_url(url_str: str | None = None) -> dict[str, Any]:
         "CONN_MAX_AGE": 600,
         "CONN_HEALTH_CHECKS": True,
     }
+    if use_pool:
+        # Bounded process-local psycopg pool. Django returns each request's
+        # connection to this pool; it must not also retain thread-local leases.
+        config["CONN_MAX_AGE"] = 0
+        config["OPTIONS"]["pool"] = {
+            "min_size": 1,
+            "max_size": 4,
+            "max_waiting": 4,
+            "timeout": 5,
+            "max_lifetime": 600,
+            "max_idle": 60,
+        }
+    return config

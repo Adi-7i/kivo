@@ -4,7 +4,13 @@ import { financialError } from "./validation";
 export function QueryState({
   query,
 }: {
-  query: { isPending: boolean; isError: boolean; error: unknown; refetch: () => unknown };
+  query: {
+    isPending: boolean;
+    isFetching?: boolean;
+    isError: boolean;
+    error: unknown;
+    refetch: () => unknown;
+  };
 }) {
   if (query.isError)
     return (
@@ -15,7 +21,7 @@ export function QueryState({
         </Button>
       </div>
     );
-  if (query.isPending)
+  if (query.isPending && query.isFetching !== false)
     return (
       <p role="status" className="p-4 text-xs text-muted-foreground">
         Loading from Django…

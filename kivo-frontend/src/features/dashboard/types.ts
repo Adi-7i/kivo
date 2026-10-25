@@ -13,12 +13,12 @@ export interface SpendingChartDataPoint {
   date: string;
   displayDate: string;
   expensePaise: number;
-  receiptPaise: number;
+  receiptPaise?: number;
 }
 
 export interface CategoryDistribution {
   categoryName: string;
   amountPaise: number;
-  percentage: number;
+  percentage?: number;
   color: string;
 }

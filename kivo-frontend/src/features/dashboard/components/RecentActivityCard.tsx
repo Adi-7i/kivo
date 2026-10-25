@@ -47,7 +47,13 @@ export function RecentActivityCard({ transactions, className }: RecentActivityCa
                   <div className="flex items-center gap-3">
                     <TransactionTypeBadge kind={tx.kind} showIcon={false} />
                     <div className="space-y-0.5">
-                      <p className="font-semibold text-foreground">{tx.title}</p>
+                      <Link
+                        prefetch={false}
+                        href={`/transactions/${tx.id}`}
+                        className="font-semibold text-foreground break-words"
+                      >
+                        {tx.title}
+                      </Link>
                       <p className="text-[11px] text-muted-foreground">
                         {tx.accountName} {tx.categoryName ? `• ${tx.categoryName}` : ""} •{" "}
                         {formatDateDisplay(tx.effectiveDate)}
@@ -59,7 +65,7 @@ export function RecentActivityCard({ transactions, className }: RecentActivityCa
                     <MoneyAmount
                       paise={tx.amountPaise}
                       variant={isExpense ? "expense" : isReceipt ? "income" : "transfer"}
-                      showSign={isExpense || isReceipt}
+                      showSign={false}
                       size="sm"
                       tabular
                     />

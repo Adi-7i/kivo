@@ -11,17 +11,17 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 interface SpendingChartCardProps {
   data: SpendingChartDataPoint[];
   className?: string;
+  range?: "last_seven_days" | "month";
+  onRangeChange?: (range: "last_seven_days" | "month") => void;
 }
 
-export function SpendingChartCard({ data, className }: SpendingChartCardProps) {
-  const [interval, setInterval] = React.useState<"7d" | "30d">("7d");
-
-  const displayData = React.useMemo(() => {
-    if (interval === "7d") {
-      return data.slice(-7);
-    }
-    return data;
-  }, [data, interval]);
+export function SpendingChartCard({
+  data,
+  className,
+  range = "last_seven_days",
+  onRangeChange,
+}: SpendingChartCardProps) {
+  const displayData = data;
 
   return (
     <Card className={className}>
@@ -36,9 +36,9 @@ export function SpendingChartCard({ data, className }: SpendingChartCardProps) {
         <div className="flex items-center gap-1 rounded-lg bg-muted p-1 text-xs">
           <button
             type="button"
-            onClick={() => setInterval("7d")}
+            onClick={() => onRangeChange?.("last_seven_days")}
             className={`rounded-md px-2.5 py-1 font-medium transition-all ${
-              interval === "7d"
+              range === "last_seven_days"
                 ? "bg-card text-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
@@ -47,14 +47,14 @@ export function SpendingChartCard({ data, className }: SpendingChartCardProps) {
           </button>
           <button
             type="button"
-            onClick={() => setInterval("30d")}
+            onClick={() => onRangeChange?.("month")}
             className={`rounded-md px-2.5 py-1 font-medium transition-all ${
-              interval === "30d"
+              range === "month"
                 ? "bg-card text-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Last 30 Days
+            Month to Date
           </button>
         </div>
       </CardHeader>
@@ -91,7 +91,7 @@ export function SpendingChartCard({ data, className }: SpendingChartCardProps) {
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(val: number) => "₹" + Math.round(val / 100)}
+                  tickFormatter={(val: number) => (Number.isSafeInteger(val) ? formatInr(val) : "")}
                 />
                 <Tooltip
                   content={({ active, payload }) => {
@@ -103,7 +103,7 @@ export function SpendingChartCard({ data, className }: SpendingChartCardProps) {
                           <p className="text-finance-expense font-medium font-tabular">
                             Expense: {formatInr(item.expensePaise)}
                           </p>
-                          {item.receiptPaise > 0 && (
+                          {item.receiptPaise !== undefined && item.receiptPaise > 0 && (
                             <p className="text-finance-income font-medium font-tabular mt-0.5">
                               Received: {formatInr(item.receiptPaise)}
                             </p>

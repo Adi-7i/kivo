@@ -12,6 +12,7 @@ interface RentObligationListProps {
   onRecordPayment?: (obligation: RentObligationEntity) => void;
   onSkip?: (obligation: RentObligationEntity) => void;
   onReopen?: (obligation: RentObligationEntity) => void;
+  onDetails?: (obligation: RentObligationEntity) => void;
 }
 
 type FilterOption = "all" | "pending" | "paid" | "skipped";
@@ -21,6 +22,7 @@ export function RentObligationList({
   onRecordPayment,
   onSkip,
   onReopen,
+  onDetails,
 }: RentObligationListProps) {
   const [filter, setFilter] = React.useState<FilterOption>("all");
 
@@ -83,26 +85,37 @@ export function RentObligationList({
       </div>
 
       {/* Obligations Table */}
-      <div className="rounded-xl border border-border/80 bg-card overflow-hidden">
+      <div className="rounded-xl border border-border/80 bg-card overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead className="border-b border-border/60 bg-muted/30 text-muted-foreground font-semibold uppercase tracking-wider">
             <tr>
               <th className="py-3 px-4">Cycle Month</th>
               <th className="py-3 px-4">Due Date</th>
               <th className="py-3 px-4 text-right">Gross Rent</th>
-              <th className="py-3 px-4 text-right">Paid</th>
+              <th className="py-3 px-4 text-right">Paid to Landlord</th>
               <th className="py-3 px-4 text-right">Outstanding</th>
               <th className="py-3 px-4">Status</th>
               <th className="py-3 px-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/40">
+            {!filtered.length && (
+              <tr>
+                <td colSpan={7} className="py-6 px-4 text-center text-muted-foreground">
+                  No rent obligations in this view.
+                </td>
+              </tr>
+            )}
             {filtered.map((ob) => {
               const isPaid = ob.status === "paid";
               const isSkipped = ob.status === "skipped";
 
               return (
-                <tr key={ob.id} className="hover:bg-muted/20 transition-colors">
+                <tr
+                  key={ob.id}
+                  data-testid={"rent-obligation-" + ob.id}
+                  className="hover:bg-muted/20 transition-colors"
+                >
                   <td className="py-3.5 px-4 font-medium text-foreground">
                     {ob.month.substring(0, 7)}
                   </td>
@@ -134,6 +147,9 @@ export function RentObligationList({
                   <td className="py-3.5 px-4">
                     <div className="space-y-0.5">
                       <RentStatusBadge status={ob.status} />
+                      {ob.overdue && ob.status !== "overdue" && (
+                        <p className="text-destructive text-[10px]">Overdue</p>
+                      )}
                       {ob.reason && (
                         <p className="text-[10px] text-muted-foreground italic truncate max-w-[180px]">
                           {ob.reason}
@@ -144,6 +160,11 @@ export function RentObligationList({
 
                   <td className="py-3.5 px-4 text-right">
                     <div className="flex items-center justify-end gap-1.5">
+                      {onDetails && (
+                        <Button variant="outline" size="sm" onClick={() => onDetails(ob)}>
+                          Details & History
+                        </Button>
+                      )}
                       {!isPaid && !isSkipped && onRecordPayment && (
                         <Button
                           size="sm"

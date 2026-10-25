@@ -21,6 +21,7 @@ export function ContactCard({ contact }: ContactCardProps) {
       <div className="flex items-start justify-between gap-3">
         {/* Left: Avatar + Details */}
         <Link
+          prefetch={false}
           href={`/people/${contact.id}`}
           className="flex items-start gap-3 flex-1 min-w-0 group-hover:text-foreground"
         >
@@ -57,6 +58,7 @@ export function ContactCard({ contact }: ContactCardProps) {
 
         {/* Right: Chevron link */}
         <Link
+          prefetch={false}
           href={`/people/${contact.id}`}
           aria-label={`View details for ${contact.displayName}`}
           className="text-muted-foreground group-hover:text-foreground transition-colors p-1"
@@ -91,6 +93,7 @@ export function ContactCard({ contact }: ContactCardProps) {
         )}
 
         <Link
+          prefetch={false}
           href={`/people/${contact.id}`}
           className="text-[11px] font-medium text-kivo-secondary hover:text-kivo-brand-dark dark:hover:text-kivo-sage underline-offset-2 hover:underline ml-auto"
         >
