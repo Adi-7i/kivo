@@ -194,10 +194,10 @@ export function RentOverviewCard({
       <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs flex items-start gap-2.5">
         <Info className="size-4 text-kivo-secondary shrink-0 mt-0.5" />
         <p className="text-[11px] text-muted-foreground leading-normal">
-          <strong className="text-foreground">Rent Accounting Invariant:</strong> Generating or
-          viewing a rent obligation does not initiate a bank payment or post an expense. Cash leaves
-          your account only for an owner-funded payment or repayment to a friend. Friend-paid rent
-          recognizes your expense/payable without an immediate cash deduction.
+          <strong className="text-foreground">How rent payments work:</strong> Generating or viewing
+          a rent obligation does not initiate a bank payment or post an expense. Cash leaves your
+          account only for a payment you make or repayment to a friend. Friend-paid rent records
+          your rent expense and the amount you owe without immediately changing your cash.
         </p>
       </div>
 

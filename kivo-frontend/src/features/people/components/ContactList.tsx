@@ -277,7 +277,7 @@ export function ContactList({ contacts, onAddContact }: ContactListProps) {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Per-contact balances are authoritative Django responses. No automatic netting.
+          What you owe and what others owe you stay separate.
         </p>
       </div>
     </div>

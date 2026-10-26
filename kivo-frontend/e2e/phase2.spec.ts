@@ -61,7 +61,7 @@ test.describe("Authentication/profile UI with a real Django session", () => {
         await page.setViewportSize(viewport);
         await page.goto(route);
         if (route === "/settings/profile")
-          await expect(page.getByText("Connected", { exact: true })).toBeVisible();
+          await expect(page.getByRole("button", { name: "Update Profile Details" })).toBeVisible();
         const fits = await page.evaluate(
           () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1
         );

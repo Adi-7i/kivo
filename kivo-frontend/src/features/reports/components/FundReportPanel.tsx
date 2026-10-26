@@ -31,23 +31,22 @@ export function FundReportPanel() {
       {open && (
         <>
           <p className="text-xs text-muted-foreground">
-            Current pinned FIFO snapshot; this report does not accept the selected transaction-date
-            filters. Attribution is accounting lineage, not physical currency. Recoverable capacity
-            is separate from liquid cash.
+            This is your current fund snapshot, independent of the selected transaction dates.
+            Remaining attributed funds can include money owed back to you and may differ from
+            available cash.
           </p>
           <QueryState query={snapshot} />
           <QueryState query={rows} />
           {snapshot.data && (
-            <p className="text-xs break-all">
-              Attribution: {snapshot.data.attribution_status} · Snapshot{" "}
-              {snapshot.data.run_id ?? "Not computed"}
+            <p className="text-xs" data-snapshot-id={snapshot.data.run_id ?? ""}>
+              Attribution: {snapshot.data.attribution_status.replaceAll("_", " ")}
             </p>
           )}
           {rows.data && (
             <>
               <div className="overflow-auto">
                 <table className="min-w-[650px] w-full text-xs">
-                  <caption className="sr-only">Server fund attribution in INR</caption>
+                  <caption className="sr-only">Fund attribution in INR</caption>
                   <thead>
                     <tr>
                       {[

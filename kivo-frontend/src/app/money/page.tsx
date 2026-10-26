@@ -2,8 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { AppNav } from "@/components/layout/AppNav";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/features/shared-financial/SectionHeader";
 import { AccountList } from "@/features/accounts/components/AccountList";
@@ -12,8 +10,7 @@ import { useAccounts } from "@/features/finance/queries";
 import { accountEntity } from "@/features/finance/api";
 import { QueryState } from "@/features/finance/QueryState";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plus, Info, Building2, Banknote, Wallet, Layers, Landmark } from "lucide-react";
+import { Plus, Building2, Banknote, Wallet, Layers, Landmark } from "lucide-react";
 import type { AccountEntity, AccountKind } from "@/features/accounts/types";
 
 export default function MoneyAccountsPage() {
@@ -34,24 +31,9 @@ export default function MoneyAccountsPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <AppHeader />
+    <div className="flex flex-col bg-background text-foreground">
       <PageContainer>
-        <AppNav />
-
-        <main className="py-8 space-y-6">
-          {/* Notice Alert */}
-          <Alert className="border-amber-600/30 bg-amber-500/10 text-foreground">
-            <Info className="size-4 text-amber-700 dark:text-amber-400" />
-            <AlertTitle className="font-semibold text-amber-900 dark:text-amber-200">
-              Authoritative Money Accounts
-            </AlertTitle>
-            <AlertDescription className="text-muted-foreground mt-1 text-xs">
-              Balances come directly from Django. Opening balances are not income. Archived accounts
-              remain visible for historical reference.
-            </AlertDescription>
-          </Alert>
-
+        <section className="py-8 space-y-6">
           {/* Sub-Navigation between Money Accounts and Money Sources */}
           <div className="flex items-center gap-2 border-b border-border pb-3">
             <Link
@@ -73,7 +55,7 @@ export default function MoneyAccountsPage() {
           {/* Section Header with Total Liquid Balance & CTA */}
           <SectionHeader
             title="Money Accounts"
-            description="Manage your bank checking, physical cash, and digital wallets. Each account tracks exact ledger postings."
+            description="Manage bank, cash and wallet accounts. Opening balances are not income."
             actions={
               <div className="flex items-center gap-3">
                 <div className="flex flex-col items-end text-right">
@@ -151,7 +133,7 @@ export default function MoneyAccountsPage() {
               filterKind={filterKind}
             />
           )}
-        </main>
+        </section>
       </PageContainer>
 
       <AccountFormModal

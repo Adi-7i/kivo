@@ -2,6 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  // Run the live/captured UI audits through their dedicated configs and fixtures.
+  testIgnore: ["**/ui-*.spec.ts"],
   testMatch: process.env.KIVO_E2E_READ_ONLY === "1" ? "**/phase6.spec.ts" : undefined,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

@@ -1,13 +1,26 @@
 "use client";
-import { useQuery, type QueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useSession } from "@/features/auth/session";
 import { financeApi, type HistoryParams } from "./api";
+import { ACCOUNT_SETUP_STALE_MS, listAccounts } from "@/features/onboarding/api";
 
 export function useAccounts(enabled = true) {
   const { data: user } = useSession();
+  const client = useQueryClient();
   return useQuery({
     queryKey: ["accounts", user?.id, "all"],
-    queryFn: ({ signal }) => financeApi.accounts(signal),
+    queryFn: async ({ signal }) => {
+      // Setup, account pages and financial forms share the same owned first page.
+      // TanStack deduplicates concurrent readers; no process-wide private response cache.
+      const first = await client.fetchQuery({
+        queryKey: ["accounts", user?.id],
+        queryFn: ({ signal: pageSignal }) => listAccounts(pageSignal),
+        staleTime: ACCOUNT_SETUP_STALE_MS,
+        retry: false,
+      });
+      signal.throwIfAborted();
+      return financeApi.accounts(signal, first);
+    },
     enabled: !!user && enabled,
     retry: false,
   });

@@ -19,6 +19,19 @@ function Harness({ endpoint = "/api/v1/transactions/" }: { endpoint?: string }) 
   );
 }
 describe("financial mutation recovery (mocked HTTP only)", () => {
+  it("shows saved financial input for review without exposing protocol details or treating it as posted", async () => {
+    vi.mocked(fetch).mockRejectedValueOnce(new TypeError("network lost"));
+    const actor = userEvent.setup();
+    renderWithProviders(<Harness />, { queryClient: client() });
+    await actor.click(screen.getByText("Post"));
+    await actor.click(await screen.findByText("Saved request summary"));
+    expect(screen.getByText("Amount (₹)")).toBeVisible();
+    expect(screen.getByText("0.29")).toBeVisible();
+    expect(screen.getByText(/has not been confirmed/)).toBeVisible();
+    expect(screen.queryByText("/api/v1/transactions/")).not.toBeInTheDocument();
+    expect(screen.queryByText("Retry original request")).not.toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
   it.each([
     "transactions",
     "contacts",
@@ -47,7 +60,7 @@ describe("financial mutation recovery (mocked HTTP only)", () => {
       vi.mocked(fetch).mockResolvedValueOnce(
         Response.json({ count: 0, next: null, previous: null, results: [] })
       );
-      await actor.click(screen.getByText("Check server status"));
+      await actor.click(screen.getByText("Check request status"));
       await screen.findByText("Retry original request");
       expect(vi.mocked(fetch).mock.calls[1][1]?.method).toBe("GET");
       expect(vi.mocked(fetch).mock.calls[1][0]).toBe(endpoint);
@@ -87,7 +100,7 @@ describe("financial mutation recovery (mocked HTTP only)", () => {
       view.unmount();
       renderWithProviders(<Harness endpoint={endpoint} />, { queryClient });
       vi.mocked(fetch).mockResolvedValueOnce(Response.json({ id: accountId }));
-      await actor.click(screen.getByText("Check server status"));
+      await actor.click(screen.getByText("Check request status"));
       await screen.findByText("Retry original request");
       expect(vi.mocked(fetch).mock.calls[1][0]).toBe(resource);
       vi.mocked(fetch).mockResolvedValueOnce(Response.json({ id: accountId }));
@@ -146,7 +159,7 @@ describe("financial mutation recovery (mocked HTTP only)", () => {
     );
     renderWithProviders(<Harness />, { queryClient: client() });
     await userEvent.click(screen.getByText("Post"));
-    expect(await screen.findByText("Check server status")).toBeInTheDocument();
+    expect(await screen.findByText("Check request status")).toBeInTheDocument();
     expect(screen.getByText("Post")).toBeDisabled();
     expect(fetch).toHaveBeenCalledTimes(1);
   });

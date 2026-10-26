@@ -156,17 +156,16 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
             </div>
           )}
 
-          {/* Double-Entry Ledger Postings Breakdown */}
+          {/* Double-Entry Account Activity */}
           <div className="rounded-xl border border-border bg-card p-4 space-y-3 text-xs">
             <div className="flex items-center gap-2 border-b border-border/60 pb-2">
               <Scale className="size-4 text-kivo-primary" />
               <h3 className="font-bold text-foreground uppercase tracking-wider text-xs">
-                Ledger Postings Breakdown
+                Account Activity
               </h3>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Every financial event produces balanced double-entry ledger legs in the immutable
-              database:
+              See the accounts and outstanding amounts affected by this transaction:
             </p>
 
             <div className="divide-y divide-border/60">
@@ -175,7 +174,7 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
                   <div className="min-w-0">
                     <p className="font-semibold capitalize">{leg.book}</p>
                     <p className="text-muted-foreground text-[10px] break-all">
-                      {leg.account || leg.claim || "Ledger counterparty"}
+                      {leg.account || leg.claim || "Related account"}
                     </p>
                   </div>
                   <MoneyAmount paise={decimalPaise(leg.amount)} size="xs" />
@@ -219,7 +218,7 @@ export function TransactionDetailCard({ transaction }: TransactionDetailCardProp
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-border/60">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <ShieldCheck className="size-4 text-finance-income" />
-              <span>Immutable Ledger Entry &bull; Append-only architecture</span>
+              <span>Original record retained in your history</span>
             </div>
 
             <Button

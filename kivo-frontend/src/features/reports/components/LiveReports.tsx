@@ -62,7 +62,7 @@ export function LiveReports() {
             Financial Analytics & Reports
           </h1>
           <p className="text-xs text-muted-foreground">
-            Authoritative financial periods, expense breakdowns and ledger exports.
+            Understand your spending, compare periods and export your transactions.
           </p>
         </div>
         <Button
@@ -95,13 +95,12 @@ export function LiveReports() {
               <AnalyticsSummaryCard summary={summary.data} />
               {summary.data.transaction_count === 0 && (
                 <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">
-                  No financial activity matches this selection. Empty trends and comparisons reflect
-                  the server response.
+                  No financial activity matches this selection.
                 </p>
               )}
               <FinancialComparison summary={summary.data} />
               <div className="grid lg:grid-cols-2 gap-6 min-w-0">
-                <div className="min-w-0">
+                <div className="min-w-0 min-h-96">
                   <QueryState query={trend} />
                   {trend.isSuccess && (
                     <SpendingTrendChart
@@ -112,7 +111,7 @@ export function LiveReports() {
                     />
                   )}
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 min-h-96">
                   <QueryState query={category} />
                   {category.isSuccess && (
                     <CategoryBreakdownChart
@@ -128,7 +127,7 @@ export function LiveReports() {
               </div>
               <div className="grid lg:grid-cols-2 gap-6 min-w-0">
                 <IncomeExpenseChart summary={summary.data} />
-                <div className="min-w-0">
+                <div className="min-w-0 min-h-96">
                   <QueryState query={distribution} />
                   <SpendingDistributionChart
                     data={distribution.isSuccess ? distribution.data : undefined}
@@ -170,9 +169,8 @@ export function LiveReports() {
                 </dl>
               </details>
               <p className="text-[11px] text-muted-foreground">
-                Net cash flow, breakdown percentages and historical income series are unavailable as
-                direct API fields. Cash received/paid and selected-period income/expense are shown
-                separately.
+                Cash movements and personal spending are shown separately. Transfers, loans and
+                repayments are not ordinary income or spending.
               </p>
               <FundReportPanel />
               {exportOpen && (

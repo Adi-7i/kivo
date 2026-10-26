@@ -36,8 +36,7 @@ export function FundJourneyTimeline({ events, className }: FundJourneyTimelinePr
             <CardTitle className="text-base font-bold font-heading">Visual Fund Journey</CardTitle>
           </div>
           <CardDescription className="text-xs text-muted-foreground">
-            Chronological FIFO attribution of how this specific inflow was allocated across
-            expenses, loans, and transfers.
+            See how these funds were attributed to spending, lending and transfers over time.
           </CardDescription>
         </div>
 

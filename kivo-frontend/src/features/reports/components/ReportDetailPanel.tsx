@@ -38,7 +38,7 @@ export function ReportDetailPanel({
       <div className="overflow-auto max-h-96">
         <table className="w-full min-w-[400px] text-xs">
           <caption className="text-left text-muted-foreground pb-2">
-            {dimension} · Net owner expense · INR
+            {dimension} · Your net spending · INR
           </caption>
           <thead>
             <tr className="border-b text-left">

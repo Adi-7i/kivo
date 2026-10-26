@@ -115,14 +115,14 @@ export function TransactionActionModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-lg w-full border-border bg-card">
+      <DialogContent className="max-w-lg w-[calc(100%-2rem)] border-border bg-card">
         <DialogHeader className="text-left space-y-1">
           <div className="flex items-center gap-2">
             <div className="size-8 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive flex items-center justify-center">
               <RotateCcw className="size-4" />
             </div>
             <DialogTitle className="text-lg font-bold font-heading">
-              Ledger Correction & Reversal
+              Correct or Reverse Transaction
             </DialogTitle>
           </div>
           <DialogDescription className="text-xs text-muted-foreground">
@@ -144,11 +144,11 @@ export function TransactionActionModal({
           <ShieldAlert className="size-4 text-amber-600 shrink-0 mt-0.5" />
           <div className="space-y-0.5">
             <p className="font-semibold text-amber-950 dark:text-amber-200">
-              Immutable Accounting Standard
+              Your history stays intact
             </p>
             <p className="text-muted-foreground text-[11px] leading-relaxed">
-              In Kivo&apos;s double-entry ledger, posted entries are never erased. A reversal writes
-              a mirror balancing event with identical integer paise to nullify the effect.
+              Reversing a transaction cancels its financial effect while keeping the original in
+              your history.
             </p>
           </div>
         </div>
@@ -277,8 +277,8 @@ export function TransactionActionModal({
                   />
                 </label>
                 <p className="sm:col-span-2 text-muted-foreground">
-                  The original kind, accounts, category and linked references are preserved. Django
-                  creates a reversal and replacement atomically.
+                  The original transaction stays in your history. Its financial effect is reversed
+                  and replaced with the corrected details.
                 </p>
               </div>
             )}

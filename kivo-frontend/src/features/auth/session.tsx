@@ -9,7 +9,7 @@ import { KivoApiError } from "@/lib/api/errors";
 import { Button } from "@/components/ui/button";
 import { clearOnboardingAttempts } from "@/features/onboarding/attempt";
 import { clearFinancialAttempts } from "@/features/finance/recovery";
-import { listAccounts } from "@/features/onboarding/api";
+import { ACCOUNT_SETUP_STALE_MS, listAccounts } from "@/features/onboarding/api";
 
 export const SESSION_KEY = ["session"] as const;
 
@@ -33,7 +33,7 @@ export function useSession() {
       return user;
     },
     // Reuse the just-verified identity across observers; server/API checks still run per request.
-    staleTime: 10_000,
+    staleTime: 30_000,
     retry: false,
     refetchOnWindowFocus: true,
     refetchInterval: 60_000,
@@ -60,7 +60,7 @@ export function SessionBoundary({ children }: { children: React.ReactNode }) {
     queryKey: ["accounts", session.data?.id],
     queryFn: ({ signal }) => listAccounts(signal),
     enabled: session.isSuccess && !!session.data && needsSetupCheck,
-    staleTime: 10_000,
+    staleTime: ACCOUNT_SETUP_STALE_MS,
     retry: false,
   });
   React.useEffect(() => {

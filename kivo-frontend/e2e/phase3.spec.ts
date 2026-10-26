@@ -11,7 +11,7 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
 
       // Verify title and main heading
       await expect(page).toHaveTitle(/Kivo/i);
-      await expect(page.getByRole("heading", { name: "Personal Workspace" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
 
       // Verify 8 Financial Summary cards
       await expect(page.getByText("Total Liquid Balance")).toBeVisible();
@@ -146,13 +146,13 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
       await expect(
         page.getByText(`Integration baseline ${process.env.KIVO_E2E_RUN}`).first()
       ).toBeVisible();
-      await expect(page.getByText("Ledger Postings Breakdown")).toBeVisible();
+      await expect(page.getByText("Account Activity")).toBeVisible();
       await expect(page.getByText("liquid", { exact: true })).toBeVisible();
       await expect(page.getByText("Immutable Ledger Entry")).toBeVisible();
 
       // Click Reversal / Correction button
       await page.getByRole("button", { name: /Record Reversal \/ Correction/i }).click();
-      await expect(page.getByText("Immutable Accounting Standard")).toBeVisible();
+      await expect(page.getByText("Your history stays intact")).toBeVisible();
     });
   });
 
@@ -179,7 +179,7 @@ test.describe("Frontend Phase 3 — Financial Dashboard, Money Accounts & Transa
             );
           } else await page.goto(route);
           if (route === "/transactions/tx-1")
-            await expect(page.getByText("Ledger Postings Breakdown")).toBeVisible();
+            await expect(page.getByText("Account Activity")).toBeVisible();
 
           const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
           const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);

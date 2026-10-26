@@ -3,6 +3,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useOwnedList, useOwnedQuery } from "@/features/finance/useOwnedQuery";
+import { Skeleton } from "@/components/ui/skeleton";
 import { QueryState } from "@/features/finance/QueryState";
 import { decimalPaise, type EventDTO } from "@/features/finance/api";
 import type { DashboardDTO } from "@/features/dashboard/api";
@@ -25,9 +26,22 @@ export function RelationshipTotals() {
   });
   return (
     <>
-      <QueryState query={dashboard} />
+      <QueryState
+        query={dashboard}
+        loading={
+          <div className="grid min-h-36 gap-3 sm:grid-cols-3">
+            <span className="sr-only">Loading your balances…</span>
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-36 rounded-xl" />
+            ))}
+          </div>
+        }
+      />
       {dashboard.isSuccess && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" data-testid="relationship-summary">
+        <div
+          className="grid min-h-36 grid-cols-1 sm:grid-cols-3 gap-3"
+          data-testid="relationship-summary"
+        >
           {(
             [
               ["Receivables (all modules)", dashboard.data.receivables],
@@ -106,8 +120,8 @@ export function LivePeople() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-heading font-bold">Friends & Contacts</h1>
           <p className="text-sm text-muted-foreground">
-            Personal records, not separate Kivo accounts. Claims are tracked individually and never
-            automatically netted.
+            Keep track of the people you lend to, borrow from or share expenses with. They do not
+            need a Kivo account.
           </p>
         </div>
         <Button onClick={() => setContactOpen(true)}>Add Contact</Button>
@@ -115,7 +129,7 @@ export function LivePeople() {
       <RelationshipTotals />
       <Card>
         <CardHeader>
-          <CardTitle>Quick Operations</CardTitle>
+          <CardTitle>Quick actions</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Button
@@ -145,7 +159,7 @@ export function LivePeople() {
         <>
           <p className="text-xs">
             {contacts.data.filter((c) => !c.archived).length} active contacts. Search and sorting
-            apply to the full downloaded owned contact list.
+            apply to all your contacts.
           </p>
           <ContactList
             contacts={contacts.data.map(contactEntity)}
@@ -204,7 +218,7 @@ export function LiveContactDetail() {
           />
           {claims.isFetching && claims.isSuccess && (
             <p role="status" className="text-xs">
-              Refreshing authoritative claim balances…
+              Updating outstanding amounts…
             </p>
           )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

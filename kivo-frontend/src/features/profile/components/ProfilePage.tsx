@@ -25,7 +25,7 @@ export function ProfilePage() {
         </AlertDescription>
       </Alert>
 
-      <ProfileHeader displayName={user.name || user.email} email={user.email} isBackendConnected />
+      <ProfileHeader displayName={user.name || user.email} email={user.email} />
 
       <ProfileInfoSection user={user} />
     </div>

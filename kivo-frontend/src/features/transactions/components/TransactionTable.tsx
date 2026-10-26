@@ -13,7 +13,7 @@ interface TransactionTableProps {
 
 export function TransactionTable({ transactions }: TransactionTableProps) {
   return (
-    <div className="w-full overflow-x-auto rounded-xl border border-border bg-card">
+    <div className="relative w-full overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full text-left text-xs">
         <thead className="border-b border-border bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           <tr>

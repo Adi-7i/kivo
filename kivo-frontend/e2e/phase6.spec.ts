@@ -234,7 +234,7 @@ test.describe("Live Budgets, Reports and authenticated CSV screens", () => {
     await page.getByRole("button", { name: "Export CSV", exact: true }).click();
     const modal = page.getByRole("dialog");
     await expect(
-      modal.getByRole("heading", { name: "Export Financial Ledger (CSV)", exact: true })
+      modal.getByRole("heading", { name: "Export Transactions (CSV)", exact: true })
     ).toBeVisible();
     const downloads: unknown[] = [];
     page.on("download", (d) => downloads.push(d));

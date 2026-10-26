@@ -66,21 +66,26 @@ export function transactionEntity(
 export async function allPages<T>(
   path: string,
   signal?: AbortSignal,
-  params: HistoryParams = {}
+  params: HistoryParams = {},
+  firstPage?: PaginatedResponse<T>
 ): Promise<T[]> {
   const rows: T[] = [];
   for (let page = 1; ; page++) {
-    const result = await apiClient<PaginatedResponse<T>>(path, {
-      params: { ...params, page },
-      signal,
-    });
+    const result =
+      page === 1 && firstPage
+        ? firstPage
+        : await apiClient<PaginatedResponse<T>>(path, {
+            params: { ...params, page },
+            signal,
+          });
     rows.push(...result.results);
     if (!result.next) return rows;
   }
 }
 
 export const financeApi = {
-  accounts: (signal?: AbortSignal) => allPages<AccountDTO>("/api/v1/accounts/", signal),
+  accounts: (signal?: AbortSignal, firstPage?: PaginatedResponse<AccountDTO>) =>
+    allPages<AccountDTO>("/api/v1/accounts/", signal, {}, firstPage),
   account: (id: string, signal?: AbortSignal) =>
     apiClient<AccountDTO>(`/api/v1/accounts/${id}/`, { signal }),
   categories: (signal?: AbortSignal) => allPages<CategoryDTO>("/api/v1/categories/", signal),

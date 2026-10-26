@@ -72,8 +72,8 @@ export function SpendingDistributionChart({
         </div>
       )}
       <p className="text-[11px] text-muted-foreground">
-        First 20 groups plotted; all server groups are in the detailed table. Unassigned people
-        remain unassigned. Participant-filtered reports must not be added across people.
+        Showing up to 20 groups. See the table for all results. Reports filtered by person can
+        overlap and should not be added together.
       </p>
     </section>
   );

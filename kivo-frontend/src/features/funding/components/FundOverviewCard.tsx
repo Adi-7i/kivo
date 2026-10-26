@@ -73,9 +73,7 @@ export function FundOverviewCard({ source, className }: FundOverviewCardProps) {
               tabular
               className="font-extrabold text-foreground"
             />
-            <p className="text-[11px] text-muted-foreground">
-              Initial money established in the ledger
-            </p>
+            <p className="text-[11px] text-muted-foreground">Money you started with</p>
           </div>
 
           {/* Card 2: Attributed Spent */}
@@ -127,9 +125,7 @@ export function FundOverviewCard({ source, className }: FundOverviewCardProps) {
               tabular
               className="font-extrabold text-kivo-primary"
             />
-            <p className="text-[11px] text-muted-foreground">
-              Authoritative unallocated funds balance
-            </p>
+            <p className="text-[11px] text-muted-foreground">Remaining attributed funds</p>
           </div>
         </div>
 

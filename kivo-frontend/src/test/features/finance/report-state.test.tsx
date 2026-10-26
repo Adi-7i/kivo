@@ -8,7 +8,7 @@ import { client, user } from "./fixtures";
 describe("report state boundaries (mocked HTTP only)", () => {
   it("unknown capacity is unavailable, never a fabricated zero", () => {
     render(<ServerMoney value={null} />);
-    expect(screen.getByText("Not computed")).toBeVisible();
+    expect(screen.getByText("Not available")).toBeVisible();
     expect(screen.queryByText("₹0.00")).not.toBeInTheDocument();
   });
   it("shows actual network loading, not a disabled dependent query", () => {
@@ -29,7 +29,7 @@ describe("report state boundaries (mocked HTTP only)", () => {
         query={{ isPending: true, isFetching: true, isError: false, error: null, refetch: vi.fn() }}
       />
     );
-    expect(screen.getByRole("status")).toHaveTextContent("Loading from Django");
+    expect(screen.getByRole("status")).toHaveTextContent("Loading your information");
   });
   it("does not turn a temporary report failure into successful empty data", () => {
     render(

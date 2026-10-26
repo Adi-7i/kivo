@@ -479,8 +479,8 @@ function QuickAddForm({ open, onOpenChange, defaultType = "expense" }: QuickAddM
                   <Info className="size-4 shrink-0 text-finance-transfer mt-0.5" />
                   <p className="text-[11px] leading-relaxed text-muted-foreground">
                     <strong className="text-foreground">Movement ≠ Expense:</strong> Transfers
-                    between your owned accounts shift balances, but your total liquid wealth remains
-                    identical.
+                    between your accounts change individual balances, but your total available money
+                    stays identical.
                   </p>
                 </div>
 

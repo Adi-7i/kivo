@@ -11,7 +11,7 @@ export async function confirmUiFinancial(page: Page, response: Response, path: s
   const key = (await original.allHeaders())["idempotency-key"],
     body = original.postDataJSON();
   expect(key).toBeTruthy();
-  await page.getByRole("button", { name: "Check server status", exact: true }).click();
+  await page.getByRole("button", { name: "Check request status", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Retry original request", exact: true })
   ).toBeVisible({ timeout: 25_000 });

@@ -6,6 +6,7 @@ import { renderWithProviders } from "@/test/utils/render";
 import { SessionBoundary } from "@/features/auth/session";
 import * as navigation from "@/features/auth/navigation";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { NavigationProvider } from "@/components/layout/NavigationContext";
 import { AppNav } from "@/components/layout/AppNav";
 
 const profile = {
@@ -144,10 +145,10 @@ it.each(["/", "/login", "/register"])(
 it("keeps actual module navigation while removing showcase and development badges", async () => {
   vi.mocked(fetch).mockResolvedValue(Response.json(profile));
   renderWithProviders(
-    <>
+    <NavigationProvider>
       <AppHeader />
       <AppNav />
-    </>
+    </NavigationProvider>
   );
   expect(await screen.findByRole("button", { name: "Sign out" })).toBeInTheDocument();
   for (const label of [

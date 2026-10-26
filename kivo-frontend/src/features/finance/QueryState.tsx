@@ -1,9 +1,12 @@
 "use client";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { financialError } from "./validation";
 export function QueryState({
   query,
+  loading,
 }: {
+  loading?: ReactNode;
   query: {
     isPending: boolean;
     isFetching?: boolean;
@@ -23,9 +26,9 @@ export function QueryState({
     );
   if (query.isPending && query.isFetching !== false)
     return (
-      <p role="status" className="p-4 text-xs text-muted-foreground">
-        Loading from Django…
-      </p>
+      <div role="status" aria-live="polite" className="text-xs text-muted-foreground">
+        {loading ?? <p className="p-4">Loading your information…</p>}
+      </div>
     );
   return null;
 }

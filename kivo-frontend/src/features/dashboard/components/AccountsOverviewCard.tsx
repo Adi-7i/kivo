@@ -23,9 +23,9 @@ export function AccountsOverviewCard({ accounts, className }: AccountsOverviewCa
     <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div>
-          <CardTitle className="text-base font-bold font-heading">Money Repositories</CardTitle>
+          <CardTitle className="text-base font-bold font-heading">Your Accounts</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
-            Current balances across your owned accounts.
+            Current balances across your accounts.
           </CardDescription>
         </div>
         <Link
@@ -57,13 +57,15 @@ export function AccountsOverviewCard({ accounts, className }: AccountsOverviewCa
           accounts.map((acc) => (
             <div
               key={acc.id}
-              className="flex items-center justify-between p-2.5 rounded-lg border border-border/70 bg-muted/20 text-xs"
+              className="flex flex-wrap min-w-0 items-center justify-between gap-2 p-2.5 rounded-lg border border-border/70 bg-muted/20 text-xs"
             >
-              <div className="flex items-center gap-2.5">
+              <div className="flex min-w-0 items-center gap-2.5">
                 <div className="flex size-7 items-center justify-center rounded-md bg-muted">
                   {KIND_ICON[acc.kind] || KIND_ICON.bank}
                 </div>
-                <span className="font-semibold text-foreground">{acc.name}</span>
+                <span className="min-w-0 break-words font-semibold text-foreground">
+                  {acc.name}
+                </span>
               </div>
               <MoneyAmount paise={acc.balancePaise} size="sm" tabular />
             </div>

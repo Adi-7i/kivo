@@ -23,7 +23,7 @@ export function IncomeExpenseChart({ summary }: { summary: SummaryDTO }) {
     <section className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs space-y-4 min-w-0">
       <h2 className="font-heading font-bold text-base">Eligible Inflows vs Personal Expenses</h2>
       <p className="text-xs text-muted-foreground">
-        The selected server period; a historical monthly income series is unavailable.
+        Money received and personal spending for the selected period.
       </p>
       <div
         className="h-64 w-full min-w-0"
@@ -61,7 +61,7 @@ export function IncomeExpenseChart({ summary }: { summary: SummaryDTO }) {
       </div>
       <p className="text-[11px] text-muted-foreground">
         Accounting Rule: borrowing and repayments are not eligible income; lending and transfers are
-        not personal expense. Shared bills recognize the owner&apos;s share, not the gross bill.
+        not personal expense. Shared bills count your share as spending, rather than the whole bill.
       </p>
     </section>
   );

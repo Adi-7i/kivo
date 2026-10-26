@@ -1,15 +1,11 @@
 import * as React from "react";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { AppNav } from "@/components/layout/AppNav";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { LivePeople } from "@/features/relationships/components/LivePeople";
 export default function Page() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <AppHeader />
+    <div className="bg-background text-foreground">
       <PageContainer className="py-6 sm:py-8 space-y-6">
-        <AppNav />
-        <React.Suspense fallback={<p role="status">Loading owned relationships…</p>}>
+        <React.Suspense fallback={<p role="status">Loading your people and expenses…</p>}>
           <LivePeople />
         </React.Suspense>
       </PageContainer>

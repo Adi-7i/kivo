@@ -33,7 +33,7 @@ export function FinancialComparison({ summary }: { summary: SummaryDTO }) {
           </dl>
           {prior.comparable && prior.percentage_difference != null ? (
             <p data-testid="report-comparison" className="text-xs">
-              Server comparison: {prior.percentage_difference}%
+              Compared with: {prior.percentage_difference}%
             </p>
           ) : (
             <p className="text-xs text-muted-foreground">

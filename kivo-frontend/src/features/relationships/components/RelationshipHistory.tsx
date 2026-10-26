@@ -202,7 +202,7 @@ export function ClaimHistory({
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Claim History</DialogTitle>
-          <DialogDescription>Actual journal events linked to this owned claim.</DialogDescription>
+          <DialogDescription>Transactions linked to this outstanding amount.</DialogDescription>
         </DialogHeader>
         <QueryState query={query} />
         {query.isSuccess && <RelationshipHistory events={query.data} />}

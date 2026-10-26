@@ -408,12 +408,12 @@ test("real report calendars, budget replay recovery, strict validation, paginati
   });
   await f.dialog().getByRole("button", { name: "Save Budget", exact: true }).dblclick();
   await expect(
-    f.dialog().getByRole("button", { name: "Check server status", exact: true })
+    f.dialog().getByRole("button", { name: "Check request status", exact: true })
   ).toBeVisible();
   await page.unroute("**/api/v1/budgets**");
   await page.reload();
   await page.getByRole("button", { name: "Set Monthly Budget", exact: true }).click();
-  await f.dialog().getByRole("button", { name: "Check server status", exact: true }).click();
+  await f.dialog().getByRole("button", { name: "Check request status", exact: true }).click();
   await expect(
     f.dialog().getByRole("button", { name: "Retry original request", exact: true })
   ).toBeVisible();

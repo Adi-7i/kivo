@@ -54,22 +54,22 @@ export function CategoryModal({
   });
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md w-full border-border bg-card">
+      <DialogContent className="max-w-md w-[calc(100%-2rem)] border-border bg-card">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Tag className="size-4 text-kivo-primary" />
             {category ? "Edit Category" : "New Category"}
           </DialogTitle>
           <DialogDescription>
-            Manage backend-supported category names, hierarchy and archival.
+            Organize your categories and archive ones you no longer use.
           </DialogDescription>
         </DialogHeader>
         {mutation.isError && (
           <div role="alert" className="text-xs text-destructive space-y-2">
             <p>{financialError(mutation.error)}</p>
             <p>
-              If the response was lost, check the category list before retrying. Django prevents
-              duplicate names under the same parent.
+              Check the category list before trying again. Names must be unique within the same
+              parent category.
             </p>
             <Button
               size="sm"
@@ -131,8 +131,7 @@ export function CategoryModal({
               </label>
             )}
             <p className="text-xs text-muted-foreground">
-              Colors, icons and income/expense classifications are not stored by this API. Archive
-              rather than delete to preserve financial history.
+              Archive unused categories to keep your transaction history intact.
             </p>
             <div className="flex justify-end gap-2 border-t pt-3">
               <Button type="button" size="sm" variant="outline" onClick={() => onOpenChange(false)}>

@@ -1,8 +1,6 @@
 "use client";
 import * as React from "react";
 import Link from "next/link";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { AppNav } from "@/components/layout/AppNav";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { DashboardHeader } from "@/features/dashboard/components/DashboardHeader";
 import { DashboardQuickActions } from "@/features/dashboard/components/DashboardQuickActions";
@@ -12,6 +10,8 @@ import { CategoryBreakdownCard } from "@/features/dashboard/components/CategoryB
 import { AccountsOverviewCard } from "@/features/dashboard/components/AccountsOverviewCard";
 import { RecentActivityCard } from "@/features/dashboard/components/RecentActivityCard";
 import { QuickAddModal } from "@/features/transactions/components/QuickAddModal";
+import { DashboardSkeleton } from "@/features/dashboard/components/DashboardSkeleton";
+import { ChartSkeleton } from "@/features/shared-financial/FinancialSkeleton";
 import { QueryState } from "@/features/finance/QueryState";
 import { accountEntity, transactionEntity, decimalPaise } from "@/features/finance/api";
 import { useCategories } from "@/features/finance/queries";
@@ -58,15 +58,9 @@ export default function DashboardPage() {
   };
   const data = dashboard.data;
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <AppHeader />
+    <div className="flex flex-col bg-background text-foreground">
       <PageContainer>
-        <AppNav />
-        <main className="py-8 space-y-6">
-          <div className="rounded-xl border border-kivo-sage/60 bg-kivo-sage/10 p-4 text-xs text-muted-foreground">
-            Authoritative Django reporting. Total Balance ≠ Safe-to-Spend ≠ Budget Remaining.
-            Transfers and repayments are not income; lending is not personal spending.
-          </div>
+        <section className="py-8 space-y-6">
           <DashboardHeader
             onQuickAdd={() => open("expense")}
             dateContext={
@@ -80,7 +74,7 @@ export default function DashboardPage() {
             onAddReceipt={() => open("receipt")}
             onAddTransfer={() => open("transfer")}
           />
-          <QueryState query={dashboard} />
+          <QueryState query={dashboard} loading={<DashboardSkeleton />} />
           {data && dashboard.isSuccess && (
             <>
               <div data-testid="dashboard-metrics">
@@ -96,9 +90,9 @@ export default function DashboardPage() {
                   <MoneyAmount paise={decimalPaise(data.spending.year)} size="xs" />
                 </span>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2">
-                  <QueryState query={trends} />
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                <div className="min-w-0 xl:col-span-2">
+                  <QueryState query={trends} loading={<ChartSkeleton />} />
                   {trends.isSuccess && (
                     <SpendingChartCard
                       range={range}
@@ -112,7 +106,7 @@ export default function DashboardPage() {
                   )}
                 </div>
                 <div>
-                  <QueryState query={breakdown} />
+                  <QueryState query={breakdown} loading={<ChartSkeleton />} />
                   {breakdown.isSuccess && (
                     <CategoryBreakdownCard
                       categories={breakdown.data.results.map((row) => ({
@@ -124,10 +118,10 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
                 <AccountsOverviewCard accounts={data.accounts.map(accountEntity)} />
                 <RecentActivityCard
-                  className="lg:col-span-2"
+                  className="xl:col-span-2"
                   transactions={data.recent_activities.map((row) =>
                     transactionEntity(row, data.accounts, categories.data ?? [])
                   )}
@@ -177,7 +171,7 @@ export default function DashboardPage() {
               </div>
             </>
           )}
-        </main>
+        </section>
       </PageContainer>
       <QuickAddModal open={quickAdd} onOpenChange={setQuickAdd} defaultType={kind} />
     </div>

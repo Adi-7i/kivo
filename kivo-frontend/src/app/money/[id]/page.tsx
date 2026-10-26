@@ -3,7 +3,6 @@ import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { AppHeader } from "@/components/layout/AppHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { AccountCard } from "@/features/accounts/components/AccountCard";
 import { AccountFormModal } from "@/features/accounts/components/AccountFormModal";
@@ -53,7 +52,6 @@ function Detail() {
 export default function AccountDetailPage() {
   return (
     <>
-      <AppHeader />
       <PageContainer maxWidth="2xl" className="py-8">
         <React.Suspense fallback={<p role="status">Loading account…</p>}>
           <Detail />

@@ -130,8 +130,8 @@ export function CreateSharedBillModal({ open, onOpenChange, initialBill, onSucce
             {initialBill ? "Correct Shared Bill" : "Create Shared Bill"}
           </DialogTitle>
           <DialogDescription>
-            Gross bill amount is not necessarily your personal expense. Django confirms participant
-            shares, claims and accounting effects.
+            Your personal expense is your share of the bill. Other participants may owe you, or you
+            may owe the person who paid.
           </DialogDescription>
         </DialogHeader>
         <FinancialWriteStatus write={write} onConfirmed={() => onOpenChange(false)} />
@@ -171,7 +171,7 @@ export function CreateSharedBillModal({ open, onOpenChange, initialBill, onSucce
                 {...register("category")}
                 className="w-full rounded-md border bg-card p-2"
               >
-                <option value="">Choose an owned category</option>
+                <option value="">Choose a category</option>
                 {activeCategories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -240,7 +240,7 @@ export function CreateSharedBillModal({ open, onOpenChange, initialBill, onSucce
                 {...register("splitMethod")}
                 className="w-full rounded-md border bg-card p-2"
               >
-                <option value="equal">Equal split (calculated by Django)</option>
+                <option value="equal">Equal split</option>
                 <option value="custom">Custom amounts</option>
               </select>
             </div>
@@ -289,10 +289,9 @@ export function CreateSharedBillModal({ open, onOpenChange, initialBill, onSucce
             <div className="rounded-lg border border-kivo-sage/50 bg-kivo-sage/10 p-3 flex gap-2">
               <Info className="size-4 shrink-0 text-kivo-primary" />
               <p>
-                Equal shares and remainder paise are assigned by Django. Custom input is only
-                validated for precision and conservation here. The final posted expense and claim
-                balances always come from the server. Friend-paid bills have no owner cash movement
-                until settlement.
+                Equal splits divide the bill fairly, including any remaining paisa. For custom
+                splits, shares must add up to the bill total. If a friend pays, your cash changes
+                only when you settle up.
               </p>
             </div>
             <div>

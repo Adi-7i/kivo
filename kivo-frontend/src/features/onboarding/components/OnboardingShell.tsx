@@ -13,7 +13,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/features/auth/session";
 import type { UserProfile } from "@/features/auth/api";
 import { navigate, safeReturnPath } from "@/features/auth/navigation";
-import { createInitialAccount, listAccounts } from "../api";
+import { ACCOUNT_SETUP_STALE_MS, createInitialAccount, listAccounts } from "../api";
 import { clearAttempt, readAttempt, saveAttempt, type AccountAttempt } from "../attempt";
 import { normalizeOpeningBalance, todayInKolkata } from "../money";
 import { KivoApiError } from "@/lib/api/errors";
@@ -32,6 +32,7 @@ export function OnboardingShell() {
     queryKey: ["accounts", user?.id],
     queryFn: ({ signal }) => listAccounts(signal),
     enabled: !!user,
+    staleTime: ACCOUNT_SETUP_STALE_MS,
     retry: false,
   });
   React.useEffect(() => {

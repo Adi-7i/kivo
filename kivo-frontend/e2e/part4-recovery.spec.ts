@@ -30,13 +30,13 @@ test("real committed loan response loss survives refresh and deliberate original
   });
   await page.getByRole("button", { name: "Record Lent Money", exact: true }).dblclick();
   await expect(
-    page.getByRole("button", { name: "Check server status", exact: true })
+    page.getByRole("button", { name: "Check request status", exact: true })
   ).toBeVisible();
   await page.unroute("**/api/v1/loans/");
   await page.reload();
   await page.getByRole("button", { name: "Lend", exact: true }).click();
   await expect(page.getByRole("button", { name: "Record Lent Money", exact: true })).toBeDisabled();
-  await page.getByRole("button", { name: "Check server status", exact: true }).click();
+  await page.getByRole("button", { name: "Check request status", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Retry original request", exact: true })
   ).toBeVisible();

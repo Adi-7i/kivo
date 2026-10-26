@@ -4,7 +4,12 @@ import { cn } from "@/lib/utils";
 
 export function FinancialSummaryCardSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("rounded-xl border border-border bg-card p-4 space-y-3", className)}>
+    <div
+      className={cn(
+        "min-h-40 min-w-0 rounded-xl border border-border bg-card p-4 sm:p-5 space-y-3",
+        className
+      )}
+    >
       <div className="flex items-center justify-between">
         <Skeleton className="h-3 w-24" />
         <Skeleton className="size-6 rounded-md" />

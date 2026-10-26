@@ -37,8 +37,7 @@ export function CategoryBreakdownChart({
     <section className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs space-y-4 min-w-0">
       <h2 className="font-heading font-bold text-base">Expense Allocation by Category</h2>
       <p className="text-xs text-muted-foreground">
-        Server net personal expense: <ServerMoney value={total} />. Percentage shares are not
-        exposed by this API.
+        Net personal expense: <ServerMoney value={total} />.
       </p>
       {!rows.length ? (
         <p className="h-56 grid place-items-center text-sm text-muted-foreground">

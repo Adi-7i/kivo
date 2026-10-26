@@ -172,6 +172,41 @@ export function useFinancialWrite(slot: string, singleUse = false) {
   };
 }
 
+function SavedRequestSummary({ body }: { body: unknown }) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const labels: Record<string, string> = {
+    title: "Description",
+    name: "Name",
+    display_name: "Contact name",
+    amount: "Amount (₹)",
+    opening_balance: "Opening balance (₹)",
+    limit: "Spending limit (₹)",
+    effective_date: "Date",
+    opened_on: "Opening date",
+    period_start: "Period start",
+    period_end: "Period end",
+    reason: "Reason",
+    notes: "Notes",
+  };
+  const fields = Object.entries(body).filter(
+    ([field, value]) => labels[field] && typeof value === "string" && value.trim()
+  );
+  if (!fields.length) return null;
+  return (
+    <details>
+      <summary className="cursor-pointer font-medium">Saved request summary</summary>
+      <dl className="mt-2 space-y-2 rounded-lg bg-card/70 p-3">
+        {fields.map(([field, value]) => (
+          <div key={field} className="space-y-0.5">
+            <dt className="text-muted-foreground">{labels[field]}</dt>
+            <dd className="break-words">{String(value)}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
+  );
+}
+
 export function FinancialWriteStatus({
   write,
   onConfirmed,
@@ -192,29 +227,18 @@ export function FinancialWriteStatus({
           className="rounded-lg border border-amber-600/30 bg-amber-500/10 p-3 space-y-2"
         >
           <p>
-            A request is pending confirmation. Do not submit a new operation. Refresh server state
-            before a deliberate retry of the original request.
+            This request has not been confirmed. Check its status before trying again to avoid a
+            duplicate.
           </p>
-          {write.attempt && (
-            <details>
-              <summary>Original request</summary>
-              <pre className="mt-2 whitespace-pre-wrap break-all text-[10px]">
-                {JSON.stringify(
-                  { endpoint: write.attempt.endpoint, body: write.attempt.body },
-                  null,
-                  2
-                )}
-              </pre>
-            </details>
-          )}
+          {write.attempt && <SavedRequestSummary body={write.attempt.body} />}
           <Button type="button" size="sm" variant="outline" onClick={() => void write.check()}>
-            Check server status
+            Check request status
           </Button>
           {write.checked && (
             <>
               <p>
-                Server state refreshed. Similar records do not uniquely identify this request.
-                Confirm using its original key and unchanged payload.
+                Your information has been refreshed, but this request is still unconfirmed. Retrying
+                will use the same saved details to help prevent duplicates.
               </p>
               <Button
                 type="button"

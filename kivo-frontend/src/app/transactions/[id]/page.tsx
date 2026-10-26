@@ -2,7 +2,6 @@
 import * as React from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { AppHeader } from "@/components/layout/AppHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { TransactionDetailCard } from "@/features/transactions/components/TransactionDetailCard";
 import { QueryState } from "@/features/finance/QueryState";
@@ -36,8 +35,7 @@ function Detail() {
 }
 export default function TransactionDetailPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <AppHeader />
+    <div className="flex flex-col bg-background text-foreground">
       <PageContainer maxWidth="2xl" className="py-8">
         <React.Suspense fallback={<p role="status">Loading transaction…</p>}>
           <Detail />

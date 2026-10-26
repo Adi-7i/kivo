@@ -1,8 +1,6 @@
 "use client";
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { AppNav } from "@/components/layout/AppNav";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/features/shared-financial/SectionHeader";
 import { TransactionFilterBar } from "@/features/transactions/components/TransactionFilterBar";
@@ -70,14 +68,12 @@ function HistoryContent() {
     transactionEntity(event, accounts.data ?? [], categories.data ?? [])
   );
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <AppHeader />
+    <div className="flex flex-col bg-background text-foreground">
       <PageContainer>
-        <AppNav />
-        <main className="py-8 space-y-6">
+        <section className="py-8 space-y-6">
           <SectionHeader
             title="Transaction Activity"
-            description="Your authoritative financial history. Transfers move money between owned accounts; opening balances are not income."
+            description="Your money in, spending and transfers. Opening balances are not income."
             actions={
               <Button size="sm" className="gap-1.5" onClick={() => setQuickAdd(true)}>
                 <PlusCircle className="size-4" />
@@ -153,7 +149,7 @@ function HistoryContent() {
               <FinancialEmptyState
                 icon={<SearchX className="size-6" />}
                 title="No Matching Transactions"
-                description="No Django records match these filters."
+                description="No transactions match these filters."
                 action={
                   <Button size="sm" variant="outline" onClick={reset}>
                     Reset All Filters
@@ -161,7 +157,7 @@ function HistoryContent() {
                 }
               />
             ))}
-        </main>
+        </section>
       </PageContainer>
       <QuickAddModal open={quickAdd} onOpenChange={setQuickAdd} />
     </div>

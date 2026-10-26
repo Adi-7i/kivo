@@ -5,21 +5,19 @@ import { ProfilePage } from "@/features/profile/components/ProfilePage";
 
 describe("ProfilePage component", () => {
   beforeEach(() =>
-    vi
-      .mocked(fetch)
-      .mockResolvedValue(
-        Response.json({
-          id: 1,
-          name: "Component Test",
-          email: "component@example.com",
-          date_joined: "2026-10-22T00:00:00Z",
-        })
-      )
+    vi.mocked(fetch).mockResolvedValue(
+      Response.json({
+        id: 1,
+        name: "Component Test",
+        email: "component@example.com",
+        date_joined: "2026-10-22T00:00:00Z",
+      })
+    )
   );
   it("renders the authenticated profile returned by mocked HTTP", async () => {
     render(<ProfilePage />);
     expect(await screen.findByText("Your Profile")).toBeInTheDocument();
-    expect(screen.getByText("Connected")).toBeInTheDocument();
+    expect(screen.queryByText("Connected")).not.toBeInTheDocument();
     expect(screen.getByText("Component Test")).toBeInTheDocument();
     expect(screen.getByText("component@example.com")).toBeInTheDocument();
   });
@@ -29,7 +27,7 @@ describe("ProfilePage component", () => {
 
     expect(await screen.findByText("Personal Information")).toBeInTheDocument();
     expect(screen.getByText("Regional & Currency Standards")).toBeInTheDocument();
-    expect(screen.getByText(/INR \(₹\) • Paise Integer/i)).toBeInTheDocument();
+    expect(screen.getByText("Indian rupee (₹)")).toBeInTheDocument();
     expect(screen.getByText(/Asia\/Kolkata \(IST\)/i)).toBeInTheDocument();
     expect(screen.getByText("Security & Audit Trail")).toBeInTheDocument();
   });

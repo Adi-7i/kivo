@@ -1,9 +1,7 @@
 "use client";
 
-import * as React from "react";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Calendar, ShieldCheck } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { PlusCircle, Calendar } from "lucide-react";
 
 interface DashboardHeaderProps {
   onQuickAdd: () => void;
@@ -13,49 +11,22 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({
   onQuickAdd,
-  workspaceName = "Personal Workspace",
-  dateContext = "Saturday, 17 October 2026",
+  workspaceName = "Overview",
+  dateContext = "Checking report date…",
 }: DashboardHeaderProps) {
-  const displayDate = dateContext;
-
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/60">
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl font-heading">
-            {workspaceName}
-          </h1>
-          <Badge
-            variant="outline"
-            className="text-[11px] font-semibold border-kivo-sage text-kivo-brand-dark dark:text-kivo-sage"
-          >
-            Phase 3
-          </Badge>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5">
-            <Calendar className="size-3.5 text-kivo-primary" />
-            <span>{displayDate}</span>
-          </span>
-          <span>&bull;</span>
-          <span className="inline-flex items-center gap-1.5">
-            <ShieldCheck className="size-3.5 text-finance-income" />
-            <span>Integer Paise &bull; IST (UTC+05:30)</span>
-          </span>
-        </div>
+    <div className="flex flex-col justify-between gap-3 border-b border-border/60 pb-4 sm:flex-row sm:items-center">
+      <div className="min-w-0 space-y-1.5">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{workspaceName}</h1>
+        <p className="flex min-h-4 items-center gap-1.5 text-xs text-muted-foreground">
+          <Calendar className="size-3.5 shrink-0" />
+          <span>{dateContext}</span>
+        </p>
       </div>
-
-      <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          onClick={onQuickAdd}
-          className="gap-2 font-medium bg-kivo-primary hover:bg-kivo-secondary text-white shadow-xs"
-        >
-          <PlusCircle className="size-4" />
-          <span>Quick Add</span>
-        </Button>
-      </div>
+      <Button size="sm" onClick={onQuickAdd} className="gap-2 self-start font-medium sm:self-auto">
+        <PlusCircle className="size-4" />
+        Quick Add
+      </Button>
     </div>
   );
 }

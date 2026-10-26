@@ -136,8 +136,7 @@ export function AccountFormModal({ open, onOpenChange, initialAccount }: Account
                   Opening Balance is Not Income
                 </p>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Initial funds anchor your starting balance in the ledger. They do not count toward
-                  your earned salary or personal revenue.
+                  Your opening balance is money you already have. It is not counted as income.
                 </p>
               </div>
             </div>
@@ -205,7 +204,7 @@ export function AccountFormModal({ open, onOpenChange, initialAccount }: Account
                 inputMode="decimal"
                 placeholder="0.00"
                 required
-                helperText="Exact integer paise arithmetic."
+                helperText="Enter an amount with up to two decimal places."
                 error={errors.openingBalance?.message}
                 {...register("openingBalance")}
                 readOnly={!!initialAccount}

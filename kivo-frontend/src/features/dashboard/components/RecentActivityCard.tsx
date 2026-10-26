@@ -19,7 +19,7 @@ export function RecentActivityCard({ transactions, className }: RecentActivityCa
         <div>
           <CardTitle className="text-base font-bold font-heading">Recent Activity</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
-            Latest chronological events recorded in your ledger.
+            Your latest money activity.
           </CardDescription>
         </div>
         <Link
@@ -43,10 +43,13 @@ export function RecentActivityCard({ transactions, className }: RecentActivityCa
               const isReceipt = tx.kind === "receipt";
 
               return (
-                <div key={tx.id} className="flex items-center justify-between py-3 text-xs gap-3">
-                  <div className="flex items-center gap-3">
+                <div
+                  key={tx.id}
+                  className="flex flex-wrap min-w-0 items-center justify-between py-3 text-xs gap-3"
+                >
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
                     <TransactionTypeBadge kind={tx.kind} showIcon={false} />
-                    <div className="space-y-0.5">
+                    <div className="min-w-0 space-y-0.5">
                       <Link
                         prefetch={false}
                         href={`/transactions/${tx.id}`}
@@ -54,7 +57,7 @@ export function RecentActivityCard({ transactions, className }: RecentActivityCa
                       >
                         {tx.title}
                       </Link>
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="break-words text-[11px] text-muted-foreground">
                         {tx.accountName} {tx.categoryName ? `• ${tx.categoryName}` : ""} •{" "}
                         {formatDateDisplay(tx.effectiveDate)}
                       </p>

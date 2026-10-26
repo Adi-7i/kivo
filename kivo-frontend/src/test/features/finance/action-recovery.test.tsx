@@ -52,7 +52,7 @@ describe("immutable action recovery (mocked HTTP only)", () => {
       const resolve = screen.getByRole("button", { name: "Resolve pending request" });
       expect(resolve).toBeEnabled();
       await userEvent.click(resolve);
-      expect(screen.getByRole("button", { name: "Check server status" })).toBeVisible();
+      expect(screen.getByRole("button", { name: "Check request status" })).toBeVisible();
       expect(screen.getByRole("button", { name: "Execute Reversal" })).toBeDisabled();
       expect(fetch).not.toHaveBeenCalled();
     }

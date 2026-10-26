@@ -38,8 +38,7 @@ export function LiveSharedExpenses() {
       </div>
       <RelationshipTotals />
       <p className="text-xs text-muted-foreground">
-        Summary amounts above cover all modules, not just sharing. A sharing-only aggregate API is
-        not available; no cumulative bill amounts are calculated here.
+        The summary includes all money owed, including loans and shared expenses.
       </p>
       <QueryState query={bills} />
       <QueryState query={contacts} />
@@ -48,8 +47,7 @@ export function LiveSharedExpenses() {
       {bills.isSuccess && contacts.isSuccess && claims.isSuccess && categories.isSuccess && (
         <>
           <p className="text-xs">
-            {bills.data.length} bill records including immutable revisions. Search/sorting apply to
-            all downloaded owned records.
+            {bills.data.length} bills and previous versions. Search and sort all your bills.
           </p>
           <SharedBillList
             bills={bills.data.map((b) =>
@@ -152,7 +150,7 @@ export function LiveSharedDetail() {
               onSettle={setSettle}
             />
           </div>
-          <RelationshipHistory events={[query.data.event]} title="Immutable Bill Event" />
+          <RelationshipHistory events={[query.data.event]} title="Bill history" />
           <div className="text-xs space-y-2">
             {query.data.event.supersedes && (
               <p>

@@ -49,7 +49,7 @@ export function ClaimCard({ claim, onSettle }: Props) {
         </p>
       </div>
       <p className="text-[11px] text-muted-foreground">
-        Amounts and status are supplied by Django; claims are not automatically netted.
+        Amounts you owe and amounts owed to you are shown separately.
       </p>
       {claim.sourceEventId && (
         <Link

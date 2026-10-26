@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { AppHeader } from "@/components/layout/AppHeader";
 import { FileQuestion } from "lucide-react";
 
 export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <AppHeader />
+      <header className="p-6">
+        <Link href="/" className="font-bold text-kivo-primary">
+          Kivo
+        </Link>
+      </header>
       <PageContainer className="flex flex-1 items-center justify-center py-16">
         <div className="flex max-w-md flex-col items-center text-center space-y-4">
           <div className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -20,7 +23,7 @@ export default function NotFound() {
             </p>
           </div>
           <Button asChild variant="default" className="mt-2">
-            <Link href="/">Return to Foundation Preview</Link>
+            <Link href="/">Back to Kivo</Link>
           </Button>
         </div>
       </PageContainer>

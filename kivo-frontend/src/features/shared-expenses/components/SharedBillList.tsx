@@ -265,8 +265,7 @@ export function SharedBillList({ bills, onCreateBill }: SharedBillListProps) {
         </div>
 
         <p className="text-muted-foreground">
-          Amounts are supplied per bill/share by Django. Outstanding balances come from linked
-          claims.
+          View your share of each bill and any amounts still owed.
         </p>
       </div>
     </div>

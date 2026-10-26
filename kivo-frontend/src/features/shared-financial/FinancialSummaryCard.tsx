@@ -44,23 +44,28 @@ export function FinancialSummaryCard({
   return (
     <Card
       className={cn(
-        "relative overflow-hidden transition-all duration-200 hover:shadow-xs",
+        "relative min-h-40 min-w-0 overflow-hidden py-0 hover:shadow-xs",
         variantCardStyles[variant],
         className
       )}
     >
       <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full space-y-2">
-        <div className="flex items-center justify-between">
+        <div className="flex min-w-0 items-start justify-between gap-2">
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             {title}
           </span>
-          <div className="flex size-7 items-center justify-center rounded-md bg-muted/60 text-muted-foreground">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/60 text-muted-foreground">
             {icon}
           </div>
         </div>
 
         <div className="space-y-0.5">
-          <MoneyAmount paise={amountPaise} size="2xl" variant={variantMoneyStyles[variant]} />
+          <MoneyAmount
+            paise={amountPaise}
+            size="2xl"
+            className="max-w-full break-all text-2xl sm:text-2xl"
+            variant={variantMoneyStyles[variant]}
+          />
           {subtitle && (
             <p className="text-[11px] text-muted-foreground leading-tight">{subtitle}</p>
           )}

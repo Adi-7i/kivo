@@ -4,7 +4,7 @@ import { OnboardingShell } from "@/features/onboarding/components/OnboardingShel
 
 export const metadata: Metadata = {
   title: "First-Time Onboarding — Kivo",
-  description: "Complete your personal profile and configure your primary ledger account in Kivo.",
+  description: "Set up your first account and start tracking your money with Kivo.",
 };
 
 export default function OnboardingPage() {

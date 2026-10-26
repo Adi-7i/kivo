@@ -27,21 +27,20 @@ function useSnapshot() {
 }
 function SnapshotStatus({ summary }: { summary: FundSummaryDTO }) {
   return (
-    <div className="rounded-xl border border-kivo-sage/50 bg-kivo-sage/10 p-4 text-xs space-y-2">
+    <div
+      data-testid="funding-status"
+      data-snapshot-id={summary.run_id ?? ""}
+      className="rounded-xl border border-kivo-sage/50 bg-kivo-sage/10 p-4 text-xs space-y-2"
+    >
       <p>
-        FIFO is Django accounting attribution, not tracking physical currency. Remaining capacity
-        includes recoverable receivables and is not an account cash balance.
+        Fund journeys show how your money is attributed, rather than tracking physical cash.
+        Remaining funds can include money owed back to you and may differ from your account balance.
       </p>
       <p>
-        Attribution: <strong>{summary.attribution_status}</strong> • Policy:{" "}
-        {summary.policy_version ?? "Not computed"}
+        Attribution: <strong>{summary.attribution_status.replaceAll("_", " ")}</strong>
       </p>
-      {summary.run_id && <p className="break-all">Snapshot: {summary.run_id}</p>}
       {summary.attribution_status !== "complete" && (
-        <p role="alert">
-          Attribution is not complete. Do not infer balances, exhaustion or zero amounts from
-          missing calculations.
-        </p>
+        <p role="alert">This journey is still being checked. Some figures are not available yet.</p>
       )}
       {summary.gaps.map((gap, index) => (
         <p role="alert" key={index}>
@@ -145,41 +144,41 @@ export function LiveFundingSources() {
         <div>
           <h1 className="text-2xl font-bold font-heading">Money Sources & Fund Journey</h1>
           <p className="text-xs text-muted-foreground">
-            Actual funding sources and immutable allocation snapshots.
+            See where your money came from and how it has been used.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => void invalidateFinance(client)}>
           Refresh
         </Button>
       </div>
-      <QueryState query={summary} />
-      <QueryState query={batches} />
-      <QueryState query={accounts} />
-      {summary.isSuccess && (
-        <>
-          <SnapshotStatus summary={summary.data} />
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {(
-              [
-                ["Original funding", summary.data.original_amount],
-                ["Allocated capacity", summary.data.allocated_amount],
-                ["Remaining capacity (not cash)", summary.data.remaining_capacity],
-                ["Unfunded amount", summary.data.unfunded_amount],
-              ] as const
-            ).map(([label, value]) => (
-              <Card key={label}>
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">{label}</p>
-                  <ServerMoney value={value} />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <p className="text-xs">
-            {summary.data.active_batches} active funding batches in this snapshot.
-          </p>
-        </>
-      )}
+      <div className="min-h-80 space-y-3">
+        <QueryState query={summary} />
+        <QueryState query={batches} />
+        <QueryState query={accounts} />
+        {summary.isSuccess && (
+          <>
+            <SnapshotStatus summary={summary.data} />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {(
+                [
+                  ["Original funding", summary.data.original_amount],
+                  ["Allocated capacity", summary.data.allocated_amount],
+                  ["Remaining capacity (not cash)", summary.data.remaining_capacity],
+                  ["Unfunded amount", summary.data.unfunded_amount],
+                ] as const
+              ).map(([label, value]) => (
+                <Card key={label}>
+                  <CardContent className="p-4">
+                    <p className="text-xs text-muted-foreground">{label}</p>
+                    <ServerMoney value={value} />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <p className="text-xs">{summary.data.active_batches} active money sources.</p>
+          </>
+        )}
+      </div>
       <div className="flex flex-wrap gap-3 rounded-xl border bg-card p-4 text-xs">
         <input
           aria-label="Search money sources"
@@ -195,7 +194,9 @@ export function LiveFundingSources() {
           className="rounded-lg border p-2"
         >
           {["all", "active", "exhausted", "inactive", "incomplete", "not_computed"].map((s) => (
-            <option key={s}>{s}</option>
+            <option key={s} value={s}>
+              {s === "not_computed" ? "Not available" : s.charAt(0).toUpperCase() + s.slice(1)}
+            </option>
           ))}
         </select>
         <select
@@ -208,10 +209,7 @@ export function LiveFundingSources() {
           <option value="oldest">Oldest inflow</option>
           <option value="highest">Highest amount</option>
         </select>
-        <p className="w-full text-muted-foreground">
-          Search, display sorting and page controls apply to all downloaded rows of the pinned
-          snapshot; Django does not expose source-search filters.
-        </p>
+        <p className="w-full text-muted-foreground">Search, sort and browse your money sources.</p>
       </div>
       {summary.isSuccess && batches.isSuccess && accounts.isSuccess && (
         <>
@@ -335,7 +333,7 @@ export function LiveFundDetail() {
   const categories = useCategories();
   const client = useQueryClient();
   const name = (account: string | null) =>
-    accounts.data?.find((a) => a.id === account)?.name ?? account ?? "Ledger counterparty";
+    accounts.data?.find((a) => a.id === account)?.name ?? account ?? "Related account";
   return (
     <div className="space-y-6">
       <div className="flex justify-between">
@@ -343,7 +341,7 @@ export function LiveFundDetail() {
           ← Back to Money Sources
         </Link>
         <Button size="sm" variant="outline" onClick={() => void invalidateFinance(client)}>
-          Refresh snapshot
+          Refresh journey
         </Button>
       </div>
       <QueryState query={summary} />
@@ -368,7 +366,7 @@ export function LiveFundDetail() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {journey.isSuccess && !journey.data.length && (
-                  <p className="text-xs">No Journey Events Recorded in this snapshot.</p>
+                  <p className="text-xs">No fund activity recorded yet.</p>
                 )}
                 {journey.isSuccess &&
                   journey.data.map((row, index) => (
@@ -399,7 +397,7 @@ export function LiveFundDetail() {
                         href={`/transactions/${row.transaction}`}
                         className="text-kivo-primary"
                       >
-                        View ledger event →
+                        View transaction →
                       </Link>
                     </div>
                   ))}
@@ -421,10 +419,7 @@ export function LiveFundDetail() {
                       Receivable {p.claim} • <ServerMoney value={p.amount} />
                     </p>
                   ))}
-                  <p>
-                    These are individual backend-assigned positions, not independently reconstructed
-                    totals.
-                  </p>
+                  <p>See where these funds are held or owed back to you.</p>
                 </CardContent>
               </Card>
               <Card>
@@ -433,7 +428,7 @@ export function LiveFundDetail() {
                 </CardHeader>
                 <CardContent className="space-y-2 text-xs">
                   {breakdown.isSuccess && !breakdown.data.length && (
-                    <p>No expense attribution in this snapshot.</p>
+                    <p>No spending attributed to this source.</p>
                   )}
                   {breakdown.isSuccess &&
                     breakdown.data.map((r, index) => (

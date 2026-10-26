@@ -153,7 +153,7 @@ export function RegisterForm() {
               </li>
             ))}
           </ul>
-          <p>Django also rejects common passwords and passwords similar to your name or email.</p>
+          <p>Choose a strong password that isn’t easy to guess or similar to your name or email.</p>
         </div>
       </div>
 

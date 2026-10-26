@@ -13,7 +13,7 @@ export default function LoginPage() {
   return (
     <AuthPageLayout
       title="Welcome back to Kivo"
-      subtitle="Access your personal ledgers, track cashflows with integer precision, and keep your finances crystal clear."
+      subtitle="See your money clearly, keep spending in check and plan with confidence."
     >
       <AuthFormContainer
         title="Sign in to your account"

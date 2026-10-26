@@ -21,7 +21,7 @@ export function CategorySeedBanner() {
           <div>
             <h4 className="font-bold uppercase tracking-wider">Seed Default Categories</h4>
             <p className="text-muted-foreground">
-              Django adds missing standard categories without duplicating existing names.
+              Add standard categories without duplicating ones you already have.
             </p>
           </div>
         </div>
@@ -35,7 +35,7 @@ export function CategorySeedBanner() {
           {mutation.isPending ? "Seeding…" : "Seed Defaults"}
         </Button>
       </div>
-      {mutation.isSuccess && <p role="status">Default categories confirmed by Django.</p>}
+      {mutation.isSuccess && <p role="status">Your default categories are ready.</p>}
       {mutation.isError && (
         <p role="alert" className="text-destructive">
           {financialError(mutation.error)}

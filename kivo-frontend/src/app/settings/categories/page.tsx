@@ -1,7 +1,5 @@
 "use client";
 import * as React from "react";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { AppNav } from "@/components/layout/AppNav";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/features/shared-financial/SectionHeader";
 import { CategoryList } from "@/features/categories/components/CategoryList";
@@ -17,13 +15,7 @@ export default function SettingsCategoriesPage() {
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<CategoryEntity | null>(null);
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <AppHeader />
-      <div className="border-b border-border bg-card/50">
-        <PageContainer>
-          <AppNav />
-        </PageContainer>
-      </div>
+    <div className="flex flex-col bg-background text-foreground">
       <PageContainer className="py-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <SectionHeader

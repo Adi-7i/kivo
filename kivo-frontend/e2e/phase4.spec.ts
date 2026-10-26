@@ -62,7 +62,7 @@ test.describe("Real funding source screens (Django-backed; not preview fixtures)
     );
     await expect(page.getByText("Chronological Fund Journey", { exact: true })).toBeVisible();
     await expect(page.getByText("Attributed Holdings", { exact: true })).toBeVisible();
-    await expect(page.getByText(/Snapshot:/)).toBeVisible();
+    await expect(page.getByTestId("funding-status")).toHaveAttribute("data-snapshot-id", /.+/);
     await expect(page.getByText(/inclusive calendar days/)).not.toBeVisible();
   });
   test("missing owned UUID produces the actual API error, never a preview fallback", async ({

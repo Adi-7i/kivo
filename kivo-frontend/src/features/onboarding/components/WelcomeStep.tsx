@@ -17,8 +17,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
           Welcome to Kivo
         </h2>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Private, disciplined personal money and expense management built with mathematical
-          integrity.
+          See your money clearly and build habits that work for you.
         </p>
       </div>
 
@@ -28,9 +27,9 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
           <div className="flex size-8 items-center justify-center rounded-lg bg-kivo-primary/10 text-kivo-primary">
             <Coins className="size-4" />
           </div>
-          <h3 className="text-xs font-bold text-foreground">Exact Integer Paise</h3>
+          <h3 className="text-xs font-bold text-foreground">Accurate to the paisa</h3>
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            All records operate in exact integer paise. Zero floating-point rounding drifts.
+            Keep track of every rupee and paisa with precise amounts.
           </p>
         </div>
 
@@ -50,7 +49,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
           </div>
           <h3 className="text-xs font-bold text-foreground">Total Ownership</h3>
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Direct ledger records without third-party scraping or secret bank sync dependencies.
+            Record your money yourself. Kivo does not connect to your bank or move money for you.
           </p>
         </div>
       </div>

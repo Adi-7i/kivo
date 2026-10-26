@@ -29,7 +29,7 @@ export function SpendingChartCard({
         <div>
           <CardTitle className="text-base font-bold font-heading">Daily Spending Trend</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
-            Calendar-faithful expenditures across active ledger accounts.
+            Your daily spending across active accounts.
           </CardDescription>
         </div>
 
@@ -115,6 +115,7 @@ export function SpendingChartCard({
                   }}
                 />
                 <Bar
+                  isAnimationActive={false}
                   dataKey="expensePaise"
                   fill="var(--color-finance-expense)"
                   radius={[4, 4, 0, 0]}

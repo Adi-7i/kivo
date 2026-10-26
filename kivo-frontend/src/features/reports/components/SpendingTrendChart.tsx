@@ -94,7 +94,7 @@ export function SpendingTrendChart({
         <summary>Accessible trend data ({data.results.length} buckets)</summary>
         <div className="max-h-64 overflow-auto">
           <table className="w-full">
-            <caption className="sr-only">Server expense trend values in INR</caption>
+            <caption className="sr-only">Expense trend values in INR</caption>
             <thead>
               <tr>
                 <th scope="col">Bucket start</th>

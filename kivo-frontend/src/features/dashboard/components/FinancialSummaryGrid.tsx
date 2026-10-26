@@ -22,7 +22,7 @@ export function FinancialSummaryGrid({ metrics, isLoading = false }: FinancialSu
   if (isLoading) {
     return (
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Financial Position Summary
           </h2>
@@ -30,7 +30,7 @@ export function FinancialSummaryGrid({ metrics, isLoading = false }: FinancialSu
             Total Balance &ne; Safe-to-Spend
           </span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           {Array.from({ length: 8 }).map((_, i) => (
             <FinancialSummaryCardSkeleton key={i} />
           ))}
@@ -41,14 +41,14 @@ export function FinancialSummaryGrid({ metrics, isLoading = false }: FinancialSu
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Financial Position Summary
         </h2>
         <span className="text-[11px] text-muted-foreground">Total Balance &ne; Safe-to-Spend</span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         {/* 1. Total Liquid Balance */}
         <FinancialSummaryCard
           title="Total Liquid Balance"

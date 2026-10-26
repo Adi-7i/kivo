@@ -115,8 +115,8 @@ export function SafeToSpendCard({ capacity, onAddReserve }: SafeToSpendCardProps
             Safe-to-Spend = Liquid Cash − Active Rent Reserves
           </span>
           <p className="text-[11px] text-muted-foreground leading-normal">
-            Rent reserves protect your liquidity from accidental overspending without initiating
-            premature bank transfers or fabricating ledger entries.
+            Reserves help you set money aside for rent. Your account balance changes only when you
+            record a payment.
           </p>
         </div>
       </div>

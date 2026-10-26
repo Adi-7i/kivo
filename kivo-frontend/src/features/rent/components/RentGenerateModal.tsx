@@ -50,7 +50,7 @@ export function RentGenerateModal({ open, onOpenChange, plan, onSuccess }: RentG
   };
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md w-full border-border bg-card">
+      <DialogContent className="max-w-md w-[calc(100%-2rem)] border-border bg-card">
         <DialogHeader className="text-left space-y-1">
           <div className="flex items-center gap-2">
             <div className="size-8 rounded-lg bg-kivo-sage/20 border border-kivo-sage/40 text-kivo-brand-dark dark:text-kivo-sage flex items-center justify-center">

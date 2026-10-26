@@ -33,8 +33,8 @@ export function ExhaustionBanner({ source, className }: ExhaustionBannerProps) {
             </strong>
             .
             <span className="block mt-1 text-[11px] text-muted-foreground/80">
-              Note: Attribution exhaustion is an accounting FIFO metric, not necessarily a zero bank
-              balance.
+              All funds from this source have been attributed. Your account may still have money
+              from other sources.
             </span>
           </AlertDescription>
         </div>
@@ -51,8 +51,7 @@ export function ExhaustionBanner({ source, className }: ExhaustionBannerProps) {
             Attribution Recalculation Pending
           </AlertTitle>
           <AlertDescription className="text-xs text-muted-foreground leading-relaxed">
-            This funding source is currently undergoing backend reconciliation or audit. Historical
-            attribution totals will refresh once authoritative Django calculations complete.
+            This source is being checked. Its fund journey will update when the review is complete.
           </AlertDescription>
         </div>
       </Alert>
@@ -76,8 +75,7 @@ export function ExhaustionBanner({ source, className }: ExhaustionBannerProps) {
           />
         </AlertTitle>
         <AlertDescription className="text-xs text-muted-foreground leading-relaxed">
-          Future personal expenses and friend loans will be attributed against this batch in FIFO
-          chronological order.
+          Future spending and lending are attributed to your oldest available funds first.
         </AlertDescription>
       </div>
     </Alert>

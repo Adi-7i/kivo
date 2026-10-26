@@ -123,15 +123,17 @@ test("shared owner-paid partial/full rent and ambiguous commit reconcile the ori
   });
   await f.openPay(o, "0.06");
   await f.dialog().getByRole("button", { name: "Record Payment", exact: true }).dblclick();
-  await expect(page.getByRole("button", { name: "Check server status", exact: true })).toBeVisible({
-    timeout: 60_000,
-  });
+  await expect(page.getByRole("button", { name: "Check request status", exact: true })).toBeVisible(
+    {
+      timeout: 60_000,
+    }
+  );
   expect(intercepted).toBe(1);
   await page.unroute(`**${path}`);
   await page.reload();
   await f.details(o);
   await page.getByRole("button", { name: "Resolve pending rent payment", exact: true }).click();
-  await page.getByRole("button", { name: "Check server status", exact: true }).click();
+  await page.getByRole("button", { name: "Check request status", exact: true }).click();
   const response = page.waitForResponse((r) => posted(r, path), { timeout: 60_000 });
   await page.getByRole("button", { name: "Retry original request", exact: true }).click();
   const replay = await response;

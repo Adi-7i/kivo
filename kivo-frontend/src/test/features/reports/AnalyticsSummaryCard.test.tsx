@@ -18,7 +18,7 @@ describe("authoritative report summary", () => {
         summary={{ ...summary, highest_spending_day: null, average_daily_expense: null }}
       />
     );
-    expect(screen.getByTestId("report-peak")).toHaveTextContent("Not computed");
-    expect(screen.getByTestId("report-average")).toHaveTextContent("Not computed");
+    expect(screen.getByTestId("report-peak")).toHaveTextContent("Not available");
+    expect(screen.getByTestId("report-average")).toHaveTextContent("Not available");
   });
 });

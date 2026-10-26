@@ -8,7 +8,7 @@ export function AnalyticsSummaryCard({ summary }: { summary: SummaryDTO }) {
     ["Peak Spending Day", summary.highest_spending_day?.amount, "report-peak"],
   ] as const;
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-6 gap-3">
       {metrics.map(([label, value, id]) => (
         <div
           key={id}
@@ -25,7 +25,7 @@ export function AnalyticsSummaryCard({ summary }: { summary: SummaryDTO }) {
                 ? "All inclusive calendar days"
                 : id === "report-income"
                   ? "External receipts; excludes borrowing and repayments"
-                  : "Recognized owner expense"}
+                  : "Your personal spending"}
           </p>
         </div>
       ))}

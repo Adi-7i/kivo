@@ -1,34 +1,52 @@
-import * as React from "react";
+"use client";
+
 import Link from "next/link";
-import { PageContainer } from "./PageContainer";
+import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { SessionMenu } from "@/features/auth/session";
+import { Button } from "@/components/ui/button";
+import { useNavigation } from "./NavigationContext";
 
 export function AppHeader() {
+  const { collapsed, setCollapsed, mobileOpen, setMobileOpen } = useNavigation();
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-card/80 backdrop-blur-md">
-      <PageContainer>
-        <div className="flex min-h-16 flex-wrap items-center justify-between gap-2 py-2">
-          <div className="flex items-center gap-3">
-            <Link href="/" prefetch={false} className="flex items-center gap-2.5 group">
-              <div className="flex size-9 items-center justify-center rounded-lg bg-kivo-primary text-white font-bold text-lg shadow-sm transition-transform group-hover:scale-105">
-                K
-              </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-lg tracking-tight text-foreground leading-none">
-                  Kivo
-                </span>
-                <span className="text-[11px] font-medium text-muted-foreground mt-0.5">
-                  Personal Finance
-                </span>
-              </div>
-            </Link>
-          </div>
-
-          <div className="flex max-w-full flex-wrap items-center gap-4 text-xs text-muted-foreground">
-            <SessionMenu />
-          </div>
+    <header className="sticky top-0 z-30 h-16 border-b border-border bg-card/95 backdrop-blur-sm">
+      <div className="mx-auto flex h-full max-w-7xl min-w-0 items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-3">
+          <Button
+            id="mobile-navigation-trigger"
+            variant="ghost"
+            size="icon"
+            className="size-11 shrink-0 lg:hidden"
+            aria-label="Open navigation"
+            aria-expanded={mobileOpen}
+            aria-haspopup="dialog"
+            onClick={() => setMobileOpen(true)}
+          >
+            <Menu className="size-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden lg:inline-flex"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!collapsed}
+            onClick={() => setCollapsed(!collapsed)}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="size-4" />
+            ) : (
+              <PanelLeftClose className="size-4" />
+            )}
+          </Button>
+          <Link href="/dashboard" prefetch={false} className="font-bold text-foreground lg:hidden">
+            Kivo
+          </Link>
+          <span className="hidden text-sm text-muted-foreground lg:inline">
+            Your money, clearly.
+          </span>
         </div>
-      </PageContainer>
+        <SessionMenu />
+      </div>
     </header>
   );
 }

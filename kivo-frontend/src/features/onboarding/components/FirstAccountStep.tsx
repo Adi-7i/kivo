@@ -140,7 +140,7 @@ export function FirstAccountStep({ initialData, onBack, onNext }: FirstAccountSt
             inputMode="decimal"
             placeholder="0.00"
             required
-            helperText="Stored precisely in integer paise (100 paise = ₹1)."
+            helperText="Enter an amount with up to two decimal places."
             error={errors.openingBalance?.message}
             {...register("openingBalance")}
           />

@@ -154,7 +154,10 @@ test("real Django dashboard, pinned FIFO journey, exhaustion, corrections and is
   await expect(page.getByText("Chronological Fund Journey", { exact: true })).toBeVisible();
   await expect(page.getByText(`${run} expense`, { exact: false })).toBeVisible();
   await expect(page.getByText(`Receivable ${loan.claims[0]}`, { exact: false })).toBeVisible();
-  await expect(page.getByText("Snapshot:", { exact: false })).toContainText(summary.run_id);
+  await expect(page.getByTestId("funding-status")).toHaveAttribute(
+    "data-snapshot-id",
+    summary.run_id
+  );
   const foreign = await playwrightRequest.newContext({
     storageState: ".playwright-auth/session.json",
   });
@@ -229,7 +232,10 @@ test("real Django dashboard, pinned FIFO journey, exhaustion, corrections and is
   await openResource(page, "/dashboard", "/api/v1/dashboard/");
   await expect(page.getByTestId("dashboard-metrics")).toContainText("₹0.01");
   await page.goto(`/money/sources/${batch.id}`);
-  await expect(page.getByText("Snapshot:", { exact: false })).toContainText(restored.run_id);
+  await expect(page.getByTestId("funding-status")).toHaveAttribute(
+    "data-snapshot-id",
+    restored.run_id
+  );
   await expect(page.getByText(/inclusive calendar days/)).not.toBeVisible();
   console.log(
     "Part 3 real Django: authoritative dashboard, lending classification, transfer lineage, repayment, exhaustion, correction, retained snapshots and cross-user isolation confirmed."

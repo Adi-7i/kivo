@@ -2,6 +2,8 @@ import { apiClient } from "@/lib/api/client";
 import type { PaginatedResponse } from "@/types/api";
 import type { AccountType } from "./types";
 
+export const ACCOUNT_SETUP_STALE_MS = 30_000;
+
 export interface MoneyAccount {
   id: string;
   name: string;

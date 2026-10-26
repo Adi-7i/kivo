@@ -130,10 +130,9 @@ export function CSVExportDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Export Financial Ledger (CSV)</DialogTitle>
+          <DialogTitle>Export Transactions (CSV)</DialogTitle>
           <DialogDescription>
-            Download your authenticated server ledger with the selected filters. UTF-8 with BOM and
-            column headers.
+            Download your transactions as a spreadsheet-ready CSV file with the filters you choose.
           </DialogDescription>
         </DialogHeader>
         <QueryState query={accounts} />
@@ -207,14 +206,11 @@ export function CSVExportDialog({
           </fieldset>
           <div className="rounded-lg border bg-muted/20 p-3 text-[11px] text-muted-foreground space-y-2">
             <p>
-              Standard Output Schema: effective date, transaction ID/type, title, amount,
-              account/destination, category, merchant, contact/source, payment method, notes,
-              status, net expense and net external cash contributions.
+              Includes dates, descriptions, amounts, accounts, categories and transaction status.
             </p>
             <p>
-              Face amounts are audit values and must not be summed as spending.
-              Corrections/reversals are retained with status. The backend protects user text against
-              spreadsheet formula injection.
+              Use the net expense column to total spending. Transfers and repayments are not income
+              or personal expenses. Corrections and reversals remain in your history.
             </p>
             <p>
               Current contact, merchant, payment method, search and amount filters are preserved.

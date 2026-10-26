@@ -18,7 +18,7 @@ export function ProfileInfoSection({ user }: { user: UserProfile }) {
             <CardTitle className="text-base font-bold">Personal Information</CardTitle>
           </div>
           <CardDescription className="text-xs text-muted-foreground">
-            Identity details managed by the primary Django authentication layer.
+            Your account information.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-4 space-y-4">
@@ -33,9 +33,7 @@ export function ProfileInfoSection({ user }: { user: UserProfile }) {
                 disabled
                 className="bg-muted/40 cursor-not-allowed"
               />
-              <span className="text-[10px] text-muted-foreground">
-                Synchronized with authenticated User model.
-              </span>
+              <span className="text-[10px] text-muted-foreground">The name on your account.</span>
             </div>
 
             <div className="space-y-1.5 text-left">
@@ -51,9 +49,7 @@ export function ProfileInfoSection({ user }: { user: UserProfile }) {
                 />
                 <Mail className="size-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               </div>
-              <span className="text-[10px] text-muted-foreground">
-                Primary identifier for session verification.
-              </span>
+              <span className="text-[10px] text-muted-foreground">Your sign-in email address.</span>
             </div>
           </div>
 
@@ -80,7 +76,7 @@ export function ProfileInfoSection({ user }: { user: UserProfile }) {
             <CardTitle className="text-base font-bold">Regional & Currency Standards</CardTitle>
           </div>
           <CardDescription className="text-xs text-muted-foreground">
-            Strict integer paise and calendar calculation settings.
+            Your currency and timezone.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-4 space-y-4">
@@ -92,11 +88,11 @@ export function ProfileInfoSection({ user }: { user: UserProfile }) {
                   variant="outline"
                   className="text-[10px] font-bold border-kivo-sage text-kivo-brand-dark dark:text-kivo-sage"
                 >
-                  INR (₹) &bull; Paise Integer
+                  Indian rupee (₹)
                 </Badge>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Multi-currency is intentionally deferred to protect mathematical exactness.
+                Amounts are displayed in Indian rupees.
               </p>
             </div>
 
@@ -111,7 +107,7 @@ export function ProfileInfoSection({ user }: { user: UserProfile }) {
                 </Badge>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Daily ledger reconciliation adheres to Indian Standard Time (UTC+05:30).
+                Your daily activity follows Indian Standard Time (UTC+05:30).
               </p>
             </div>
           </div>
@@ -126,17 +122,17 @@ export function ProfileInfoSection({ user }: { user: UserProfile }) {
             <CardTitle className="text-base font-bold">Security & Audit Trail</CardTitle>
           </div>
           <CardDescription className="text-xs text-muted-foreground">
-            Identity protection and immutable session tracking.
+            Keep your sign-in details secure.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-4 space-y-3">
-          <div className="flex items-center justify-between text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4 text-finance-income" />
               <div>
                 <p className="font-semibold text-foreground">Password Authentication</p>
                 <p className="text-[11px] text-muted-foreground">
-                  Your password is securely managed by the authentication service.
+                  Your password is stored securely.
                 </p>
               </div>
             </div>

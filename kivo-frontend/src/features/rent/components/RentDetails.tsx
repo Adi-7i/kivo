@@ -216,7 +216,7 @@ export function RentObligationDetails({ id, onClose }: { id: string; onClose: ()
                       className="text-xs text-kivo-primary"
                       href={"/shared-expenses/" + bill.id}
                     >
-                      View server-recognized participant shares →
+                      View participant shares →
                     </Link>
                   )}
                   <RelationshipHistory events={[payment.event]} title="Rent Payment Journal" />

@@ -71,7 +71,7 @@ export function LiveBudgets() {
             <div className="rounded-xl border border-dashed p-8 text-center">
               <h2 className="font-heading font-semibold">No Spending Budgets Configured</h2>
               <p className="text-xs text-muted-foreground mt-2">
-                No owned budgets match this period and archive filter.
+                No budgets match the selected period and filters.
               </p>
             </div>
           )}
@@ -91,8 +91,7 @@ export function LiveBudgets() {
             onAddCategory={() => setModal({ type: "category" })}
           />
           <p className="text-xs text-muted-foreground">
-            Showing confirmed budget periods, including archived plans when selected. Configuration
-            audit history is not exposed by the API.
+            Showing your selected budget periods. Include archived budgets to view past plans.
           </p>
         </div>
       )}

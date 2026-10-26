@@ -105,9 +105,7 @@ export function SharedBillDetailHeader({ bill }: SharedBillDetailHeaderProps) {
             Original Personal Expense Share
           </span>
           <MoneyAmount paise={bill.userSharePaise} size="xl" variant="expense" />
-          <p className="text-[11px] text-muted-foreground">
-            Server-recognized share of this immutable bill revision
-          </p>
+          <p className="text-[11px] text-muted-foreground">Your share of this bill</p>
         </div>
 
         {/* Friends' Total */}
@@ -117,8 +115,7 @@ export function SharedBillDetailHeader({ bill }: SharedBillDetailHeaderProps) {
           </span>
           <p className="text-xl font-bold">{bill.shares.length} participants</p>
           <p className="text-[11px] text-muted-foreground">
-            Outstanding liabilities and assets are shown individually below, never inferred from
-            gross minus owner share.
+            See the amounts each person owes or is owed below.
           </p>
         </div>
       </div>

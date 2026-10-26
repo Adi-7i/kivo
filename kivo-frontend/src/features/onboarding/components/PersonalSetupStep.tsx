@@ -33,7 +33,7 @@ export function PersonalSetupStep({ initialData, onBack, onNext }: PersonalSetup
           Personal Setup
         </h2>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          Confirm your display name and review the regional ledger standards.
+          Review your name, currency and timezone.
         </p>
       </div>
 
@@ -64,8 +64,7 @@ export function PersonalSetupStep({ initialData, onBack, onNext }: PersonalSetup
             </Badge>
           </div>
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            All monetary values are calculated in integer paise (1 INR = 100 paise) to eliminate
-            floating-point drift.
+            All amounts are shown in Indian rupees (₹), with up to two decimal places.
           </p>
         </div>
 

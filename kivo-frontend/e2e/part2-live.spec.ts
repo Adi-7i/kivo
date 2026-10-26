@@ -114,8 +114,8 @@ test("real Django core transactions, recovery, immutable corrections and isolati
       await openResource(page, page.url(), originalResource[1]);
       await page.getByRole("button", { name: "Resolve pending request", exact: true }).click();
     }
-    await expect(page.getByRole("button", { name: "Check server status" })).toBeVisible();
-    await page.getByRole("button", { name: "Check server status" }).click();
+    await expect(page.getByRole("button", { name: "Check request status" })).toBeVisible();
+    await page.getByRole("button", { name: "Check request status" }).click();
     await expect(page.getByRole("button", { name: "Retry original request" })).toBeVisible({
       timeout: 20_000,
     });
@@ -334,7 +334,7 @@ test("real Django core transactions, recovery, immutable corrections and isolati
   });
 
   await openResource(page, `/transactions/${expense.id}`, `/api/v1/transactions/${expense.id}/`);
-  await expect(page.getByText("Ledger Postings Breakdown")).toBeVisible();
+  await expect(page.getByText("Account Activity")).toBeVisible();
   await page.getByRole("button", { name: "Record Reversal / Correction" }).click();
   await page.getByRole("button", { name: "Correct", exact: true }).click();
   await page.getByLabel("Audit Reason").fill("Part2 correct exact amount");
@@ -485,14 +485,14 @@ test("real Django core transactions, recovery, immutable corrections and isolati
     await route.abort("failed");
   });
   await form.getByRole("button", { name: "Record Expense" }).dblclick();
-  await expect(page.getByRole("button", { name: "Check server status" })).toBeVisible({
+  await expect(page.getByRole("button", { name: "Check request status" })).toBeVisible({
     timeout: 20_000,
   });
   await page.unroute("**/api/v1/transactions/");
   await page.reload();
   await page.getByRole("button", { name: "Quick Add", exact: true }).click();
   await expect(page.getByRole("button", { name: "Record Expense" })).toBeDisabled();
-  await page.getByRole("button", { name: "Check server status" }).click();
+  await page.getByRole("button", { name: "Check request status" }).click();
   const replayed = page.waitForResponse((response) => posted(response, "/api/v1/transactions/"));
   const retryRequest = page.waitForRequest(
     (request) =>
