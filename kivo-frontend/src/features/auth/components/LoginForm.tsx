@@ -44,16 +44,19 @@ export function LoginForm() {
       const user = await authApi.login(data);
       await queryClient.cancelQueries();
       queryClient.clear();
-      queryClient.setQueryData(SESSION_KEY, user);
-      notifySessionChange();
       const next = safeReturnPath(new URLSearchParams(window.location.search).get("next"));
       let accounts;
       try {
         accounts = await listAccounts();
       } catch {
+        queryClient.setQueryData(SESSION_KEY, user);
+        notifySessionChange();
         navigate(`/onboarding?next=${encodeURIComponent(next)}`);
         return;
       }
+      queryClient.setQueryData(["accounts", user.id], accounts);
+      queryClient.setQueryData(SESSION_KEY, user);
+      notifySessionChange();
       navigate(accounts.count === 0 ? "/onboarding" : next === "/onboarding" ? "/dashboard" : next);
     } catch (error) {
       setMessage(

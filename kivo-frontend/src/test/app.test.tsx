@@ -1,23 +1,22 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import HomePage from "@/app/page";
 import { Providers } from "@/app/providers";
+import * as navigation from "@/features/auth/navigation";
 
-describe("HomePage & Providers integration", () => {
-  it("renders HomePage without throwing within Providers", () => {
+afterEach(() => vi.restoreAllMocks());
+
+describe("application entry (mocked Django HTTP)", () => {
+  it("hides the obsolete showcase and routes a confirmed anonymous visitor to registration", async () => {
+    const navigate = vi.spyOn(navigation, "navigate").mockImplementation(() => {});
     render(
       <Providers>
         <HomePage />
       </Providers>
     );
 
-    // Verify presence of main headings and preview indicators
-    expect(screen.getByRole("heading", { name: "Kivo Global Design System" })).toBeInTheDocument();
-
-    expect(
-      screen.getByText("Frontend Phase 1: Foundation & Architecture Ready")
-    ).toBeInTheDocument();
-    expect(screen.getByText("Color Palette & Financial Semantics")).toBeInTheDocument();
-    expect(screen.getByText("shadcn/ui Foundation Primitives")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Checking your session");
+    expect(screen.queryByText(/Kivo Global Design System/)).not.toBeInTheDocument();
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/register"));
   });
 });

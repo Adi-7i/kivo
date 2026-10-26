@@ -25,7 +25,11 @@ export function safeReturnPath(value: string | null): string {
   )
     return "/dashboard";
   const url = new URL(value, "https://kivo.invalid");
-  return url.origin === "https://kivo.invalid" && isProtectedPath(url.pathname)
+  return url.origin === "https://kivo.invalid" &&
+    isProtectedPath(url.pathname) &&
+    // The setup wizard is a gate, never a return destination (including query variants).
+    url.pathname !== "/onboarding" &&
+    !url.pathname.startsWith("/onboarding/")
     ? `${url.pathname}${url.search}`
     : "/dashboard";
 }

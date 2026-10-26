@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { djangoCookies, djangoOrigin, privateHeaders } from "@/lib/server/django";
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
+  // Public entry pages resolve identity/setup in SessionBoundary. A missing cookie
+  // can take the fast path; an opaque cookie never proves authentication.
+  if (["/", "/login", "/register"].includes(request.nextUrl.pathname)) {
+    if (request.nextUrl.pathname === "/" && !request.cookies.get("sessionid")?.value) {
+      return NextResponse.redirect(new URL("/register", request.url), {
+        headers: privateHeaders(),
+      });
+    }
+    return NextResponse.next({ headers: privateHeaders() });
+  }
   const login = () => {
     const url = new URL("/login", request.url);
     url.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
@@ -44,6 +54,9 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 
 export const config = {
   matcher: [
+    "/",
+    "/login",
+    "/register",
     "/dashboard/:path*",
     "/onboarding/:path*",
     "/settings/:path*",

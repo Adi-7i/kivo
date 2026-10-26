@@ -32,7 +32,7 @@ test("real Django registration, sessions, opening account, CSRF, isolation and l
     .getByLabel(/Confirm password/i)
     .fill(password);
   await page.getByRole("button", { name: /Create Account/i }).click();
-  await expect(page.getByText(/Your account was created/i)).toBeVisible({ timeout: 30_000 });
+  await expect(page).toHaveURL(`${frontendOrigin}/login`, { timeout: 30_000 });
   console.log("Real integration: registration confirmed; checking duplicate handling.");
   expect((await context.request.get(`${frontendOrigin}/api/v1/auth/me/`)).status()).toBe(401);
 
@@ -49,7 +49,6 @@ test("real Django registration, sessions, opening account, CSRF, isolation and l
   });
   expect(invalid.status()).toBe(400);
 
-  await page.getByRole("link", { name: /Sign in to continue/i }).click();
   await expect(page).toHaveURL(`${frontendOrigin}/login`);
   await page
     .locator("form:visible")

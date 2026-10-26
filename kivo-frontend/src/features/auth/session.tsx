@@ -4,11 +4,12 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { authApi, type UserProfile } from "./api";
-import { isProtectedPath, navigate } from "./navigation";
+import { isProtectedPath, navigate, safeReturnPath } from "./navigation";
 import { KivoApiError } from "@/lib/api/errors";
 import { Button } from "@/components/ui/button";
 import { clearOnboardingAttempts } from "@/features/onboarding/attempt";
 import { clearFinancialAttempts } from "@/features/finance/recovery";
+import { listAccounts } from "@/features/onboarding/api";
 
 export const SESSION_KEY = ["session"] as const;
 
@@ -53,6 +54,15 @@ export function SessionBoundary({ children }: { children: React.ReactNode }) {
   const session = useSession();
   const client = useQueryClient();
   const protectedPage = isProtectedPath(path);
+  const entryPage = ["/", "/login", "/register"].includes(path);
+  const needsSetupCheck = entryPage || (protectedPage && path !== "/onboarding");
+  const accounts = useQuery({
+    queryKey: ["accounts", session.data?.id],
+    queryFn: ({ signal }) => listAccounts(signal),
+    enabled: session.isSuccess && !!session.data && needsSetupCheck,
+    staleTime: 10_000,
+    retry: false,
+  });
   React.useEffect(() => {
     const refresh = () => {
       client.removeQueries({ predicate: (query) => query.queryKey[0] !== "session" });
@@ -73,11 +83,33 @@ export function SessionBoundary({ children }: { children: React.ReactNode }) {
     };
   }, [client]);
   React.useEffect(() => {
-    if (protectedPage && session.isSuccess && !session.data) {
-      navigate(`/login?next=${encodeURIComponent(path + window.location.search)}`);
+    if (!session.isSuccess) return;
+    if (!session.data) {
+      if (path === "/") navigate("/register");
+      else if (protectedPage)
+        navigate(`/login?next=${encodeURIComponent(path + window.location.search)}`);
+      return;
     }
-  }, [protectedPage, session.isSuccess, session.data, path]);
-  if (!protectedPage) return children;
+    if (!needsSetupCheck || !accounts.isSuccess) return;
+    if (accounts.data.count === 0) {
+      const next = protectedPage ? safeReturnPath(path + window.location.search) : "/dashboard";
+      navigate(
+        next === "/dashboard" ? "/onboarding" : `/onboarding?next=${encodeURIComponent(next)}`
+      );
+    } else if (entryPage) {
+      navigate(safeReturnPath(new URLSearchParams(window.location.search).get("next")));
+    }
+  }, [
+    protectedPage,
+    entryPage,
+    needsSetupCheck,
+    session.isSuccess,
+    session.data,
+    accounts.isSuccess,
+    accounts.data,
+    path,
+  ]);
+  if (!protectedPage && !entryPage) return children;
   if (session.isError)
     return (
       <main className="mx-auto max-w-md p-8 space-y-4" role="alert">
@@ -85,12 +117,27 @@ export function SessionBoundary({ children }: { children: React.ReactNode }) {
         <Button onClick={() => void session.refetch()}>Retry session check</Button>
       </main>
     );
-  if (!session.data)
+  if (session.isPending || (!session.data && (protectedPage || path === "/")))
     return (
       <main className="p-8 text-center" role="status">
         Checking your session…
       </main>
     );
+  if (session.data && needsSetupCheck) {
+    if (accounts.isError)
+      return (
+        <main className="mx-auto max-w-md p-8 space-y-4" role="alert">
+          <p>We cannot check your accounts right now. Your session has not been signed out.</p>
+          <Button onClick={() => void accounts.refetch()}>Retry account check</Button>
+        </main>
+      );
+    if (!accounts.isSuccess || entryPage || accounts.data.count === 0)
+      return (
+        <main className="p-8 text-center" role="status">
+          Checking your accounts…
+        </main>
+      );
+  }
   return children;
 }
 

@@ -1,7 +1,10 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RegisterForm } from "@/features/auth/components/RegisterForm";
+import * as navigation from "@/features/auth/navigation";
+
+afterEach(() => vi.restoreAllMocks());
 
 describe("RegisterForm component", () => {
   it("renders all registration inputs and live guidelines", () => {
@@ -31,7 +34,8 @@ describe("RegisterForm component", () => {
     });
   });
 
-  it("shows confirmed registration only after a mocked HTTP 201 and offers explicit login", async () => {
+  it("navigates to login only after a mocked HTTP 201 and clears passwords", async () => {
+    const navigate = vi.spyOn(navigation, "navigate").mockImplementation(() => {});
     vi.mocked(fetch).mockResolvedValue(
       Response.json(
         {
@@ -65,6 +69,7 @@ describe("RegisterForm component", () => {
     );
     expect(screen.getByLabelText(/^Password/i)).toHaveValue("");
     expect(screen.getByRole("button", { name: /Create Account/i })).toBeDisabled();
+    expect(navigate).toHaveBeenCalledWith("/login");
   });
 
   it("maps a duplicate email from the nested Django error envelope", async () => {

@@ -1,49 +1,38 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Frontend Phase 1 Foundation E2E", () => {
-  test("loads the foundation preview page at /", async ({ page }) => {
-    const response = await page.goto("/");
-    expect(response?.status()).toBe(200);
+test.use({ storageState: { cookies: [], origins: [] } });
 
-    // Verify title and main heading
-    await expect(page).toHaveTitle(/Kivo/);
-    await expect(page.getByRole("heading", { name: "Kivo Global Design System" })).toBeVisible();
-  });
-
-  test("renders the brand header and status indicators", async ({ page }) => {
+test.describe("Application entry with real anonymous Django verification", () => {
+  test("opens registration from the root without any design-system showcase", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("Phase 1 Foundation")).toBeVisible();
-    await expect(page.getByText("API Transport Ready")).toBeVisible();
+    await expect(page).toHaveURL(/\/register$/);
+    await expect(
+      page.getByRole("heading", { name: "Create your account", exact: true })
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Phase 1 Foundation|Kivo Global Design System|API Transport Ready/)
+    ).toHaveCount(0);
   });
 
-  test("renders design system primitives with proper interactive states", async ({ page }) => {
-    await page.goto("/");
-
-    // Primary button should be visible and focusable
-    const primaryBtn = page.getByRole("button", { name: "Primary", exact: true });
-    await expect(primaryBtn).toBeVisible();
-    await primaryBtn.focus();
-    await expect(primaryBtn).toBeFocused();
-
-    // Disabled button should not be clickable
-    const disabledBtn = page.getByRole("button", { name: "Disabled", exact: true });
-    await expect(disabledBtn).toBeDisabled();
-  });
-
-  test("displays integer-paise INR formatting preview without floating point artifacts", async ({
+  test("offers login and registration navigation with no private application menu", async ({
     page,
   }) => {
     await page.goto("/");
-    await expect(page.getByText("₹12,345.67")).toBeVisible();
-    await expect(page.getByText("+₹50,000.00")).toBeVisible();
-    await expect(page.getByText("-₹1,845.50")).toBeVisible();
+    await page.getByRole("link", { name: "Sign in", exact: true }).click();
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByRole("button", { name: "Sign In", exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Create an account", exact: true }).click();
+    await expect(page).toHaveURL(/\/register$/);
+    await expect(page.getByRole("navigation", { name: "Application navigation" })).toHaveCount(0);
   });
 
-  test("renders responsive layout without horizontal overflow", async ({ page }) => {
+  test("renders the registration entry without horizontal overflow", async ({ page }) => {
     await page.goto("/");
-
-    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-    const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
-    expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
+    await expect(page.getByRole("button", { name: "Create Account", exact: true })).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1
+      )
+    ).toBe(true);
   });
 });

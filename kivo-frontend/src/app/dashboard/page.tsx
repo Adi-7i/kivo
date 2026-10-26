@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import Link from "next/link";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppNav } from "@/components/layout/AppNav";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -168,10 +169,9 @@ export default function DashboardPage() {
                       Outstanding landlord rent:{" "}
                       <MoneyAmount paise={decimalPaise(data.rent.outstanding)} size="sm" />
                     </p>
-                    <p>
-                      Read-only dashboard summary. Rent and reserve operations remain scheduled for
-                      Part 5.
-                    </p>
+                    <Link href="/rent" prefetch={false} className="font-semibold underline">
+                      Manage rent & reserves
+                    </Link>
                   </CardContent>
                 </Card>
               </div>

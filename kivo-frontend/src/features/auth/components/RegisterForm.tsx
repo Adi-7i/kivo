@@ -13,6 +13,7 @@ import { FormField } from "./FormField";
 import { PasswordField } from "./PasswordField";
 import { Button } from "@/components/ui/button";
 import { authApi } from "../api";
+import { navigate } from "../navigation";
 import { ValidationError } from "@/lib/api/errors";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { UserPlus, Check, X } from "lucide-react";
@@ -55,6 +56,8 @@ export function RegisterForm() {
       resetField("password");
       resetField("confirmPassword");
       setRegistered(true);
+      // Django registration creates a user, not a session. Login remains explicit.
+      navigate("/login");
     } catch (error) {
       if (error instanceof ValidationError) {
         for (const [field, messages] of Object.entries(error.fieldErrors)) {

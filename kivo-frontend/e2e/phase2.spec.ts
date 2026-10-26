@@ -1,7 +1,8 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Authentication/profile UI with a real Django session", () => {
-  test("renders login controls and validates empty input", async ({ page }) => {
+  test("renders login controls and validates empty input", async ({ page, context }) => {
+    await context.clearCookies();
     await page.goto("/login");
     await expect(page).toHaveTitle(/Sign In — Kivo/i);
     await page.getByRole("button", { name: /Sign In/i }).click();
@@ -10,7 +11,11 @@ test.describe("Authentication/profile UI with a real Django session", () => {
     await page.getByRole("button", { name: /Show password/i }).click();
     await expect(page.getByLabel(/^Password/i)).toHaveAttribute("type", "text");
   });
-  test("uses verified password requirements and validates confirmation", async ({ page }) => {
+  test("uses verified password requirements and validates confirmation", async ({
+    page,
+    context,
+  }) => {
+    await context.clearCookies();
     await page.goto("/register");
     await expect(page.getByText("At least 10 characters")).toBeVisible();
     await expect(page.getByText("Not entirely numeric")).toBeVisible();
@@ -48,7 +53,11 @@ test.describe("Authentication/profile UI with a real Django session", () => {
     { width: 1440, height: 900 },
   ]) {
     for (const route of ["/login", "/register", "/settings/profile"]) {
-      test(`renders ${route} without overflow at ${viewport.width}px`, async ({ page }) => {
+      test(`renders ${route} without overflow at ${viewport.width}px`, async ({
+        page,
+        context,
+      }) => {
+        if (route !== "/settings/profile") await context.clearCookies();
         await page.setViewportSize(viewport);
         await page.goto(route);
         if (route === "/settings/profile")

@@ -58,6 +58,9 @@ describe("safe input boundaries", () => {
     "/\\evil",
     "/%2fevil",
     "/login",
+    "/onboarding",
+    "/onboarding?next=/dashboard",
+    "/onboarding/step",
     "/dashboard\n",
   ])("rejects unsafe return path %s", (value) => expect(safeReturnPath(value)).toBe("/dashboard"));
   it("allows known local paths", () =>

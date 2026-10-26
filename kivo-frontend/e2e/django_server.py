@@ -8,6 +8,7 @@ every request. Django's session/CSRF middleware and financial services are uncha
 
 from __future__ import annotations
 
+import argparse
 import os
 import socket
 import sys
@@ -60,6 +61,11 @@ class VerificationServer(WSGIServer):
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--port", type=int, default=8000)
+    port = parser.parse_args().port
+    if not 1024 <= port <= 65535:
+        parser.error("The loopback verification port must be between 1024 and 65535.")
     if os.environ.get("KIVO_ALLOW_DEV_TEST_RECORDS") != "1":
         raise RuntimeError("Explicit approved-development verification opt-in is required.")
     if (
@@ -76,7 +82,7 @@ def main() -> None:
         environ["wsgi.multithread"] = True
         return django_application(environ, start_response)
 
-    with VerificationServer(("127.0.0.1", 8000), WSGIRequestHandler) as server:
+    with VerificationServer(("127.0.0.1", port), WSGIRequestHandler) as server:
         server.set_app(application)
         print(
             "Kivo verification: loopback HTTP, four workers, per-request DB release; "

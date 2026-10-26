@@ -110,6 +110,27 @@ describe("same-origin API bridge (mocked upstream HTTP)", () => {
 });
 
 describe("server route protection (mocked Django)", () => {
+  it("redirects the fresh root to registration with private no-store headers", async () => {
+    const response = await proxy(new NextRequest("http://localhost:3000/"));
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost:3000/register");
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(response.headers.get("vary")).toBe("Cookie");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it.each(["/", "/login", "/register"])(
+    "lets the session boundary resolve %s without trusting an opaque cookie",
+    async (path) => {
+      const response = await proxy(
+        new NextRequest(`http://localhost:3000${path}`, {
+          headers: { Cookie: "sessionid=opaque" },
+        })
+      );
+      expect(response.headers.has("location")).toBe(false);
+      expect(response.headers.get("cache-control")).toContain("no-store");
+      expect(fetch).not.toHaveBeenCalled();
+    }
+  );
   it("redirects anonymous direct access with a local return path", async () => {
     const response = await proxy(new NextRequest("http://localhost:3000/settings/profile"));
     expect(response.status).toBe(307);
