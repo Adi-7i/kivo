@@ -6,11 +6,13 @@ import logging
 from typing import Any
 
 from django.core.exceptions import SuspiciousOperation
-from django.db import InterfaceError, OperationalError
+from django.db import InterfaceError, OperationalError, connection
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.csrf import csrf_failure as django_csrf_failure
 from rest_framework.response import Response
 from rest_framework.views import exception_handler, set_rollback
+
+from common.database_failure import failure_fields
 
 logger = logging.getLogger("kivo.api")
 
@@ -98,7 +100,15 @@ def kivo_exception_handler(exc: Exception, context: dict[str, Any]) -> Response 
     view_name = view.__class__.__name__ if view else "UnknownView"
     logger.error(
         "request_failed",
-        extra={"view": view_name, "exception_class": type(exc).__name__},
+        extra={
+            "view": view_name,
+            "exception_class": type(exc).__name__,
+            **(
+                failure_fields(exc, connection)
+                if isinstance(exc, (OperationalError, InterfaceError))
+                else {}
+            ),
+        },
     )
 
     code = 503 if isinstance(exc, (OperationalError, InterfaceError)) else 500

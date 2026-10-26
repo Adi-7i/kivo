@@ -1,5 +1,15 @@
 # Backend API ↔ Frontend UI Feature Coverage Audit
 
+## 2026-10-25 Part 6 recovery update — current status
+
+**IMPLEMENTED / PARTIALLY COMPLETE; complete live verification BLOCKED / NO-GO.** The recovery fixed the CSV bridge's upstream content negotiation (exclusive `text/csv` caused DRF 406); actual Django CSV bytes, authenticated desktop/mobile downloads, UTF-8/BOM, selected filters, filename and formula escaping now have real passing evidence. A complete budget/expense/correction/reversal browser journey passed. Cross-user export and amended full financial tails remain NOT VERIFIED.
+
+Fresh checks: **393 frontend tests, 62 selected backend unit tests, TypeScript, lint, production build and Django checks pass**. All **38 Part 6 desktop/mobile screen cases passed**, zero failures/skips/flaky cases (259.18s). The native authentication/read gate passed 68 real requests. These do not substitute for the unexecuted full Parts 1–6 regression. Failed runs remain preserved.
+
+TCP diagnostics reproduced retransmissions and multi-second database queries; a four-query report took **21.722s**, exceeding the unchanged 12s proxy deadline and producing a real proxy 503. Across instrumented recovery logs, 804 completed Django requests had zero Django 5xx; this excludes proxy failures and does not erase earlier genuine Django 503s. The faulty hop remains unverified. Further financial writes stopped; a verified stable route/session-pooler address for the **same approved development database** is needed before completing the financial/security gate. No target/schema/accounting change or blind POST retry was made.
+
+All recovery edits are in the original repository, branch `INTIGRATION`, after the owner's preserved `3d67e6f` commit. Backend changes are bounded, redacted observability only. See the [Part 6 recovery evidence](../../../docs/integration/part-06-budgets-reports-export-verification.md) for exact commands, statuses, changed files, retained failures and next gates. Production-release hardening has not begun. Earlier status sections below are historical and superseded by this update.
+
 ## 2026-10-25 Part 6 integration update
 
 **Part 6 IMPLEMENTED / PARTIALLY COMPLETE — full live verification BLOCKED / NO-GO.** The owner authorized budgets, reports and authenticated CSV after Parts 4–5. A fresh real Part 4 recovery/Part 5 rent gate passed 2/2 before source edits. Existing clean checkpoint is `INTIGRATION@611c9dc`; the previous work was committed, contrary to the historical uncommitted assumption.

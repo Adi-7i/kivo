@@ -3,6 +3,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { mkdir, chmod } from "node:fs/promises";
 import { authPost, backendOrigin, csrf, frontendOrigin } from "./live-api";
 import { todayInKolkata } from "../src/features/onboarding/money";
+import { clientTimeoutMs } from "../src/lib/api/timeouts";
 
 export default async function setup() {
   if (process.env.KIVO_ALLOW_DEV_TEST_RECORDS !== "1") {
@@ -47,6 +48,7 @@ export default async function setup() {
     opening_balance: "123.45",
   };
   const account = await context.post(`${frontendOrigin}/api/v1/accounts/`, {
+    timeout: clientTimeoutMs("/api/v1/accounts/", "POST"),
     data: input,
     headers: {
       Origin: frontendOrigin,

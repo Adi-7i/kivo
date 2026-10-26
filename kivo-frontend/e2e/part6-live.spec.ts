@@ -18,6 +18,23 @@ test("real budget create/edit/archive, expense utilization, audited corrections 
   context,
 }) => {
   const f = await part6Harness(page, context);
+  // Journey B receives real external funds before configuring limits; opening
+  // equity remains separate from income throughout the budget/correction flow.
+  await page.goto("/transactions");
+  await page.getByRole("button", { name: "Quick Add", exact: true }).click();
+  await f.dialog().getByRole("tab", { name: "Received", exact: true }).click();
+  await f.dialog().locator("#receipt-amount").fill("0.10");
+  await f
+    .dialog()
+    .locator("#receipt-title")
+    .fill(f.run + " Received funds");
+  await f.dialog().locator("#receipt-account").selectOption(f.account.id);
+  await f
+    .dialog()
+    .locator("#receipt-source")
+    .fill(f.run + " Development receipt");
+  const receipt = await f.commit<EventDTO>("/api/v1/transactions/", "Record Receipt", true);
+  expect(receipt).toMatchObject({ kind: "receipt", amount: "0.10" });
   const overall = await f.budget("0.05"),
     category = await f.budget("0.04", true);
   await f.progress(overall, { spent: "0.00", remaining: "0.05", warning_state: "ok" });
@@ -129,8 +146,8 @@ test("real budget create/edit/archive, expense utilization, audited corrections 
   const summary = await f.report();
   expect(summary.personal_expense).toBe("0.03");
   expect(await f.get<DashboardDTO>("dashboard/?period=month")).toMatchObject({
-    liquid_balance: "9.96",
-    selected_period: { personal_expense: "0.03", external_income: "0.00" },
+    liquid_balance: "10.06",
+    selected_period: { personal_expense: "0.03", external_income: "0.10" },
   });
   expect(await f.get<EventDTO>("transactions/" + first.id + "/")).toMatchObject({
     status: "posted",
@@ -337,7 +354,9 @@ test("real reports preserve loan/shared/rent classifications and filtered UTF-8 
   const detail = page.getByRole("link", { name: "View Filtered Transactions", exact: true });
   await detail.click();
   await expect(page).toHaveURL(/\/transactions\?/);
-  await expect(page.getByRole("link", { name: expense.title, exact: true }).first()).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "View details for " + expense.title, exact: true })
+  ).toHaveAttribute("href", "/transactions/" + expense.id);
   const filtered = await f.get<{ count: number; results: EventDTO[] }>(
     "transactions/?" + new URLSearchParams(params)
   );
@@ -403,8 +422,10 @@ test("real report calendars, budget replay recovery, strict validation, paginati
   const confirmation = await replay;
   expect(confirmation.status()).toBe(200);
   expect((await confirmation.json()).id).toBe(id);
-  expect(confirmation.request().headers()["idempotency-key"]).toBe(key);
-  expect(confirmation.request().postDataJSON()).toEqual(body);
+  let originalRequest = confirmation.request();
+  while (originalRequest.redirectedFrom()) originalRequest = originalRequest.redirectedFrom()!;
+  expect((await originalRequest.allHeaders())["idempotency-key"]).toBe(key);
+  expect(originalRequest.postDataJSON()).toEqual(body);
   await expect(f.dialog()).not.toBeVisible();
   const conflict = await f.api.post(frontendOrigin + "/api/v1/budgets/", {
     headers: await f.headers(key),
@@ -555,6 +576,59 @@ test("real report calendars, budget replay recovery, strict validation, paginati
   const anonymous = await request.newContext();
   expect((await anonymous.get(frontendOrigin + "/api/v1/reports/export/")).status()).toBe(401);
   expect((await anonymous.get(frontendOrigin + "/api/v1/reports/summary/")).status()).toBe(401);
+  // Journey G uses the same browser and filter key across a confirmed logout.
+  // B has an owned zero-opening account solely to complete the supported route guard.
+  const otherAccount = await other.post(frontendOrigin + "/api/v1/accounts/", {
+    headers: {
+      Origin: frontendOrigin,
+      "X-CSRFToken": state.cookies.find((c) => c.name === "csrftoken")!.value,
+      "Idempotency-Key": randomUUID(),
+    },
+    data: {
+      name: "Kivo Part6 isolation B",
+      kind: "cash",
+      opened_on: f.date,
+      opening_balance: "0.00",
+    },
+    timeout: 35_000,
+  });
+  expect(otherAccount.status()).toBe(201);
+  expect(
+    (await f.report({ date_from: "2025-10-01", date_to: "2025-10-31" })).personal_expense
+  ).toBe("0.02");
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(page).toHaveURL(/\/login/);
+  await page
+    .locator("form:visible")
+    .getByLabel(/Email address/i)
+    .fill(email);
+  await page
+    .locator("form:visible")
+    .getByLabel(/^Password/i)
+    .fill(password);
+  await page.getByRole("button", { name: "Sign In", exact: true }).click();
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 30_000 });
+  await f.nav("Budgets");
+  await expect(page.locator('[data-testid^="budget-card-"]')).toHaveCount(0);
+  await expect(page.getByText("No Spending Budgets Configured", { exact: true })).toBeVisible();
+  await f.nav("Reports & Analytics");
+  await page.getByRole("button", { name: "Custom Range", exact: true }).click();
+  await page.locator("#report-date_from").fill("2025-10-01");
+  await page.locator("#report-date_to").fill("2025-10-31");
+  await page.getByRole("button", { name: "Apply Filters", exact: true }).click();
+  await expect(page.getByTestId("report-period")).toContainText("2025-10-01 to 2025-10-31");
+  await expect(page.getByTestId("report-expense")).toHaveText("₹0.00");
+  await expect(page.getByTestId("report-income")).toHaveText("₹0.00");
+  await page.getByRole("button", { name: "Export CSV", exact: true }).click();
+  const isolatedDownload = page.waitForEvent("download", { timeout: 20_000 });
+  await f.dialog().getByRole("button", { name: "Download CSV", exact: true }).click();
+  expect(
+    csvRecords((await readFile((await (await isolatedDownload).path())!)).toString("utf8"))
+  ).toEqual([]);
+  await f.dialog().getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(page).toHaveURL(/\/login/);
+  expect((await page.request.get(frontendOrigin + "/api/v1/reports/export/")).status()).toBe(401);
   await other.dispose();
   await anonymous.dispose();
   expect(previous.id).not.toBe(selected.id);

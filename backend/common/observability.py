@@ -47,6 +47,14 @@ class JsonFormatter(logging.Formatter):
             "db_backend_pids",
             "database_alias",
             "database_backend_pid",
+            "driver_exception_class",
+            "database_failure_kind",
+            "database_sqlstate",
+            "database_connection_broken",
+            "database_connection_closed",
+            "database_pool_stats",
+            "database_tcp_before",
+            "database_tcp_after",
         ):
             if hasattr(record, field):
                 payload[field] = getattr(record, field)

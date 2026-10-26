@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from time import perf_counter_ns
 from typing import Any
+
+from common.database_failure import failure_fields, tcp_snapshot
 
 logger = logging.getLogger("kivo.database")
 
@@ -28,6 +31,12 @@ class DatabaseTiming:
     ) -> Any:
         started = perf_counter_ns()
         error_class = None
+        failure = {}
+        transport = (
+            tcp_snapshot(context["connection"])
+            if os.environ.get("KIVO_DB_DIAGNOSTICS") == "1"
+            else None
+        )
         # A failed libpq connection may report PID 0 afterward. Retain the
         # active PID before execution so outage logs can still be correlated.
         raw_connection = context["connection"].connection
@@ -39,13 +48,14 @@ class DatabaseTiming:
             return execute(sql, params, many, context)
         except Exception as exc:
             error_class = type(exc).__name__
+            failure = failure_fields(exc, context["connection"])
             raise
         finally:
             elapsed = perf_counter_ns() - started
             self.count += 1
             self.total_ns += elapsed
             self.maximum_ns = max(self.maximum_ns, elapsed)
-            if elapsed >= 1_000_000_000:
+            if elapsed >= 1_000_000_000 or error_class is not None:
                 logger.warning(
                     "database_query_slow",
                     extra={
@@ -53,6 +63,15 @@ class DatabaseTiming:
                         "database_backend_pid": pid,
                         "duration_ms": elapsed // 1_000_000,
                         "exception_class": error_class,
+                        **failure,
+                        **(
+                            {
+                                "database_tcp_before": transport,
+                                "database_tcp_after": tcp_snapshot(context["connection"]),
+                            }
+                            if transport is not None
+                            else {}
+                        ),
                     },
                 )
 

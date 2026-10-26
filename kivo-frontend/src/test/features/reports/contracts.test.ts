@@ -83,7 +83,7 @@ describe("report contract and download transport (isolated mocked HTTP)", () => 
     expect(result.headers.get("x-kivo-export-timezone")).toBe("Asia/Kolkata");
     const init = vi.mocked(fetch).mock.calls[0][1]!;
     expect(new Headers(init.headers).get("Cookie")).toBe("sessionid=opaque; csrftoken=token");
-    expect(new Headers(init.headers).get("Accept")).toBe("text/csv");
+    expect(new Headers(init.headers).get("Accept")).toBe("application/json");
   });
   it("returns an authenticated CSV blob through the established client", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(

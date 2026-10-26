@@ -134,7 +134,9 @@ export async function forwardDjango(request: Request): Promise<Response> {
   if (!methods) return failure(404, "API operation is not available in this integration.");
   if (!methods.includes(request.method)) return failure(405, "Method not allowed.");
   const csv = path === "/api/v1/reports/export/";
-  const headers = new Headers({ Accept: csv ? "text/csv" : "application/json" });
+  // DRF negotiates its JSON renderer before ExportView returns a raw CSV stream.
+  // Asking exclusively for text/csv produces 406 before authentication/view code.
+  const headers = new Headers({ Accept: "application/json" });
   headers.set("Cookie", djangoCookies(request.headers.get("cookie")));
   let body: string | undefined;
   if (request.method !== "GET") {
