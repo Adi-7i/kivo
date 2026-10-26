@@ -1,5 +1,15 @@
 # Integration Readiness Checklist & Roadmap
 
+## 2026-10-26 workspace and connectivity follow-up — current status
+
+**Workspace correction VERIFIED; complete Part 6 recovery PARTIALLY COMPLETE / BLOCKED — NO-GO.** Root AGENTS now enforces repository-only implementation; both reviewed probes are preserved and actually executed under `scripts/diagnostics/`. No required source exists only in a temporary directory. The original branch/owner checkpoint `INTIGRATION@975d504` and existing work are preserved.
+
+Fresh checks pass: **393 frontend tests, 62 selected backend unit tests, TypeScript, lint, production build, all 38 Part 6 screen cases and all three complete real Part 6 financial/CSV/isolation journeys**. The full 189-case regression was stopped after renewed availability failure: **6 passed / 1 interrupted / 182 not run**, exit 130. These results supersede older statements that the amended financial/CSV ownership tails have never passed; they do not establish a complete regression.
+
+A real shared-bill browser POST received **503** while Django committed **201 after 31.014s**, with 30.531s SQL elapsed and TCP retransmissions increasing during the request. Deliberate original-key/body recovery returned 200; no timeout or accounting rule was changed. Across 1,525 captured Django requests there were zero Django 5xx, which explicitly excludes the recorded proxy 503. Financial tests stopped; server shutdown released all 22 observed backend PIDs.
+
+The active connection remains the approved direct IPv6/TLS development route. The faulty hop is unverified, and official Dashboard Session Pooler parameters have not been supplied, so that required comparison and durable recovery remain blocked. No production hardening has begun. See the [Part 6 follow-up report](../../../docs/integration/part-06-budgets-reports-export-verification.md) for exact commands, preserved failures, canonical source inventory and required next input. Older sections below are historical.
+
 ## 2026-10-25 Part 6 recovery update — current status
 
 **IMPLEMENTED / PARTIALLY COMPLETE; complete live verification BLOCKED / NO-GO.** The recovery fixed the CSV bridge's upstream content negotiation (exclusive `text/csv` caused DRF 406); actual Django CSV bytes, authenticated desktop/mobile downloads, UTF-8/BOM, selected filters, filename and formula escaping now have real passing evidence. A complete budget/expense/correction/reversal browser journey passed. Cross-user export and amended full financial tails remain NOT VERIFIED.

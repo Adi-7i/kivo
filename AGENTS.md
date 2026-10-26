@@ -121,3 +121,11 @@ When resolving conflicting specifications:
 - Preserve existing database data and project functionality.
 - Do not modify production databases without explicit approval.
 - After completing a task, report all modified files and test results.
+
+## Workspace Integrity
+
+- The authorized physical workspace is `/home/lucifer/Desktop/kivo`. Verify `pwd -P`, the Git root, current branch and Git status before editing; do not create an alternate directory for the older capitalized path above.
+- Create all reusable source code, diagnostic/test scripts, configurations and reports inside this original repository. Keep reusable diagnostics under `scripts/diagnostics/`; never implement in `/tmp`, `/var/tmp`, detached worktrees or project copies.
+- External temporary files are limited to runtime data, caches, browser artifacts and generated build files. They must never hold the only copy of required project code. Run diagnostics from their repository locations.
+- Preserve existing tracked and untracked work. Before handoff, inspect `git status --short --untracked-files=all` and Git diffs, verify all required implementation files are inside the Git workspace, and report their actual inventory and executed checks.
+- Workspace corrections must not alter Django accounting behavior, existing financial records or database schemas.

@@ -4,6 +4,8 @@ Date: 2026-10-25. Final status: **IMPLEMENTED / PARTIALLY COMPLETE. Full live ve
 
 **Recovery update, 2026-10-25:** the addendum below supersedes earlier current-status claims about unverified downloads, browser coverage and the Git checkpoint. Live CSV and all 38 Part 6 screen cases now have passing evidence. The budget/correction journey passed. Intermittent database transport latency still exceeded the unchanged proxy deadline, so complete financial/security regression remains **BLOCKED**. Earlier failures are retained below.
 
+**2026-10-26 follow-up:** **workspace correction VERIFIED; Part 6 PARTIALLY COMPLETE / BLOCKED.** The three complete Part 6 financial/CSV/isolation cases and all 38 Part 6 screen cases passed. The full 189-case regression was stopped after a renewed real proxy 503: six passed, one interrupted, 182 not run. Reusable diagnostics now exist and execute under the original repository's `scripts/diagnostics/`; the earlier external-script location was corrected. The final section records actual measurements, retained failures and required next input. No configuration/accounting/schema change or production hardening occurred.
+
 ## Original workspace and mandatory gate
 
 Verified Git root and current directory: `/home/lucifer/Desktop/kivo`; frontend `kivo-frontend`, Django `backend`. Existing branch `INTIGRATION`, starting HEAD `611c9dcdbdd31b043cb892bfc511c7e82098e281`. Contrary to the historical prompt's uncommitted baseline, current status was clean: the owner had committed the previous integrations. That commit is the safe checkpoint. No branch replacement, stash, reset, temporary implementation copy, automatic commit or unrelated overwrite was used.
@@ -337,3 +339,158 @@ kivo-frontend/docs/audits/backend-api-frontend-coverage.md
 Git status/diff are reviewed in the original workspace; no implementation remains exclusively in `/tmp`. Temporary observer scripts/logs are test artifacts. No accounting/model/migration/configuration/dependency/style/font change, automatic commit, deployment or production-hardening work occurred.
 
 After the same development target has a stable verified route, run the native 68-request gate, all three amended `part6-live.spec.ts` cases and the complete Playwright suite with raw logs private, then rerun type/lint/unit/build checks and record actual outcomes. Reconcile retained ambiguous intents through original keys and supported reads; never infer rollback or create new-key duplicates. **Part 6 must not be marked VERIFIED before those gates pass.**
+
+## 2026-10-26 — workspace correction and connectivity follow-up
+
+### Workspace gate — VERIFIED
+
+Before changes, `pwd -P` and `git rev-parse --show-toplevel` both returned `/home/lucifer/Desktop/kivo`; branch `INTIGRATION`; `git status --short --untracked-files=all` was clean. The owner's checkpoint is now `975d504` (`feat: implement recovery updates and enhancements for Part 6 integration`). It is preserved. No branch replacement, worktree, project copy, reset, stash or automatic commit was used.
+
+The two reusable probes had incorrectly been created outside the repository. Recovery work was paused and the owned Django server stopped before correcting this. Both sources were reviewed for embedded secrets and preserved as actual files in the original workspace:
+
+| Earlier external copy, no longer used | Canonical source |
+| --- | --- |
+| `/tmp/kivo-p6-http-read-probe.py` | `scripts/diagnostics/probe_authenticated_reads.py` |
+| `/tmp/kivo-p6-connectivity-probe.py` | `scripts/diagnostics/probe_database_connectivity.py` |
+
+Both resolve the repository from `Path(__file__).resolve().parents[2]`; neither imports or executes the temporary copy. Existing temporary duplicates were left unused; **no required source exists exclusively under `/tmp`**. Future reusable diagnostics must be created under `scripts/diagnostics/`. The new root AGENTS **Workspace Integrity** section records the authorized physical path, pre-edit Git checks, repository-only source/configuration/report rules, temporary-runtime exception, tracked/untracked inventory and financial/schema safeguards. A byte-prefix check against `git show HEAD:AGENTS.md` confirmed that all prior instructions were preserved, including the historical capitalized-path text; the new section specifies the actual authorized path.
+
+The probes now have bounded sample/cycle arguments, typed entry points and unique private artifact names, so reruns do not overwrite earlier evidence. The HTTP probe only performs GETs with an existing test session, refuses an external redirect, records sanitized status/timing metadata and verifies anonymous export denial. It has no registration, login or financial-write fallback. The database probe uses read-only sessions, a probe-local 5s statement limit and 1s lock limit; it changes no application/server setting. Pool/socket cleanup runs in `finally`. The same-origin redirect boundary was exercised without an outbound request and rejected a foreign origin. No configured database URI or Django secret matched either source.
+
+`ruff check` and `ruff format --check scripts/diagnostics` passed. Both `--help` commands ran from their repository paths. Actual repository-path executions also passed:
+
+```sh
+backend/.venv/bin/python scripts/diagnostics/probe_database_connectivity.py --samples 3
+backend/.venv/bin/python scripts/diagnostics/probe_authenticated_reads.py --cycles 4
+```
+
+These commands ran with the existing normal-user sleep inhibitor and scoped network permission where required. The HTTP command used the existing bounded Django runner and local production frontend. It completed **25 requests: 24 HTTP 200 / one expected anonymous-export HTTP 401**, **44.218s**, maximum full-response time **2,674.694ms**, suspend delta 0, exit 0. It consumed actual report/CSV bodies, not only headers. The three-sample database command verified the development `postgres` target and TLS/read-only state: query **169.072–174.111ms**, initialization **1,428.442ms**, no retransmissions in that short interval, three additional fresh initializations **1,594.384 / 1,433.124 / 1,639.105ms**, **11.121s**, exit 0. Artifacts have unique `connectivity-<UTC timestamp>-<nanoseconds>-*.json` names under ignored `kivo-frontend/.playwright-auth`, mode 600 inside the existing mode-700 directory.
+
+### Connection mode, network and resource evidence
+
+The current environment is the local Linux development runtime, Python 3.14.4 / Django 6.1.2. No application listener was present initially on ports 8000/3001. The inspected production Gunicorn file describes two synchronous workers and a 60s worker deadline; it was not started or modified. No external deployment/provider access is available and no production-hardening action was taken.
+
+Only `SUPABASE_DB_URL` is configured among local connection variables. It is the existing **Direct** endpoint, port **5432**, resolving to **AF_INET6 only**. A real direct connection confirmed PostgreSQL **17.11**, TLS enabled, `sslmode=require`, database `postgres`, `max_connections=60` and the existing application-session statement timeout **2min**. The initial sandbox DNS failure was retried with scoped network permission and succeeded; that sandbox failure is not classified as a Supabase outage. An independent bounded TCP connection to the official Supabase documentation host succeeded over IPv4/443 in **63.048ms**; this proves runtime IPv4 TCP reachability to that host, **not reachability or performance of this project's unprovided pooler on 5432**.
+
+Default Django settings remain `CONN_MAX_AGE=600`, `CONN_HEALTH_CHECKS=True`, local pool off. The documented verification runner explicitly enables `KIVO_DEV_DB_POOL=1`: `CONN_MAX_AGE=0`, health checks on, min 1/max 4 connections, max 4 waiters, acquisition bound 5s, lifetime 600s and idle 60s, matching its four HTTP workers. Existing libpq settings remain connect timeout 10s, keepalive enabled/idle 5s/interval 5s/count 3 and TCP user timeout 10,000ms. Installed Django code supplies `prepare_threshold=None` by default and rejects local pooling with nonzero persistent connection age. None of these settings was changed.
+
+Before the workspace interruption, the two serial read-only intervals below ran against the **same direct IPv6 endpoint**. Their source is now preserved in the canonical repository probe; the table does not misrepresent those earlier runs as repository-path execution. Each interval had one requesting client, read-only sessions and no financial writes. A local psycopg pool is **not** Supabase Session Pooler.
+
+| Measurement | Direct persistent connection | Direct route + existing local psycopg pool |
+| --- | --- | --- |
+| Samples / errors | 60 / 0 | 60 / 0 |
+| Duration / measured suspend delta | 81.513s / 0 | 88.842s / 0 |
+| Initial connection initialization | 1,536.398ms | 1,603.407ms |
+| Query min / median / p95 / max | 165.360 / 199.331 / 276.888 / 932.141ms | 159.916 / 204.193 / 280.161 / 307.284ms |
+| Per-sample ensure/lease min / median / p95 / max | 0.038 / 0.060 / 0.084 / 0.094ms | 169.057 / 228.592 / 265.812 / 838.660ms |
+| Observed physical connections / retransmission increment | 1 / 3 | 2 / 2 |
+| Server execution / planning for `EXPLAIN ANALYZE SELECT 1` | 0.021 / 0.024ms | 0.021 / 0.019ms |
+| Observed sessions / blocked sessions | 8 / 0 | 9 / 0 |
+
+The persistent interval's additional three fresh initializations were **1,318.892 / 1,357.303 / 1,444.602ms**. The local-pool interval ended at pool size/available **1/1**, zero waiters, 61 leases, one startup queue observation / 1,419ms recorded wait and two physical connections created; no acquisition error was observed. The pool's per-lease health checks add an observable round trip but avoid repeated full connection setup across request threads. The persistent CLI loop does not emulate HTTP request-start health-check resetting, so its near-zero `ensure_connection()` cost must not be compared as an HTTP health-check cost. This serial measurement is not a randomized reliability comparison and does not establish that the pool caused the lower maximum query time.
+
+**Finding:** retransmissions still occurred on the direct route, although neither current 60-sample interval failed or exceeded one second per SELECT. The constant statement's server execution time was tiny relative to client elapsed time, separating that probe's network/client overhead from SQL execution. This does not prove that all historical application queries were cheap. Current snapshots do not show pool/connection exhaustion or lock contention, but do not exclude historical peaks. The prior 21.722s report/proxy deadline failure and genuine Django 503s remain retained evidence; the responsible network hop/provider/local-link cause is still **NOT VERIFIED**. The historical temporary raw server logs are no longer present in the current runtime; their earlier recorded evidence is preserved above and is not claimed to have been re-read today.
+
+### Session Pooler comparison and rollback
+
+**Direct-versus-Supabase-Session-Pooler comparison: BLOCKED.** No Dashboard Session Pooler URI is stored in the inspected local configuration, no Supabase CLI/link configuration was found, and no connected Supabase management/browser tool supplies it. The private file path and variable name were requested; no actual Dashboard pooler parameters have been provided. Never compose a pooler hostname from a guessed region or substitute credentials. [Supabase's connection guidance](https://supabase.com/docs/guides/database/connecting-to-postgres) requires the project's Connect parameters and distinguishes Session from Transaction pooling. No Transaction Pooler trial or switch occurred.
+
+**Configuration change: NONE.** The active development URI, environment files, Django database parser/settings, TLS, pool sizes, application deadlines and business/accounting services remain untouched. There is therefore no endpoint change to roll back. The original direct URI remains in the owner's Git-ignored mode-600 `.env`. Probe-only session settings end when each probe connection closes; the runner's opt-in flags end with its process.
+
+If official Session Pooler parameters become available, preserve the original URI privately before any edit, verify they identify this same approved development project/database, trial them in a separate short-lived backend process and compare matched read-only intervals and HTTP gates. Persist a change only if the evidence supports it. Rollback would restore the preserved private `SUPABASE_DB_URL` and restart only the owned backend process to close old leases; it must never reset data, reverse journals or change schemas. Do not expose either URI in shell arguments, logs, documentation or commits.
+
+### Fresh regression before the controlled financial rerun
+
+- `pnpm typecheck`, `pnpm lint`, `pnpm test`: **exit 0**; **393 tests / 60 files**, 52.02s. These are isolated frontend checks.
+- `backend/.venv/bin/python backend/manage.py check`: **exit 0**, zero issues.
+- Existing six-file backend unit selection shown above: **62 passed / 15 database cases outside the unit selection**, 0.22s, exit 0. No schema/database fixture setup was executed.
+- Production build: **exit 0**, compile 1,529ms, TypeScript 3.9s, 23 prerender entries and actual dynamic routes. No dependency/permission/configuration workaround was introduced.
+- `connectivity-2026-10-26-screens.json`: **38 passed / 0 failed / 0 skipped / 0 flaky**, **275.37s**, exit 0. All desktop/mobile Part 6 read-only cases ran against actual Django fixtures; the two deliberately injected read-error cases remain labeled as such.
+- Complete Playwright collection now contains **189 cases in 14 files**. Collection is not execution or a passing regression claim. Controlled financial and subsequent full-regression outcomes are recorded separately below.
+
+After the repository-path read gates passed within existing deadlines, controlled financial verification resumed with isolated identifiable users and small amounts, original keys, no automatic POST retries and `--max-failures=1`. A current passing read interval is not presented as a durable infrastructure fix. Any renewed critical availability failure requires stopping the affected financial run.
+
+### Controlled Part 6 financial rerun — VERIFIED for executed scope
+
+The unchanged three-case live specification completed **3 passed / 0 failed / 0 skipped / 0 flaky**, **757.80s overall, exit 0**. Private evidence: `connectivity-2026-10-26-financial.json` and its private raw `.log`. Command from `kivo-frontend`:
+
+```sh
+env KIVO_ALLOW_DEV_TEST_RECORDS=1 PLAYWRIGHT_JSON_OUTPUT_NAME=.playwright-auth/connectivity-2026-10-26-financial.json pnpm exec playwright test e2e/part6-live.spec.ts --project=chromium --workers=1 --max-failures=1 --reporter=list,json
+```
+
+Raw stdout/stderr was redirected to the ignored private log. No assertion, financial service, test retry setting or application deadline was weakened. The earlier drill-down/header test fixes in the owner's preserved commit now have real passing evidence, as does the added same-browser isolation tail.
+
+| Complete real Django-backed case | Test duration | Verified results |
+| --- | --- | --- |
+| Budget creation/edit/archive, expense utilization, audited corrections and cross-module refresh | 201.920s | Actual receipt, overall/category/custom/zero budgets, warning/exceeded/at-limit states, conflict rejection, immutable correction/reversal, authoritative dashboard/report/budget refresh. Final liquid ₹10.06, current expense ₹0.03, eligible income ₹0.10. |
+| Reports preserve loan/shared/rent classifications and filtered UTF-8 CSV accuracy | 266.175s | Real receipts, owned transfer, lending/borrowing, partial/full repayments, owner/friend-paid custom shared bills, settlements, rent generation/reserve/friend payment and repayments. Expense ₹0.37, eligible income ₹0.50, safe-to-spend/liquid ₹20.13, reserve ₹0.00; six breakdown dimensions; actual filtered browser CSV with BOM, metadata, Unicode, quoted newlines and formula escaping; correct transaction drill-down; full-file net contributions match the server summary; real header-only historical empty download. |
+| Calendars, replay recovery, strict validation, pagination and export ownership | 233.376s | Committed response loss survives refresh; explicit original-key/body replay returns 200 with same UUID and one budget; changed-body replay 409; invalid budget/report inputs 400; missing CSRF 403; all seven presets match Asia/Kolkata server bounds; inclusive custom comparison/peak/average; 22 owned budgets across two API pages; foreign budget GET/PATCH 404; foreign account export/summary expose no rows/expense; anonymous report/export 401; same browser A → confirmed logout → B → empty owned budgets/reports/CSV → confirmed logout and denied export. |
+
+These are completed journeys, not isolated mocked responses. The deliberate response-loss interception forwards the original request to Django and confirms its real 201 before aborting the client delivery; it does not fabricate a posting or hide a genuine 503. The test-only CSV reader/contribution assertions do not introduce product-side accounting or CSV generation. Source cache/idempotency/session/CSRF implementations remain unchanged.
+
+The current 189-case regression was then launched with one worker, no retries and a stop at the first failure:
+
+```sh
+env KIVO_ALLOW_DEV_TEST_RECORDS=1 PLAYWRIGHT_JSON_OUTPUT_NAME=.playwright-auth/connectivity-2026-10-26-full-regression.json pnpm exec playwright test --workers=1 --retries=0 --max-failures=1 --reporter=list,json
+```
+
+**Full regression: BLOCKED / NOT VERIFIED.** The command was stopped at the renewed availability failure below, **exit 130**, **1,178.03s overall**. Actual results: **6 passed, 1 interrupted, 182 not run** out of 189. The JSON reporter groups the interrupted/unexecuted cases under `skipped:183`; that is not a passing full run or intentional omission of a failing assertion. The six completed cases were fresh browser authentication/onboarding/session/logout/isolation (48.897s), core transactions/recovery/immutable corrections/isolation (307.015s), dashboard/pinned FIFO/exhaustion/corrections/isolation (153.592s), friend-paid custom bill and settlements (72.501s), shared-bill correction/reversal (81.774s), and settlement correction/reversal/idempotency/isolation (117.228s). The long Part 4 financial journey was interrupted; later cases, including the full Part 5 regression, did not run in this command. Their earlier historical passes and the separate current Part 6 rent-classification pass are not substituted for this missing regression.
+
+### Renewed failure, final HTTP evidence and safety stop
+
+At **2026-10-26 12:43:00.391755 UTC**, browser-originated `POST /api/v1/shared-bills/` completed in Django with **201 after 31,014ms**, **38 queries**, **30,531ms SQL elapsed**, maximum query **4,041ms**. Correlation ID: `1764bc81-9f4c-4d9a-b053-9d95aad2ab35`. The backend audit logged its commit at 12:42:59.378670 UTC. Application/middleware time outside measured SQL was approximately 483ms; the observation does not identify how much SQL elapsed time was PostgreSQL execution versus transport or lock waits.
+
+The actual browser bridge deadline remains **30s for that financial POST**. The retained test log records **`Explicit UI recovery after actual HTTP 503; original key/body, confirmed 200.`** The existing test helper validates the original key/body and deliberately drives GET reconciliation followed by the original-key replay. That recovery does not make the original 503 a successful reliable request or justify a new-key write. The record and audit history are retained; no cleanup deletion, compensating transaction or independent balance edit was performed.
+
+Within that same request/PID, TCP retransmissions increased **14 → 21** across the recorded slow-query sequence. At the 4,041ms query, retransmissions increased **20 → 21**, RTT **1,470,259 → 1,791,601µs**. Several sequential queries took 1.2–2.5s while RTT rose from about 0.21s to 1.88s. This reproduces significant direct-route transport degradation correlated with an application deadline failure. **The faulty hop/provider/local-link cause remains NOT VERIFIED; no permanent connectivity fix is claimed.** No SQL exception, pool-acquisition error or failed health check was observed in these current server logs. This does not prove absence of historical acquisition failures, peak locks or CPU pressure.
+
+The runtime's connected interface is Wi-Fi. Bounded NetworkManager journal queries around both the 11:38–11:43 probes and the **12:41–12:44 UTC** timeout window returned no retained events. That is missing corroborating local network evidence, not proof that Wi-Fi or the upstream network is healthy. No wireless settings, network restrictions, routes, credentials or timeouts were changed.
+
+The financial run was interrupted on observing the renewed deadline violation. Further financial tests and mutating smoke requests stopped; no rerun was attempted after a subsequent healthy SELECT. The server held the normal-user idle/sleep inhibitor, but a BOOTTIME-minus-MONOTONIC baseline was not recorded across the entire full-suite interval; only the shorter probes' zero suspend deltas are verified. Shutdown waited for the owned Django runner to release its workers/pool and exited **0**. The Playwright-owned frontend also stopped; an actual port inspection showed no listeners on 8000/3001. A final real repository-path diagnostic then checked cleanup:
+
+```sh
+backend/.venv/bin/python scripts/diagnostics/probe_database_connectivity.py --samples 1 --observed-log kivo-frontend/.playwright-auth/connectivity-2026-10-26-django-resumed.log
+```
+
+It exited **0**, observed **22 recorded server backend PIDs / zero still connected**, verified read-only/TLS state, zero blocked sessions out of six current database sessions, a **204.515ms** SELECT and no retransmission in that short check. Duration **8.968s**, suspend delta 0. This verifies connection release, not incident resolution. Its unique private artifact is `connectivity-20261026T124825Z-1793018905902276172-direct.json`.
+
+Final HTTP totals from the two stopped server captures:
+
+| Capture | Completed Django requests | Status distribution |
+| --- | --- | --- |
+| `connectivity-2026-10-26-django.log` | 297 | 200:296, 401:1 |
+| `connectivity-2026-10-26-django-resumed.log` | 1,228 | 200:987, 201:167, 204:4, 400:17, 401:22, 403:4, 404:20, 409:6, 429:1 |
+| **Combined** | **1,525** | **Zero Django 5xx; at least one separately confirmed real proxy 503.** |
+
+| Method | Count | Median / p95 / maximum preparation time |
+| --- | --- | --- |
+| GET | 1,297 | 1,118 / 4,292 / 9,882ms |
+| POST | 212 | 3,297 / 11,455 / 31,014ms |
+| PATCH | 16 | 2,217 / 7,418 / 7,418ms |
+
+These are server preparation measurements; streaming CSV iteration occurs after middleware timing. They are not whole-download percentiles. The repository HTTP probe separately consumed full response bodies and the browser CSV cases verified actual downloaded contents. The explicitly injected screen-error cases are test stimuli, not additional real Django outages. The one auth throttle rejection is retained as 429, not classified as a database or 5xx failure.
+
+Final scoped privacy scan: **49 emitted browser JS files / zero configured private-value or decoded database-password matches**, exit 0. Private artifacts remain ignored; both diagnostic source files contain no embedded credentials. Root instructions and all source/test changes exist in the original Git workspace. No backend accounting, model, serializer, permission, schema, migration, dependency, application configuration or UI source was modified by this follow-up.
+
+### Final follow-up status and required correction
+
+- **Workspace Integrity: VERIFIED.** The root guardrail and both canonical diagnostics are preserved and executable in the original repository. Historical external copies are unused and not the only source.
+- **Part 6 implemented functionality: VERIFIED for the three complete current live cases and 38 screen cases.** Budget/report/correction/classification/CSV/replay/security/isolation assertions now have real passing evidence.
+- **Complete Part 6 recovery: PARTIALLY COMPLETE / BLOCKED — NO-GO.** The full cross-module regression did not complete; the direct connection again exceeded the financial proxy deadline. The physical/network/provider cause and requested Direct-versus-Session-Pooler comparison remain unverified.
+
+Required next input: save this same development project's official **Dashboard → Connect → Session pooler** URI in a Git-ignored private setting and provide only its file path and variable name. Do not paste credentials. With those verified parameters, compare matched low-concurrency read-only runs from this backend, preserve the direct URI for rollback, and choose a change only if it demonstrably improves reliability. Alternatively, repair the current route with verifiable operator/provider evidence. Then rerun auth/read gates, the interrupted financial journey and the full unchanged suite. No new staging database, guessed hostname, timeout inflation, accounting rewrite or blind retry is a substitute.
+
+Final original-workspace inventory from `git status --short --untracked-files=all`: **six modified tracked files and two new diagnostic sources**. Generated/private test artifacts are not implementation files.
+
+```text
+ M AGENTS.md
+ M docs/audits/backend-api-frontend-coverage.md
+ M docs/integration/integration-readiness.md
+ M docs/integration/part-06-budgets-reports-export-verification.md
+ M kivo-frontend/docs/audits/backend-api-frontend-coverage.md
+ M kivo-frontend/docs/integration/integration-readiness.md
+?? scripts/diagnostics/probe_authenticated_reads.py
+?? scripts/diagnostics/probe_database_connectivity.py
+```
+
+Final Git diff/whitespace review and Ruff check/format-check passed. All eight resolved paths are inside the original Git root. The only project code introduced in this follow-up is the two canonical diagnostic sources; no required implementation is left exclusively under `/tmp`. The four readiness/coverage copies now link to the current evidence and preserve historical findings. No files were staged, reset or automatically committed. **Part 6 is not declared VERIFIED and production-release hardening has not begun.**
