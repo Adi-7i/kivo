@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -75,9 +76,16 @@ export function AppHeader() {
             prefetch={false}
             className="flex items-center gap-2 font-bold text-foreground lg:hidden"
           >
-            <span className="flex size-7 items-center justify-center rounded-lg bg-kivo-primary text-xs font-bold text-white">
-              K
-            </span>
+            <div className="relative size-7 shrink-0 overflow-hidden rounded-lg shadow-2xs ring-1 ring-border/50">
+              <Image
+                src="/logo.png"
+                alt="Kivo logo"
+                width={28}
+                height={28}
+                priority
+                className="size-full object-cover"
+              />
+            </div>
             <span className="text-sm font-semibold">Kivo</span>
           </Link>
           <div className="hidden h-4 w-px bg-border/80 lg:block" />

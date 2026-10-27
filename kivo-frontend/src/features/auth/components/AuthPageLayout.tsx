@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { ShieldCheck, Wallet } from "lucide-react";
 
@@ -17,9 +18,16 @@ export function AuthPageLayout({ children, title, subtitle }: AuthPageLayoutProp
           aria-hidden="true"
         />
         <Link href="/" prefetch={false} className="inline-flex w-fit items-center gap-3 relative z-10">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-kivo-sage text-xl font-bold text-kivo-brand-dark shadow-sm">
-            K
-          </span>
+          <div className="relative size-10 shrink-0 overflow-hidden rounded-xl shadow-md ring-1 ring-white/10">
+            <Image
+              src="/logo.png"
+              alt="Kivo logo"
+              width={40}
+              height={40}
+              priority
+              className="size-full object-cover"
+            />
+          </div>
           <span className="text-2xl font-bold tracking-tight">Kivo</span>
         </Link>
         <div className="max-w-md space-y-5 py-8 relative z-10">
@@ -44,9 +52,16 @@ export function AuthPageLayout({ children, title, subtitle }: AuthPageLayoutProp
           prefetch={false}
           className="mb-6 flex w-full max-w-md items-center gap-2 font-bold text-kivo-brand-dark lg:hidden"
         >
-          <span className="flex size-9 items-center justify-center rounded-lg bg-kivo-primary text-lg text-white">
-            K
-          </span>
+          <div className="relative size-9 shrink-0 overflow-hidden rounded-xl shadow-xs ring-1 ring-border/50">
+            <Image
+              src="/logo.png"
+              alt="Kivo logo"
+              width={36}
+              height={36}
+              priority
+              className="size-full object-cover"
+            />
+          </div>
           <span className="text-lg">Kivo</span>
         </Link>
         <div className="w-full max-w-md min-w-0">{children}</div>

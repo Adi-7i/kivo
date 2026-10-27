@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -136,9 +137,16 @@ function Brand({ compact = false }: { compact?: boolean }) {
       aria-label="Kivo dashboard"
       className="flex h-14 shrink-0 items-center gap-3 border-b border-border/60 px-4 font-bold text-foreground transition-opacity hover:opacity-90"
     >
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-kivo-primary font-bold text-white shadow-xs">
-        K
-      </span>
+      <div className="relative size-8 shrink-0 overflow-hidden rounded-xl shadow-2xs ring-1 ring-border/50">
+        <Image
+          src="/logo.png"
+          alt="Kivo logo"
+          width={32}
+          height={32}
+          priority
+          className="size-full object-cover"
+        />
+      </div>
       {!compact && (
         <div className="flex flex-col">
           <span className="text-base tracking-tight font-bold">Kivo</span>

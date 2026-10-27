@@ -14,6 +14,15 @@ export const metadata: Metadata = {
   title: "Kivo — Personal Money & Expense Management",
   description:
     "Private, manual-entry personal finance, budgeting, and living expense management application.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon.png", type: "image/png", sizes: "32x32" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({
