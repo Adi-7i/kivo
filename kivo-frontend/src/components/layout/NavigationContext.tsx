@@ -1,6 +1,47 @@
 "use client";
 
-import { createContext, useContext, useState, useMemo, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useSyncExternalStore,
+  useMemo,
+  type ReactNode,
+} from "react";
+
+let listeners: Array<() => void> = [];
+
+function emitChange() {
+  for (const listener of listeners) {
+    listener();
+  }
+}
+
+function subscribe(listener: () => void) {
+  listeners = [...listeners, listener];
+  if (typeof window !== "undefined") {
+    window.addEventListener("storage", listener);
+  }
+  return () => {
+    listeners = listeners.filter((l) => l !== listener);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("storage", listener);
+    }
+  };
+}
+
+function getSnapshot(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem("kivo-sidebar-collapsed") === "true";
+  } catch {
+    return false;
+  }
+}
+
+function getServerSnapshot(): boolean {
+  return false;
+}
 
 const NavigationContext = createContext<{
   collapsed: boolean;
@@ -10,8 +51,18 @@ const NavigationContext = createContext<{
 } | null>(null);
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const collapsed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const setCollapsed = (value: boolean) => {
+    try {
+      localStorage.setItem("kivo-sidebar-collapsed", String(value));
+    } catch {
+      // Storage unavailable or disabled
+    }
+    emitChange();
+  };
+
   const value = useMemo(
     () => ({ collapsed, setCollapsed, mobileOpen, setMobileOpen }),
     [collapsed, mobileOpen]
@@ -24,3 +75,5 @@ export function useNavigation() {
   if (!value) throw new Error("Navigation must be rendered inside the application shell.");
   return value;
 }
+
+

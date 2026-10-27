@@ -35,22 +35,23 @@ export default function MoneyAccountsPage() {
       <PageContainer>
         <section className="py-8 space-y-6">
           {/* Sub-Navigation between Money Accounts and Money Sources */}
-          <div className="flex items-center gap-2 border-b border-border pb-3">
+          <div className="inline-flex items-center rounded-xl bg-muted/60 p-1 border border-border/60 text-xs">
             <Link
               href="/money"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-kivo-primary px-3 py-1.5 text-xs font-semibold text-white shadow-xs"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs transition-all"
             >
-              <Landmark className="size-3.5" />
+              <Landmark className="size-3.5 text-kivo-primary" />
               <span>Money Accounts</span>
             </Link>
             <Link
               href="/money/sources"
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               <Layers className="size-3.5" />
-              <span>Money Sources & Journeys</span>
+              <span>Money Sources &amp; Journeys</span>
             </Link>
           </div>
+
 
           {/* Section Header with Total Liquid Balance & CTA */}
           <SectionHeader

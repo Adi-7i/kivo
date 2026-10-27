@@ -13,7 +13,7 @@ export function SafeToSpendCard({ capacity, onAddReserve }: SafeToSpendCardProps
   const isShortfall = capacity.safeToSpendPaise < 0;
 
   return (
-    <div className="rounded-2xl border border-kivo-primary/20 bg-linear-to-b from-kivo-primary/5 to-card p-5 sm:p-6 shadow-xs space-y-5">
+    <div className="card-hover-interactive rounded-2xl border border-kivo-primary/25 bg-linear-to-b from-kivo-primary/5 to-card p-5 sm:p-6 shadow-card space-y-5">
       {/* Top row: Header + Add Reserve Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="space-y-1">

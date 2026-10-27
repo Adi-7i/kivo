@@ -18,7 +18,11 @@ function Shell({ children }: { children: ReactNode }) {
         Skip to content
       </a>
       <AppNav />
-      <div className={collapsed ? "min-w-0 lg:pl-20" : "min-w-0 lg:pl-64"}>
+      <div
+        className={`min-w-0 transition-[padding] duration-200 ease-in-out ${
+          collapsed ? "lg:pl-[76px]" : "lg:pl-64"
+        }`}
+      >
         <AppHeader />
         <main
           id="main-content"

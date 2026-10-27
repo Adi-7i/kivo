@@ -141,13 +141,12 @@ export function SessionBoundary({ children }: { children: React.ReactNode }) {
   return children;
 }
 
-export function SessionMenu() {
-  const { data: user } = useSession();
+export function useLogout() {
   const client = useQueryClient();
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState("");
   const lock = React.useRef(false);
-  if (!user) return null;
+
   const logout = async () => {
     if (lock.current) return;
     lock.current = true;
@@ -168,6 +167,14 @@ export function SessionMenu() {
       setBusy(false);
     }
   };
+
+  return { logout, busy, error };
+}
+
+export function SessionMenu() {
+  const { data: user } = useSession();
+  const { logout, busy, error } = useLogout();
+  if (!user) return null;
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs">
       <span className="hidden max-w-40 truncate sm:inline-block">{user.name || user.email}</span>
@@ -182,3 +189,4 @@ export function SessionMenu() {
     </div>
   );
 }
+

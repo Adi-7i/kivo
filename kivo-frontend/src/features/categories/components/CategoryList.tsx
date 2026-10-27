@@ -46,8 +46,10 @@ export function CategoryList({ categories, onEditCategory }: CategoryListProps) 
           {filteredCategories.map((cat) => (
             <Card
               key={cat.id}
-              className="border-border hover:border-border/80 transition-shadow hover:shadow-xs bg-card"
+              className="card-hover-interactive border-border/80 hover:border-kivo-primary/30 shadow-card rounded-2xl bg-card transition-all"
             >
+
+
               <CardContent className="p-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div

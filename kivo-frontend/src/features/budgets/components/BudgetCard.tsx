@@ -20,7 +20,7 @@ export function BudgetCard({
   return (
     <article
       data-testid={"budget-card-" + budget.id}
-      className={`rounded-xl border p-4 sm:p-5 shadow-xs space-y-4 ${budget.warning_state === "exceeded" ? "border-destructive/40 bg-destructive/5" : "border-border/80 bg-card"} ${className ?? ""}`}
+      className={`card-hover-interactive rounded-2xl border p-4 sm:p-5 shadow-card space-y-4 ${budget.warning_state === "exceeded" ? "border-destructive/40 bg-destructive/5" : "border-border/80 bg-card"} ${className ?? ""}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex gap-2 min-w-0">

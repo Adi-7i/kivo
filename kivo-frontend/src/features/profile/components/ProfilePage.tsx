@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ProfileHeader } from "./ProfileHeader";
 import { ProfileInfoSection } from "./ProfileInfoSection";
+import { ProfileSignOut } from "./ProfileSignOut";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import { useSession } from "@/features/auth/session";
@@ -28,6 +29,9 @@ export function ProfilePage() {
       <ProfileHeader displayName={user.name || user.email} email={user.email} />
 
       <ProfileInfoSection user={user} />
+
+      <ProfileSignOut />
     </div>
   );
 }
+

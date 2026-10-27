@@ -14,13 +14,13 @@ interface AccountsOverviewCardProps {
 
 const KIND_ICON = {
   bank: <Building2 className="size-4 text-kivo-primary" />,
-  cash: <Banknote className="size-4 text-emerald-600" />,
-  wallet: <Wallet className="size-4 text-blue-600" />,
+  cash: <Banknote className="size-4 text-emerald-600 dark:text-emerald-400" />,
+  wallet: <Wallet className="size-4 text-blue-600 dark:text-blue-400" />,
 };
 
 export function AccountsOverviewCard({ accounts, className }: AccountsOverviewCardProps) {
   return (
-    <Card className={className}>
+    <Card className={`card-hover-interactive border-border/80 shadow-card ${className ?? ""}`}>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div>
           <CardTitle className="text-base font-bold font-heading">Your Accounts</CardTitle>
@@ -30,14 +30,14 @@ export function AccountsOverviewCard({ accounts, className }: AccountsOverviewCa
         </div>
         <Link
           href="/money"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-kivo-primary hover:text-kivo-secondary"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-kivo-primary hover:text-kivo-secondary transition-colors"
         >
           <span>Manage</span>
           <ArrowRight className="size-3" />
         </Link>
       </CardHeader>
 
-      <CardContent className="space-y-2.5 pt-1">
+      <CardContent className="space-y-2 pt-1">
         {accounts.length === 0 ? (
           <FinancialEmptyState
             icon={<Building2 className="size-5 text-muted-foreground" />}
@@ -57,10 +57,10 @@ export function AccountsOverviewCard({ accounts, className }: AccountsOverviewCa
           accounts.map((acc) => (
             <div
               key={acc.id}
-              className="flex flex-wrap min-w-0 items-center justify-between gap-2 p-2.5 rounded-lg border border-border/70 bg-muted/20 text-xs"
+              className="group flex flex-wrap min-w-0 items-center justify-between gap-2 p-2.5 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors text-xs"
             >
               <div className="flex min-w-0 items-center gap-2.5">
-                <div className="flex size-7 items-center justify-center rounded-md bg-muted">
+                <div className="flex size-7 items-center justify-center rounded-lg bg-background border border-border/60 shadow-2xs group-hover:scale-105 transition-transform">
                   {KIND_ICON[acc.kind] || KIND_ICON.bank}
                 </div>
                 <span className="min-w-0 break-words font-semibold text-foreground">
@@ -75,3 +75,4 @@ export function AccountsOverviewCard({ accounts, className }: AccountsOverviewCa
     </Card>
   );
 }
+

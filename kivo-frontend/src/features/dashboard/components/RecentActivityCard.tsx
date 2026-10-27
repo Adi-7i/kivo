@@ -14,17 +14,17 @@ interface RecentActivityCardProps {
 
 export function RecentActivityCard({ transactions, className }: RecentActivityCardProps) {
   return (
-    <Card className={className}>
+    <Card className={`card-hover-interactive border-border/80 shadow-card ${className ?? ""}`}>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div>
           <CardTitle className="text-base font-bold font-heading">Recent Activity</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
-            Your latest money activity.
+            Your latest money activity across all accounts.
           </CardDescription>
         </div>
         <Link
           href="/transactions"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-kivo-primary hover:text-kivo-secondary"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-kivo-primary hover:text-kivo-secondary transition-colors"
         >
           <span>View all</span>
           <ArrowRight className="size-3" />
@@ -37,7 +37,7 @@ export function RecentActivityCard({ transactions, className }: RecentActivityCa
             No recent transactions recorded yet. Use Quick Add above to record an event.
           </p>
         ) : (
-          <div className="divide-y divide-border/60">
+          <div className="divide-y divide-border/50">
             {transactions.slice(0, 5).map((tx) => {
               const isExpense = tx.kind === "expense";
               const isReceipt = tx.kind === "receipt";
@@ -45,7 +45,7 @@ export function RecentActivityCard({ transactions, className }: RecentActivityCa
               return (
                 <div
                   key={tx.id}
-                  className="flex flex-wrap min-w-0 items-center justify-between py-3 text-xs gap-3"
+                  className="group flex flex-wrap min-w-0 items-center justify-between py-3 text-xs gap-3 transition-colors hover:bg-muted/30 px-2 rounded-lg -mx-2"
                 >
                   <div className="flex min-w-0 flex-1 items-start gap-3">
                     <TransactionTypeBadge kind={tx.kind} showIcon={false} />
@@ -53,7 +53,7 @@ export function RecentActivityCard({ transactions, className }: RecentActivityCa
                       <Link
                         prefetch={false}
                         href={`/transactions/${tx.id}`}
-                        className="font-semibold text-foreground break-words"
+                        className="font-semibold text-foreground break-words group-hover:text-kivo-primary transition-colors"
                       >
                         {tx.title}
                       </Link>
@@ -82,3 +82,4 @@ export function RecentActivityCard({ transactions, className }: RecentActivityCa
     </Card>
   );
 }
+
