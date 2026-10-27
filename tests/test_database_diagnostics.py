@@ -141,7 +141,29 @@ def test_role_rehearsal_requires_explicit_flag_before_connecting() -> None:
 
 
 @pytest.mark.unit
-def test_security_gate_rejects_callable_helpers_even_when_other_gates_pass() -> None:
+@pytest.mark.parametrize(
+    "helpers,create_privileges,forbidden_mutations,user_updates,failed_gate",
+    [
+        (
+            [("kivo_expected_postings(bigint)",)],
+            (False, False),
+            [],
+            False,
+            "function_privacy_failures",
+        ),
+        ([], (True, False), [], False, "runtime_database_create"),
+        ([], (False, True), [], False, "runtime_public_schema_create"),
+        ([], (False, False), [("ledger_posting",)], False, "runtime_forbidden_mutations"),
+        ([], (False, False), [], True, "runtime_user_privilege_updates"),
+    ],
+)
+def test_security_gate_rejects_unsafe_privileges_even_when_other_gates_pass(
+    helpers: list[tuple[str]],
+    create_privileges: tuple[bool, bool],
+    forbidden_mutations: list[tuple[str]],
+    user_updates: bool,
+    failed_gate: str,
+) -> None:
     # Unit fault injection only. The separately executed remote audit records
     # the actual role/grants; this isolates a previously missing security gate.
     names = sorted(
@@ -152,12 +174,13 @@ def test_security_gate_rejects_callable_helpers_even_when_other_gates_pass() -> 
     output = io.StringIO()
     with patch("common.management.commands.audit_database_security.connection.cursor") as factory:
         cursor = factory.return_value.__enter__.return_value
-        cursor.fetchone.side_effect = [(True,), (0,)]
-        cursor.fetchall.side_effect = [tables, [], [("kivo_expected_postings(bigint)",)]]
+        cursor.fetchone.side_effect = [(True,), (0,), create_privileges, (user_updates,)]
+        cursor.fetchall.side_effect = [tables, [], helpers, forbidden_mutations]
         with pytest.raises(CommandError, match="security gate"):
             call_command("audit_database_security", stdout=output)
     result = json.loads(output.getvalue().splitlines()[0])
-    assert result["function_privacy_failures"] == ["kivo_expected_postings(bigint)"]
+    assert result[failed_gate]
+    assert result["function_privacy_failures"] == [row[0] for row in helpers]
     assert result["administrative_roles_accessible"] == result["runtime_owned_tables"] == 0
 
 

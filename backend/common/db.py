@@ -51,7 +51,10 @@ def parse_supabase_db_url(url_str: str | None = None, *, use_pool: bool = False)
             "A remote PostgreSQL host is required; local socket fallback is prohibited."
         )
 
-    qs = parse_qs(parsed.query)
+    qs = parse_qs(parsed.query, keep_blank_values=True)
+    for key in ("sslmode", "sslrootcert"):
+        if key in qs and (len(qs[key]) != 1 or not qs[key][0].strip()):
+            raise ImproperlyConfigured("TLS options must have one non-empty value each.")
     sslmode = qs.get("sslmode", ["require"])[0]
     if sslmode not in {"require", "verify-ca", "verify-full"}:
         raise ImproperlyConfigured(
@@ -88,6 +91,8 @@ def parse_supabase_db_url(url_str: str | None = None, *, use_pool: bool = False)
         "CONN_MAX_AGE": 600,
         "CONN_HEALTH_CHECKS": True,
     }
+    if "sslrootcert" in qs:
+        config["OPTIONS"]["sslrootcert"] = qs["sslrootcert"][0]
     if use_pool:
         # Bounded process-local psycopg pool. Django returns each request's
         # connection to this pool; it must not also retain thread-local leases.

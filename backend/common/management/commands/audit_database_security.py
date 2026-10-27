@@ -9,6 +9,8 @@ from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 
+from common.runtime_role import APPEND_ONLY, READ_ONLY
+
 CLIENT_ROLES = ["anon", "authenticated", "service_role"]
 
 
@@ -29,6 +31,11 @@ class Command(BaseCommand):
                   AND (rolname=current_user OR pg_has_role(current_user, oid, 'MEMBER'))
             """)
             administrative_roles = cursor.fetchone()[0]
+            cursor.execute("""
+                SELECT has_database_privilege(current_user, current_database(), 'CREATE'),
+                    has_schema_privilege(current_user, 'public', 'CREATE')
+            """)
+            database_create, schema_create = cursor.fetchone()
             cursor.execute(
                 """
                 SELECT c.oid, c.relname, c.relrowsecurity,
@@ -69,6 +76,24 @@ class Command(BaseCommand):
                 [CLIENT_ROLES],
             )
             exposed_helpers = [row[0] for row in cursor.fetchall()]
+            cursor.execute(
+                """
+                SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+                WHERE n.nspname='public' AND c.relname=ANY(%s)
+                  AND (has_table_privilege(current_user, c.oid, 'UPDATE,DELETE,TRUNCATE,TRIGGER')
+                    OR EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid=c.oid
+                        AND a.attnum>0 AND NOT a.attisdropped
+                        AND has_column_privilege(current_user,c.oid,a.attnum,'UPDATE')))
+                ORDER BY c.relname
+                """,
+                [sorted(APPEND_ONLY | READ_ONLY)],
+            )
+            forbidden_mutations = [row[0] for row in cursor.fetchall()]
+            cursor.execute("""
+                SELECT has_column_privilege(current_user,'public.users','is_staff','UPDATE')
+                    OR has_column_privilege(current_user,'public.users','is_superuser','UPDATE')
+            """)
+            user_privilege_updates = cursor.fetchone()[0]
         missing = sorted(set(names) - {row[1] for row in tables})
         exposed = [row[1] for row in tables if not row[2] or row[4]]
         owned = [row[1] for row in tables if row[3]]
@@ -76,6 +101,10 @@ class Command(BaseCommand):
         result = {
             "tls": bool(ssl and ssl[0]),
             "administrative_roles_accessible": administrative_roles,
+            "runtime_database_create": database_create,
+            "runtime_public_schema_create": schema_create,
+            "runtime_forbidden_mutations": forbidden_mutations,
+            "runtime_user_privilege_updates": user_privilege_updates,
             "runtime_owned_tables": len(owned),
             "tables_checked": len(tables),
             "missing_tables": missing,
@@ -88,6 +117,10 @@ class Command(BaseCommand):
         if (
             not result["tls"]
             or administrative_roles
+            or database_create
+            or schema_create
+            or forbidden_mutations
+            or user_privilege_updates
             or owned
             or missing
             or exposed

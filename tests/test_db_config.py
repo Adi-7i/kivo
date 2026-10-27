@@ -29,6 +29,18 @@ class TestDatabaseUrlParser:
         with pytest.raises(ImproperlyConfigured, match="SUPABASE_DB_URL is not configured"):
             parse_supabase_db_url("")
 
+    def test_preserves_explicit_tls_root_certificate(self) -> None:
+        config = parse_supabase_db_url(
+            "postgresql://app:secret@db.example/db?sslmode=verify-full"
+            "&sslrootcert=%2Frun%2Fsecrets%2Fsupabase-ca.crt"
+        )
+        assert config["OPTIONS"]["sslrootcert"] == "/run/secrets/supabase-ca.crt"
+
+    @pytest.mark.parametrize("query", ["sslmode=require&sslmode=disable", "sslrootcert="])
+    def test_rejects_ambiguous_or_empty_tls_configuration(self, query: str) -> None:
+        with pytest.raises(ImproperlyConfigured, match="TLS"):
+            parse_supabase_db_url(f"postgresql://app:secret@db.example/db?{query}")
+
     def test_parse_invalid_scheme_raises_improperly_configured(self) -> None:
         """Schemes other than postgresql/postgres are rejected."""
         with pytest.raises(ImproperlyConfigured, match="Invalid database scheme 'mysql'"):

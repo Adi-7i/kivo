@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 
 def load_dotenv(env_path: Path | str | None = None) -> None:
     """Load key-value pairs from a .env file into os.environ.
@@ -33,6 +35,7 @@ def load_dotenv(env_path: Path | str | None = None) -> None:
                     value = value.strip().strip("'\"")
                     if key and key not in os.environ:
                         os.environ[key] = value
-    except Exception:
-        # Silently fail if .env cannot be read; environment will rely on system env vars
-        pass
+    except (OSError, UnicodeError):
+        # Missing files are optional; an existing broken secret file is not.
+        # Do not include its contents or the underlying exception in diagnostics.
+        raise ImproperlyConfigured("The configured environment file could not be read.") from None

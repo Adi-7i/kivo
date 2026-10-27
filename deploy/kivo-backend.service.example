@@ -1,0 +1,35 @@
+# Review user, paths and secret-file ownership on the approved systemd host.
+[Unit]
+Description=Kivo Django backend
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=kivo
+Group=kivo
+WorkingDirectory=/home/lucifer/Desktop/kivo
+EnvironmentFile=/etc/kivo/backend.env
+Environment=DJANGO_SETTINGS_MODULE=config.settings.production
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/home/lucifer/Desktop/kivo/backend/.venv/bin/gunicorn --config /home/lucifer/Desktop/kivo/deploy/gunicorn.conf.py
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=70
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
